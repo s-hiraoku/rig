@@ -136,6 +136,9 @@ def run_codex(args: argparse.Namespace, store: RunStore) -> int:
 def list_runs(store: RunStore) -> int:
     runs = store.list_runs()
     print(f"{'ID':<26} {'AGENT':<7} {'STATUS':<10} STARTED")
+    if not runs:
+        print("No runs found.")
+        return 0
     for run in runs:
         started_at = format_started_at(str(run.get("started_at", "")))
         print(
@@ -150,19 +153,27 @@ def list_runs(store: RunStore) -> int:
 def show_run(store: RunStore, run_id: str) -> int:
     run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
     if run is None:
-        print(f"Run not found: {run_id}", file=sys.stderr)
+        if run_id == "latest":
+            print("No runs found.", file=sys.stderr)
+        else:
+            print(f"Run not found or unreadable: {run_id}", file=sys.stderr)
         return 1
 
-    result_path = f"{run['run_dir']}/result.md"
-    print(f"ID:        {run['id']}")
-    print(f"Agent:     {run['agent']}")
-    print(f"Status:    {run['status']}")
-    print(f"Run dir:   {run['run_dir']}")
+    run_dir = str(run.get("run_dir", ""))
+    result_path = f"{run_dir}/result.md" if run_dir else "result.md"
+    result = store.read_result(run)
+    print(f"ID:        {run.get('id', '')}")
+    print(f"Agent:     {run.get('agent', '')}")
+    print(f"Status:    {run.get('status', '')}")
+    print(f"Run dir:   {run_dir}")
     print(f"Result:    {result_path}")
     print()
     print("--- Result ---")
     print()
-    print(store.read_result(run), end="")
+    if result:
+        print(result, end="")
+    else:
+        print("(result.md is missing or empty)")
     return 0
 
 

@@ -135,10 +135,18 @@ class RunStore:
         status_path = self.runs_dir / run_id / "status.json"
         if not status_path.is_file():
             return None
-        return cast(dict[str, Any], json.loads(status_path.read_text(encoding="utf-8")))
+        try:
+            return cast(
+                dict[str, Any], json.loads(status_path.read_text(encoding="utf-8"))
+            )
+        except (OSError, json.JSONDecodeError):
+            return None
 
     def read_result(self, run: dict[str, Any]) -> str:
-        run_dir = self.cwd / str(run["run_dir"])
+        run_dir_value = run.get("run_dir")
+        if not isinstance(run_dir_value, str) or not run_dir_value:
+            return ""
+        run_dir = self.cwd / run_dir_value
         result_path = run_dir / "result.md"
         if not result_path.is_file():
             return ""

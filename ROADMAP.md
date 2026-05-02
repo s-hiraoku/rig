@@ -27,10 +27,10 @@ Implemented:
 - file-backed run artifacts under `.rig/runs/<run-id>/`
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
+- friendlier handling of empty, damaged, or incomplete run history
 
 Still in scope for Phase 1 polish:
 
-- friendlier handling of damaged or incomplete run directories
 - clearer failed-run inspection output
 - optional dry-run or command preview mode
 
@@ -141,4 +141,3 @@ Possible inputs:
 - whether worktree isolation is recommended
 
 This should remain advisory. Rig should not become a workflow engine.
-

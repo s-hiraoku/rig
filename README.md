@@ -155,6 +155,9 @@ neither, is an error.
 
 Lists recent runs by reading `.rig/runs/*/status.json`.
 
+Unreadable run metadata is skipped. If there are no readable runs, Rig prints
+`No runs found.`.
+
 Example:
 
 ```bash
@@ -173,6 +176,8 @@ ID                         AGENT   STATUS     STARTED
 
 Shows metadata and the result for the most recent run.
 
+If no readable runs exist, Rig prints `No runs found.`.
+
 Example:
 
 ```bash
@@ -182,6 +187,9 @@ uv run rig runs show latest
 ### `rig runs show <run-id>`
 
 Shows metadata and the result for a specific run.
+
+If the run metadata is missing or unreadable, Rig reports that the run was not
+found or unreadable. If `result.md` is missing, Rig still shows the run metadata.
 
 Example:
 

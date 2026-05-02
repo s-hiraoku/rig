@@ -177,6 +177,73 @@ def test_runs_list_and_show_latest(
     assert "latest result" in show_output
 
 
+def test_runs_list_handles_empty_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    assert cli.main(["runs", "list"]) == 0
+
+    output = capsys.readouterr().out
+    assert "ID" in output
+    assert "No runs found." in output
+
+
+def test_runs_show_latest_handles_empty_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    assert cli.main(["runs", "show", "latest"]) == 1
+
+    assert "No runs found." in capsys.readouterr().err
+
+
+def test_runs_show_handles_unreadable_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    run_dir = tmp_path / ".rig" / "runs" / "bad-run"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text("{not json", encoding="utf-8")
+
+    assert cli.main(["runs", "show", "bad-run"]) == 1
+
+    assert "Run not found or unreadable: bad-run" in capsys.readouterr().err
+
+
+def test_runs_show_handles_missing_result(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    run_dir = tmp_path / ".rig" / "runs" / "missing-result"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "id": "missing-result",
+                "agent": "codex",
+                "status": "succeeded",
+                "started_at": "2026-05-02T20:30:12+09:00",
+                "finished_at": "2026-05-02T20:31:04+09:00",
+                "exit_code": 0,
+                "run_dir": ".rig/runs/missing-result",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert cli.main(["runs", "show", "missing-result"]) == 0
+
+    output = capsys.readouterr().out
+    assert "ID:        missing-result" in output
+    assert "(result.md is missing or empty)" in output
+
+
 def test_agents_snippet_prints_agents_md_section(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
