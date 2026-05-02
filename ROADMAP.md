@@ -34,9 +34,11 @@ Still in scope for Phase 1 polish:
 
 - clearer failed-run inspection output
 
-## Phase 1.5: Agent Adoption Layer
+## Phase 1.5: Agent Environment Integration
 
-Goal: make Rig easy for AI coding agents to discover and use before MCP exists.
+Goal: make Rig easy for AI coding agents to discover and use before MCP exists,
+without reimplementing package management for skills, hooks, prompts, or MCP
+server configuration.
 
 Implemented:
 
@@ -51,9 +53,48 @@ Possible additions:
 - `rig agents snippet --target claude`
 - `rig agents snippet --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
+- `rig env doctor`
+- `rig env apm status`
 
 Skills and instruction files are not a replacement for MCP. They tell agents
 how to use Rig and what policies to follow. MCP gives agents structured tools.
+
+Rig should not become a package manager for agent assets. Existing package
+managers should own fetching, locking, auditing, and deploying skills, hooks,
+prompts, and MCP server configuration.
+
+Recommended external managers:
+
+- APM for manifest-driven, reproducible agent environment setup with lockfiles
+  and policy support.
+- `gh skill` / `gh skills` for GitHub-hosted agent skill search, preview,
+  install, update, and publish workflows.
+- Vercel `skills` / skills.sh for discovering and installing open Agent Skills
+  packages.
+
+Rig's role is integration:
+
+- detect whether relevant managers are installed
+- detect whether files such as `apm.yml`, `apm.lock.yaml`, or agent instruction
+  files exist
+- point users to the right external command
+- keep Rig-specific execution policy and run artifacts under `.rig/`
+- avoid writing or updating third-party agent asset files unless a future
+  command explicitly asks for it
+
+Potential `rig env doctor` checks:
+
+- Rig initialized
+- Git repository present
+- Codex command available
+- APM installed
+- `apm.yml` and `apm.lock.yaml` present when APM is used
+- `AGENTS.md` or equivalent instruction file present
+- Rig snippet appears to be included
+
+`rig env doctor` should be diagnostic. If it suggests installing or updating
+agent assets, it should print the external command instead of doing the install
+itself.
 
 ## Phase 2: Worktree Support
 

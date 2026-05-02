@@ -9,6 +9,12 @@ stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 additional adapters, and MCP tools.
 
+Rig does not try to replace package managers for agent assets. Tools such as
+APM, GitHub CLI `gh skill`, and Vercel `skills` are better suited for fetching,
+locking, auditing, and deploying skills, hooks, prompts, and MCP server
+configuration. Rig focuses on running agents and preserving inspectable run
+artifacts.
+
 ## Installation
 
 Install directly from GitHub:
