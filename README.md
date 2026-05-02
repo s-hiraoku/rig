@@ -14,13 +14,19 @@ additional adapters, and MCP tools.
 Install directly from GitHub:
 
 ```bash
-uv tool install git+https://github.com/s-hiraoku/rig.git
+uv tool install "rig @ git+https://github.com/s-hiraoku/rig.git"
 ```
 
 Then check that the command is available:
 
 ```bash
 rig --help
+```
+
+To reinstall the latest version from GitHub:
+
+```bash
+uv tool install --force "rig @ git+https://github.com/s-hiraoku/rig.git"
 ```
 
 For local development, clone the repository and install the development
