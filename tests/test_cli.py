@@ -113,6 +113,40 @@ agents:
     assert command["args"][:3] == ["exec", "--profile", "review"]
 
 
+def test_run_codex_dry_run_writes_artifacts_without_executing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    def fake_run(self: object, context: RunContext) -> AgentResult:
+        raise AssertionError("dry run should not execute the adapter")
+
+    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
+
+    assert cli.main(["run", "codex", "--task", "hello", "--dry-run"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: created" in output
+    assert "Command: .rig/runs/" in output
+
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert (run_dir / "task.md").read_text(encoding="utf-8") == "# Task\n\nhello\n"
+    assert (run_dir / "stdout.log").read_text(encoding="utf-8") == ""
+    assert (run_dir / "stderr.log").read_text(encoding="utf-8") == ""
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == (
+        "Dry run: command was not executed.\n"
+    )
+
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["command"] == "codex"
+    assert command["args"][0] == "exec"
+
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["status"] == "created"
+    assert status["exit_code"] is None
+
+
 def test_run_codex_reports_invalid_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

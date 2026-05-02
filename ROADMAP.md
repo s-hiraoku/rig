@@ -28,11 +28,11 @@ Implemented:
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
 - friendlier handling of empty, damaged, or incomplete run history
+- `rig run codex --dry-run` command preview mode
 
 Still in scope for Phase 1 polish:
 
 - clearer failed-run inspection output
-- optional dry-run or command preview mode
 
 ## Phase 1.5: Agent Adoption Layer
 

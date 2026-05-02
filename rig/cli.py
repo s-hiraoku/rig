@@ -20,6 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
     codex_parser = run_subparsers.add_parser("codex", help="Run Codex through Rig")
     codex_parser.add_argument("--task", help="Task text to pass to the agent")
     codex_parser.add_argument("--task-file", help="Path to a file containing the task")
+    codex_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Create run artifacts and command metadata without executing Codex",
+    )
 
     runs_parser = subparsers.add_parser("runs", help="Inspect run history")
     runs_subparsers = runs_parser.add_subparsers(dest="runs_command", required=True)
@@ -96,6 +101,20 @@ def run_codex(args: argparse.Namespace, store: RunStore) -> int:
     adapter = CodexAdapter(command=agent_config.command, args=agent_config.args)
     started_at = iso_now()
     store.write_command(context, adapter.command_metadata(context, started_at))
+
+    if args.dry_run:
+        context.stdout_path.write_text("", encoding="utf-8")
+        context.stderr_path.write_text("", encoding="utf-8")
+        context.result_path.write_text(
+            "Dry run: command was not executed.\n", encoding="utf-8"
+        )
+        store.write_status(context, status="created", started_at=started_at)
+        print(f"Run: {context.id}")
+        print("Status: created")
+        print(f"Command: {context.command_path.relative_to(context.cwd)}")
+        print(f"Result: {context.result_path.relative_to(context.cwd)}")
+        return 0
+
     store.write_status(context, status="running", started_at=started_at)
 
     try:

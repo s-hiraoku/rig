@@ -135,6 +135,16 @@ Status: succeeded
 Result: .rig/runs/20260502-203012-codex/result.md
 ```
 
+Use `--dry-run` to create the run directory, task file, command metadata, and
+status file without executing Codex:
+
+```bash
+uv run rig run codex --task "Review the current diff." --dry-run
+```
+
+Dry-run runs use status `created` and write the command preview to
+`command.json`.
+
 ### `rig run codex --task-file task.md`
 
 Starts a new Codex run using task text read from a file.
