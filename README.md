@@ -99,13 +99,24 @@ Example:
 uv run rig init
 ```
 
+The generated `.rig/config.yaml` controls the command Rig uses for each agent.
+For Codex, Rig reads `agents.codex.command` and `agents.codex.args`:
+
+```yaml
+agents:
+  codex:
+    command: codex
+    args:
+      - exec
+```
+
 ### `rig run codex --task "..."`
 
 Starts a new Codex run using task text passed directly on the command line.
 
 Rig creates a unique run directory, writes the task to `task.md`, executes
-`codex exec`, captures stdout and stderr, writes `result.md`, and records the
-final status in `status.json`.
+the configured Codex command, captures stdout and stderr, writes `result.md`,
+and records the final status in `status.json`.
 
 Example:
 

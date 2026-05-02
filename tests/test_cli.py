@@ -80,6 +80,61 @@ def test_run_codex_writes_artifacts(
     assert status["exit_code"] == 0
 
 
+def test_run_codex_uses_configured_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+default_agent: codex
+agents:
+  codex:
+    command: custom-codex
+    args:
+      - exec
+      - --profile
+      - review
+""",
+        encoding="utf-8",
+    )
+
+    def fake_run(self: object, context: RunContext) -> AgentResult:
+        return AgentResult(exit_code=0, stdout="done\n", stderr="")
+
+    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
+
+    assert cli.main(["run", "codex", "--task", "hello"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["command"] == "custom-codex"
+    assert command["args"][:3] == ["exec", "--profile", "review"]
+
+
+def test_run_codex_reports_invalid_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  codex:
+    command: codex
+    args: exec
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "codex", "--task", "hello"]) == 1
+
+    captured = capsys.readouterr()
+    assert "agents.codex.args" in captured.err
+    assert list((tmp_path / ".rig" / "runs").iterdir()) == []
+
+
 def test_failed_run_prints_stderr_summary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from rig.adapters.codex import CodexAdapter, CodexNotFoundError, iso_now
+from rig.config import ConfigError
 from rig.run_store import RigNotInitializedError, RunStore
 
 
@@ -58,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     except CodexNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    except ConfigError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     parser.error("unsupported command")
     return 2
@@ -72,10 +76,11 @@ def run_codex(args: argparse.Namespace, store: RunStore) -> int:
     if args.task_file:
         task = Path(args.task_file).read_text(encoding="utf-8")
 
+    agent_config = store.load_config().agent("codex")
     context = store.create_run("codex")
     store.write_task(context, task)
 
-    adapter = CodexAdapter()
+    adapter = CodexAdapter(command=agent_config.command, args=agent_config.args)
     started_at = iso_now()
     store.write_command(context, adapter.command_metadata(context, started_at))
     store.write_status(context, status="running", started_at=started_at)

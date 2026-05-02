@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
+from rig.config import RigConfig, load_config
 from rig.run_context import RunContext
 
 DEFAULT_CONFIG = """version: 1
@@ -52,6 +53,10 @@ class RunStore:
                 "Rig is not initialized in this repository.\nRun `rig init` first."
             )
         self.runs_dir.mkdir(parents=True, exist_ok=True)
+
+    def load_config(self) -> RigConfig:
+        self.ensure_initialized()
+        return load_config(self.config_path)
 
     def create_run(self, agent: str, now: datetime | None = None) -> RunContext:
         self.ensure_initialized()

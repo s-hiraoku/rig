@@ -22,8 +22,9 @@ class AgentResult:
 class CodexAdapter:
     name = "codex"
 
-    def __init__(self, command: str = "codex") -> None:
+    def __init__(self, command: str = "codex", args: list[str] | None = None) -> None:
         self.command = command
+        self.args = args or ["exec"]
 
     def build_prompt(self, context: RunContext) -> str:
         task_path = context.task_path.relative_to(context.cwd)
@@ -43,7 +44,7 @@ class CodexAdapter:
         )
 
     def build_command(self, context: RunContext) -> list[str]:
-        return [self.command, "exec", self.build_prompt(context)]
+        return [self.command, *self.args, self.build_prompt(context)]
 
     def command_metadata(self, context: RunContext, started_at: str) -> dict[str, object]:
         command = self.build_command(context)
@@ -78,4 +79,3 @@ class CodexAdapter:
 
 def iso_now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
-
