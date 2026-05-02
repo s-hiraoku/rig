@@ -175,3 +175,17 @@ def test_runs_list_and_show_latest(
     show_output = capsys.readouterr().out
     assert "--- Result ---" in show_output
     assert "latest result" in show_output
+
+
+def test_agents_snippet_prints_agents_md_section(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["agents", "snippet"]) == 0
+
+    output = capsys.readouterr().out
+    assert "## Rig" in output
+    assert "Prefer Rig MCP tools when available" in output
+    assert "rig run codex --task-file" in output
+    assert "rig runs show latest" in output

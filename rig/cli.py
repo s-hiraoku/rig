@@ -27,6 +27,16 @@ def build_parser() -> argparse.ArgumentParser:
     show_parser = runs_subparsers.add_parser("show", help="Show a run")
     show_parser.add_argument("run_id", help="Run ID, or 'latest'")
 
+    agents_parser = subparsers.add_parser(
+        "agents", help="Print instructions for AI coding agents"
+    )
+    agents_subparsers = agents_parser.add_subparsers(
+        dest="agents_command", required=True
+    )
+    agents_subparsers.add_parser(
+        "snippet", help="Print an AGENTS.md snippet for using Rig"
+    )
+
     return parser
 
 
@@ -52,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
                 return list_runs(store)
             if args.runs_command == "show":
                 return show_run(store, args.run_id)
+
+        if args.command == "agents" and args.agents_command == "snippet":
+            return print_agents_snippet()
 
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
@@ -153,6 +166,11 @@ def show_run(store: RunStore, run_id: str) -> int:
     return 0
 
 
+def print_agents_snippet() -> int:
+    print(AGENTS_SNIPPET)
+    return 0
+
+
 def format_started_at(value: str) -> str:
     if not value:
         return ""
@@ -161,6 +179,34 @@ def format_started_at(value: str) -> str:
 
 def first_line(value: str) -> str:
     return value.strip().splitlines()[0]
+
+
+AGENTS_SNIPPET = """## Rig
+
+Prefer Rig MCP tools when available. If Rig MCP tools are not available, use the Rig CLI.
+
+Use Rig for inspectable AI coding tasks. Rig stores each run under `.rig/runs/<run-id>/`.
+
+Run a task:
+
+```bash
+rig run codex --task-file tasks/review.md
+```
+
+Inspect the result:
+
+```bash
+rig runs list
+rig runs show latest
+```
+
+Rules:
+
+- Do not assume Rig applies patches automatically.
+- Inspect `result.md` after each run.
+- Check `stderr.log` when a run fails.
+- Prefer `--task-file` for long or structured tasks.
+"""
 
 
 if __name__ == "__main__":

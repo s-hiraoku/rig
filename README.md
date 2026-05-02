@@ -186,6 +186,21 @@ Example:
 uv run rig runs show 20260502-203012-codex
 ```
 
+### `rig agents snippet`
+
+Prints a Markdown snippet that users can paste into `AGENTS.md` or similar
+agent instruction files.
+
+Rig does not edit `AGENTS.md` automatically. The snippet tells AI coding agents
+to prefer future Rig MCP tools when available, fall back to the Rig CLI, and
+inspect run artifacts after each run.
+
+Example:
+
+```bash
+uv run rig agents snippet
+```
+
 ## Run Artifacts
 
 Each run creates these files:
