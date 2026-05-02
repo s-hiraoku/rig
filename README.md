@@ -15,6 +15,11 @@ locking, auditing, and deploying skills, hooks, prompts, and MCP server
 configuration. Rig focuses on running agents and preserving inspectable run
 artifacts.
 
+Rig can still help with the surrounding harness environment. The intended
+direction is to diagnose and explain what is missing from a preferred agent
+development setup, then point to the right external installer or package
+manager. Rig should not silently install or rewrite third-party agent assets.
+
 ## Installation
 
 Install directly from GitHub:

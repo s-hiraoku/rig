@@ -54,6 +54,8 @@ Possible additions:
 - `rig agents snippet --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
 - `rig env doctor`
+- `rig env plan`
+- `rig env bootstrap`
 - `rig env apm status`
 
 Skills and instruction files are not a replacement for MCP. They tell agents
@@ -91,6 +93,72 @@ Potential `rig env doctor` checks:
 - `apm.yml` and `apm.lock.yaml` present when APM is used
 - `AGENTS.md` or equivalent instruction file present
 - Rig snippet appears to be included
+
+## Harness Environment Bootstrap
+
+Many users have a preferred AI development harness: CLIs, package managers,
+agent instructions, skill registries, MCP server definitions, and local policy.
+Recreating that setup in a fresh repository or machine is tedious. Rig can help
+without owning the whole installation surface.
+
+Rig should act as a meta-harness manager:
+
+- define the expected harness profile
+- inspect the current environment
+- report what is missing
+- suggest the external command that should fix it
+- create Rig-owned files such as `.rig/config.yaml`
+- avoid silently installing global tools or third-party agent assets
+
+Potential commands:
+
+```bash
+rig env doctor
+rig env plan
+rig env bootstrap
+```
+
+Suggested responsibilities:
+
+- `rig env doctor`: read-only diagnostics for the current repository and
+  machine.
+- `rig env plan`: show the desired harness setup and the actions needed to reach
+  it.
+- `rig env bootstrap`: initialize Rig-owned files and print commands for
+  external managers. A future `--apply` mode may run safe, explicit actions.
+
+Potential `.rig/env.yaml` shape:
+
+```yaml
+version: 1
+
+profile: personal
+
+tools:
+  codex:
+    required: true
+    check: codex --version
+    install_hint: Install Codex CLI from OpenAI docs.
+  gh:
+    required: true
+    check: gh --version
+    install_hint: brew install gh
+  apm:
+    required: false
+    check: apm --version
+    install_hint: Install APM from the upstream installer.
+
+agent_assets:
+  managers:
+    - apm
+    - gh-skill
+    - vercel-skills
+
+instructions:
+  agents_md:
+    recommended: true
+    snippet_command: rig agents snippet
+```
 
 `rig env doctor` should be diagnostic. If it suggests installing or updating
 agent assets, it should print the external command instead of doing the install
