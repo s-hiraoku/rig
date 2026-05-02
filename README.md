@@ -6,11 +6,26 @@ tasks, inspectable artifacts, and a simple run history.
 Rig's main unit is a run. A run records the task, the command Rig executed,
 stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 
-## Setup
+## Installation
 
-Install the development environment:
+Install directly from GitHub:
 
 ```bash
+uv tool install git+https://github.com/s-hiraoku/rig.git
+```
+
+Then check that the command is available:
+
+```bash
+rig --help
+```
+
+For local development, clone the repository and install the development
+environment:
+
+```bash
+git clone https://github.com/s-hiraoku/rig.git
+cd rig
 uv sync --group dev
 ```
 
@@ -19,6 +34,11 @@ Run the CLI from the project checkout:
 ```bash
 uv run rig --help
 ```
+
+If you are working from a checkout, use `uv run rig ...`. If you installed Rig
+with `uv tool install`, use `rig ...`.
+
+## Requirements
 
 `rig run codex` calls `codex exec`, so the Codex CLI must be installed and
 available on `PATH` before running Codex through Rig.
@@ -34,6 +54,26 @@ initialize the project as a Git repository before trying again:
 
 ```bash
 git init
+```
+
+## Quick Start
+
+From a project where you want to use Rig:
+
+```bash
+rig init
+rig run codex --task "Review the current diff and identify risky changes."
+rig runs list
+rig runs show latest
+```
+
+From this repository checkout, prefix commands with `uv run`:
+
+```bash
+uv run rig init
+uv run rig run codex --task "Review the current diff and identify risky changes."
+uv run rig runs list
+uv run rig runs show latest
 ```
 
 ## Commands
