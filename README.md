@@ -6,6 +6,9 @@ tasks, inspectable artifacts, and a simple run history.
 Rig's main unit is a run. A run records the task, the command Rig executed,
 stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 
+See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
+additional adapters, and MCP tools.
+
 ## Installation
 
 Install directly from GitHub:
