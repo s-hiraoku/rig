@@ -50,7 +50,7 @@ rig init
 rig run <agent> --task "..."
 rig list
 rig show latest
-rig run <agent> --worktree --task "..."
+rig worktree run <agent> --task "..."
 rig worktree show latest
 rig worktree apply latest
 rig history complete latest --result "..."
@@ -243,7 +243,7 @@ Goal: isolate risky agent changes and make diffs reviewable before application.
 Potential commands:
 
 ```bash
-rig run codex --worktree --task "..."
+rig worktree run codex --task "..."
 rig worktree show latest
 rig worktree apply latest
 ```
@@ -259,7 +259,7 @@ Rig should still avoid automatic patch application by default.
 
 Implemented:
 
-- `rig run <agent> --worktree`
+- `rig worktree run <agent>`
 - `.rig/worktrees/<run-id>/`
 - `.rig/runs/<run-id>/diff.patch`
 - `rig worktree show latest`

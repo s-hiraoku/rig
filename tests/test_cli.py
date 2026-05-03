@@ -607,7 +607,7 @@ agents:
         encoding="utf-8",
     )
 
-    assert cli.main(["run", "edit", "--task", "edit tracked", "--worktree"]) == 0
+    assert cli.main(["worktree", "run", "edit", "--task", "edit tracked"]) == 0
 
     output = capsys.readouterr().out
     assert "Diff: .rig/runs/" in output
@@ -643,7 +643,7 @@ agents:
 """,
         encoding="utf-8",
     )
-    cli.main(["run", "edit", "--task", "edit tracked", "--worktree"])
+    cli.main(["worktree", "run", "edit", "--task", "edit tracked"])
 
     assert cli.main(["worktree", "show", "latest"]) == 0
     diff_output = capsys.readouterr().out
@@ -678,7 +678,7 @@ agents:
 """,
         encoding="utf-8",
     )
-    cli.main(["run", "noop", "--task", "do nothing", "--worktree"])
+    cli.main(["worktree", "run", "noop", "--task", "do nothing"])
 
     assert cli.main(["worktree", "apply", "latest"]) == 0
 

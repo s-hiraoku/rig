@@ -100,7 +100,7 @@ uv run rig show latest
 For an isolated agent edit:
 
 ```bash
-rig run codex --worktree --task "Make the requested change."
+rig worktree run codex --task "Make the requested change."
 rig worktree show latest
 rig worktree apply latest
 ```
@@ -260,14 +260,6 @@ uv run rig run codex --task "Review the current diff." --dry-run
 Dry-run runs use status `created` and write the command preview to
 `command.json`.
 
-Use `--worktree` to run the agent in an isolated Git worktree under
-`.rig/worktrees/<run-id>/`. Rig captures the resulting patch as
-`.rig/runs/<run-id>/diff.patch` and leaves the main working tree unchanged:
-
-```bash
-uv run rig run codex --worktree --task "Make the requested change."
-```
-
 ### `rig run <agent> --task-file task.md`
 
 Starts a new agent run using task text read from a file.
@@ -283,6 +275,18 @@ uv run rig run codex --task-file task.md
 
 Provide exactly one of `--task` or `--task-file`. Passing both, or passing
 neither, is an error.
+
+### `rig worktree run <agent> --task "..."`
+
+Runs an agent in an isolated Git worktree under `.rig/worktrees/<run-id>/`.
+Rig captures the resulting patch as `.rig/runs/<run-id>/diff.patch` and leaves
+the main working tree unchanged.
+
+Example:
+
+```bash
+uv run rig worktree run codex --task "Make the requested change."
+```
 
 ### `rig list`
 

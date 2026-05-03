@@ -42,11 +42,6 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Create run artifacts and command metadata without executing the agent",
     )
-    run_parser.add_argument(
-        "--worktree",
-        action="store_true",
-        help="Run the agent in an isolated git worktree and capture diff.patch",
-    )
 
     subparsers.add_parser("list", help="List recent runs")
     show_parser = subparsers.add_parser("show", help="Show a run")
@@ -56,6 +51,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     worktree_subparsers = worktree_parser.add_subparsers(
         dest="worktree_command", required=True
+    )
+    worktree_run_parser = worktree_subparsers.add_parser(
+        "run", help="Run an agent in an isolated git worktree"
+    )
+    worktree_run_parser.add_argument(
+        "agent", help="Configured agent name, such as codex"
+    )
+    worktree_run_parser.add_argument("--task", help="Task text to pass to the agent")
+    worktree_run_parser.add_argument(
+        "--task-file", help="Path to a file containing the task"
+    )
+    worktree_run_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Create run artifacts and command metadata without executing the agent",
     )
     worktree_show_parser = worktree_subparsers.add_parser(
         "show", help="Show changes captured from a worktree run"
@@ -130,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "show":
             return show_run(store, args.run_id)
         if args.command == "worktree":
+            if args.worktree_command == "run":
+                return run_agent(args, store, worktree=True)
             if args.worktree_command == "show":
                 return show_diff(store, args.run_id)
             if args.worktree_command == "apply":
@@ -172,7 +184,9 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
-def run_agent(args: argparse.Namespace, store: RunStore) -> int:
+def run_agent(
+    args: argparse.Namespace, store: RunStore, *, worktree: bool = False
+) -> int:
     if bool(args.task) == bool(args.task_file):
         print("Provide exactly one of --task or --task-file.", file=sys.stderr)
         return 2
@@ -183,7 +197,7 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
 
     agent_config = store.load_config().agent(args.agent)
     context = store.create_run(args.agent)
-    if args.worktree:
+    if worktree:
         worktree_path = store.worktrees_dir / context.id
         create_worktree(store.cwd, worktree_path)
         context = replace(
