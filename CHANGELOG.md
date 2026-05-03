@@ -11,3 +11,5 @@
 - Add MCP policy prompt/resources and configured agent discovery.
 - Add `rig suggest` for advisory run/worktree recommendations.
 - Add MCP `rig_suggest` for structured run/worktree recommendations.
+- Add target-aware guide snippets, Rig-owned instruction files, and agent asset
+  manager status reporting.

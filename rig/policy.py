@@ -31,3 +31,32 @@ Rules:
 - Check `stderr.log` when a run fails.
 - Prefer `--task-file` for long or structured tasks.
 """
+
+
+RIG_INSTRUCTION_PATH = ".rig/instructions/rig.md"
+
+
+def agents_snippet(*, target: str = "generic") -> str:
+    if target == "claude":
+        return (
+            "<!-- Suggested for CLAUDE.md or Claude project instructions. -->\n\n"
+            f"## Rig\n\nRead `{RIG_INSTRUCTION_PATH}` for Rig usage policy, "
+            "artifact inspection rules, and patch-apply safety rules.\n"
+        )
+    if target == "codex":
+        return (
+            "<!-- Suggested for AGENTS.md in Codex projects. -->\n\n"
+            f"## Rig\n\nSee `{RIG_INSTRUCTION_PATH}` for Rig usage policy, "
+            "artifact inspection rules, and patch-apply safety rules.\n"
+        )
+    return AGENTS_SNIPPET
+
+
+def rig_instruction_file_content() -> str:
+    return (
+        "# Rig Instructions\n\n"
+        "This file is generated for agent instruction files to reference. "
+        "Keep `AGENTS.md`, `CLAUDE.md`, and other top-level instruction files "
+        "small by linking to this Rig-owned file.\n\n"
+        f"{AGENTS_SNIPPET}"
+    )

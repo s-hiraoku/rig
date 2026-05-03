@@ -446,17 +446,55 @@ The older `rig history fail` form remains available for compatibility.
 
 ### `rig guide agents`
 
-Prints a Markdown snippet that users can paste into `AGENTS.md` or similar
-agent instruction files.
+Prints a Markdown snippet for `AGENTS.md`, `CLAUDE.md`, or similar agent
+instruction files.
 
-Rig does not edit `AGENTS.md` automatically. The snippet tells AI coding agents
-to prefer future Rig MCP tools when available, fall back to the Rig CLI, and
-inspect run artifacts after each run.
+Use `--write` to create Rig-owned instructions at `.rig/instructions/rig.md`.
+Then paste only the short reference snippet into `AGENTS.md` or `CLAUDE.md`.
+This keeps project instruction files small and reduces the risk of damaging
+existing agent policy.
 
 Example:
 
 ```bash
 uv run rig guide agents
+uv run rig guide agents --target codex --format markdown
+uv run rig guide agents --target claude --format markdown
+uv run rig guide agents --target codex --write
+uv run rig guide agents --target claude --write --force
+```
+
+`--write` does not overwrite `.rig/instructions/rig.md` unless `--force` is
+also provided. Rig still does not edit `AGENTS.md`, `CLAUDE.md`, or skill files
+automatically.
+
+Minimal examples:
+
+```markdown
+<!-- AGENTS.md -->
+# Agent Instructions
+
+## Rig
+
+See `.rig/instructions/rig.md` for Rig usage policy, artifact inspection rules,
+and patch-apply safety rules.
+```
+
+```markdown
+<!-- CLAUDE.md -->
+# Claude Project Instructions
+
+## Rig
+
+Read `.rig/instructions/rig.md` for Rig usage policy, artifact inspection rules,
+and patch-apply safety rules.
+```
+
+```markdown
+<!-- skills/rig/SKILL.md -->
+# Rig
+
+Read `.rig/instructions/rig.md` before using Rig.
 ```
 
 ### `rig mcp serve`
@@ -563,6 +601,19 @@ Example:
 
 ```bash
 uv run rig env plan
+```
+
+### `rig env manager status`
+
+Shows the agent asset managers declared in `.rig/env.yaml`, whether their check
+commands are available, and whether manager-specific required files exist. This
+is read-only and does not install tools or deploy agent assets.
+
+Example:
+
+```bash
+uv run rig env manager status
+uv run rig env manager status --json
 ```
 
 ### `rig env bootstrap`

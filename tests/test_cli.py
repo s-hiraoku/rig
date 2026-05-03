@@ -1020,6 +1020,75 @@ def test_guide_agents_prints_agents_md_section(
     assert "rig show latest" in output
 
 
+def test_guide_agents_supports_targets_and_markdown_format(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["guide", "agents", "--target", "claude", "--format", "markdown"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Suggested for CLAUDE.md" in output
+    assert "## Rig" in output
+    assert ".rig/instructions/rig.md" in output
+
+
+def test_guide_agents_write_creates_rig_instruction_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["guide", "agents", "--target", "codex", "--write"]) == 0
+
+    instruction_path = tmp_path / ".rig" / "instructions" / "rig.md"
+    assert instruction_path.is_file()
+    content = instruction_path.read_text(encoding="utf-8")
+    assert "# Rig Instructions" in content
+    assert "Prefer Rig MCP tools when available" in content
+    output = capsys.readouterr().out
+    assert "Wrote: .rig/instructions/rig.md" in output
+    assert "Suggested for AGENTS.md" in output
+    assert "See `.rig/instructions/rig.md`" in output
+
+
+def test_guide_agents_write_refuses_to_overwrite_without_force(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    instruction_path = tmp_path / ".rig" / "instructions" / "rig.md"
+    instruction_path.parent.mkdir(parents=True)
+    instruction_path.write_text("custom\n", encoding="utf-8")
+
+    assert cli.main(["guide", "agents", "--write"]) == 1
+
+    assert instruction_path.read_text(encoding="utf-8") == "custom\n"
+    assert "already exists" in capsys.readouterr().err
+
+
+def test_guide_agents_write_force_overwrites_instruction_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    instruction_path = tmp_path / ".rig" / "instructions" / "rig.md"
+    instruction_path.parent.mkdir(parents=True)
+    instruction_path.write_text("custom\n", encoding="utf-8")
+
+    assert cli.main(["guide", "agents", "--write", "--force"]) == 0
+
+    assert "# Rig Instructions" in instruction_path.read_text(encoding="utf-8")
+    assert "Wrote: .rig/instructions/rig.md" in capsys.readouterr().out
+
+
+def test_guide_agents_force_requires_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["guide", "agents", "--force"]) == 2
+
+    assert "--force requires --write." in capsys.readouterr().err
+
+
 def test_env_doctor_prints_report(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1057,6 +1126,39 @@ def test_env_plan_prints_read_only_plan(
     assert "Desired harness" in output
     assert "Planned actions" in output
     assert "No files will be changed." in output
+
+
+def test_env_manager_status_reports_configured_managers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    assert cli.main(["env", "manager", "status"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig agent asset managers" in output
+    assert "APM" in output
+    assert "GitHub skills manager" in output
+    assert "Vercel skills manager" in output
+
+
+def test_env_manager_status_supports_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    assert cli.main(["env", "manager", "status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert [manager["id"] for manager in data["managers"]] == [
+        "apm",
+        "gh-skills",
+        "vercel-skills",
+    ]
+    assert data["warnings"] == []
 
 
 def test_env_bootstrap_creates_missing_rig_files(

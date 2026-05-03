@@ -47,6 +47,32 @@ class EnvConfig:
     asset_managers: list[AssetManager]
 
 
+@dataclass(frozen=True)
+class ManagerFileStatus:
+    path: str
+    label: str
+    status: str
+    hint: str | None = None
+
+
+@dataclass(frozen=True)
+class ManagerStatus:
+    id: str
+    label: str
+    command: str
+    args: list[str]
+    status: str
+    detail: str
+    required_files: list[ManagerFileStatus]
+    hint: str | None = None
+
+
+@dataclass(frozen=True)
+class ManagerStatusReport:
+    managers: list[ManagerStatus]
+    warnings: list[str]
+
+
 def build_doctor_report(cwd: Path) -> DoctorReport:
     root = cwd.resolve()
     checks: list[DoctorCheck] = []
@@ -59,6 +85,80 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
     add_env_config_checks(root, checks, suggestions)
 
     return DoctorReport(checks=checks, suggestions=dedupe(suggestions))
+
+
+def build_manager_status_report(cwd: Path) -> ManagerStatusReport:
+    root = cwd.resolve()
+    env_path = root / ".rig" / "env.yaml"
+    warnings: list[str] = []
+    checks: list[DoctorCheck] = []
+    if not env_path.is_file():
+        return ManagerStatusReport(
+            managers=[],
+            warnings=[".rig/env.yaml not found. Run: rig init"],
+        )
+
+    env_config = load_env_config(env_path, checks)
+    warnings.extend(f"{check.label}: {check.detail}" for check in checks)
+    return ManagerStatusReport(
+        managers=[
+            manager_status(root, manager) for manager in env_config.asset_managers
+        ],
+        warnings=warnings,
+    )
+
+
+def manager_status(root: Path, manager: AssetManager) -> ManagerStatus:
+    path = shutil.which(manager.command)
+    if path is None:
+        status = "optional"
+        detail = f"`{manager.command}` not found on PATH"
+    elif manager.args:
+        status, detail = check_manager_command(manager)
+    else:
+        status = "ok"
+        detail = path
+
+    return ManagerStatus(
+        id=manager.id,
+        label=manager.label,
+        command=manager.command,
+        args=manager.args,
+        status=status,
+        detail=detail,
+        required_files=[
+            manager_file_status(root, required_file)
+            for required_file in manager.required_files
+        ],
+        hint=manager.hint,
+    )
+
+
+def check_manager_command(manager: AssetManager) -> tuple[str, str]:
+    command = [manager.command, *manager.args]
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "warn", "could not check"
+    if completed.returncode == 0:
+        return "ok", "available"
+    return "warn", "check command failed"
+
+
+def manager_file_status(root: Path, required_file: RequiredFile) -> ManagerFileStatus:
+    status = "ok" if (root / required_file.path).is_file() else "missing"
+    return ManagerFileStatus(
+        path=required_file.path,
+        label=required_file.label,
+        status=status,
+        hint=required_file.hint,
+    )
 
 
 def add_git_checks(
@@ -555,6 +655,37 @@ def format_env_plan(report: DoctorReport) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def format_manager_status_report(report: ManagerStatusReport) -> str:
+    lines = ["Rig agent asset managers", ""]
+    if report.warnings:
+        lines.append("Warnings")
+        lines.extend(f"- {warning}" for warning in report.warnings)
+        lines.append("")
+
+    if not report.managers:
+        lines.append("No agent asset managers declared in .rig/env.yaml.")
+        return "\n".join(lines)
+
+    for manager in report.managers:
+        command = " ".join([manager.command, *manager.args])
+        lines.append(f"{format_status(manager.status)} {manager.label}: {command}")
+        lines.append(f"  {manager.detail}")
+        if manager.hint:
+            lines.append(f"  Hint: {manager.hint}")
+        if manager.required_files:
+            lines.append("  Required files:")
+            for required_file in manager.required_files:
+                lines.append(
+                    f"  - {format_status(required_file.status)} "
+                    f"{required_file.label}: {required_file.path}"
+                )
+                if required_file.status != "ok" and required_file.hint:
+                    lines.append(f"    Hint: {required_file.hint}")
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 
 def format_status(status: str) -> str:

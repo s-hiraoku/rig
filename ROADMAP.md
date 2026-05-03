@@ -94,23 +94,25 @@ server configuration.
 Implemented:
 
 - `rig guide agents`
-- `rig env doctor`
-- `rig env plan`
-- `rig env bootstrap`
-- default `.rig/env.yaml` with configurable required files and optional agent
-  asset managers
-- configured agent command checks are derived from `.rig/config.yaml`
-
-This prints an `AGENTS.md` snippet instead of editing user files automatically.
-User repositories own their own agent instructions.
-
-Possible additions:
-
 - `rig guide agents --target codex`
 - `rig guide agents --target claude`
 - `rig guide agents --format markdown`
-- documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
+- `rig guide agents --write`
+- `.rig/instructions/rig.md` as the Rig-owned instruction file referenced by
+  `AGENTS.md`, `CLAUDE.md`, and skill files
+- `rig env doctor`
+- `rig env plan`
+- `rig env bootstrap`
 - `rig env manager status`
+- default `.rig/env.yaml` with configurable required files and optional agent
+  asset managers
+- configured agent command checks are derived from `.rig/config.yaml`
+- documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
+
+This prints an `AGENTS.md` snippet instead of editing user files automatically.
+For safer setup, `--write` creates `.rig/instructions/rig.md` and the snippet
+only references that Rig-owned instruction file. User repositories still own
+their own agent instructions.
 
 Skills and instruction files are not a replacement for MCP. They tell agents
 how to use Rig and what policies to follow. MCP gives agents structured tools.

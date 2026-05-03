@@ -10,9 +10,19 @@ from typing import Any
 from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
-from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
+from rig.env_doctor import (
+    build_doctor_report,
+    build_manager_status_report,
+    format_doctor_report,
+    format_env_plan,
+    format_manager_status_report,
+)
 from rig.orchestrator import RunOrchestrator, RunRequest, run_outcome_payload
-from rig.policy import AGENTS_SNIPPET
+from rig.policy import (
+    RIG_INSTRUCTION_PATH,
+    agents_snippet,
+    rig_instruction_file_content,
+)
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
 from rig.suggest import Suggestion, build_suggestion
 from rig.worktree import WorktreeError, apply_patch, prune_worktrees
@@ -76,8 +86,30 @@ def build_parser() -> argparse.ArgumentParser:
         "guide", help="Generate setup guidance for humans and AI agents"
     )
     guide_subparsers = guide_parser.add_subparsers(dest="guide_command", required=True)
-    guide_subparsers.add_parser(
+    guide_agents_parser = guide_subparsers.add_parser(
         "agents", help="Generate an AGENTS.md snippet for using Rig"
+    )
+    guide_agents_parser.add_argument(
+        "--target",
+        choices=["generic", "codex", "claude"],
+        default="generic",
+        help="Agent instruction target to generate for",
+    )
+    guide_agents_parser.add_argument(
+        "--format",
+        choices=["markdown"],
+        default="markdown",
+        help="Output format",
+    )
+    guide_agents_parser.add_argument(
+        "--write",
+        action="store_true",
+        help=f"Write {RIG_INSTRUCTION_PATH} and print a short reference snippet",
+    )
+    guide_agents_parser.add_argument(
+        "--force",
+        action="store_true",
+        help=f"Overwrite {RIG_INSTRUCTION_PATH} when used with --write",
     )
 
     env_parser = subparsers.add_parser("env", help="Inspect the agent environment")
@@ -92,6 +124,18 @@ def build_parser() -> argparse.ArgumentParser:
     env_subparsers.add_parser(
         "bootstrap",
         help="Create missing Rig-owned environment files and print next steps",
+    )
+    env_manager_parser = env_subparsers.add_parser(
+        "manager", help="Inspect configured agent asset managers"
+    )
+    env_manager_subparsers = env_manager_parser.add_subparsers(
+        dest="env_manager_command", required=True
+    )
+    env_manager_status_parser = env_manager_subparsers.add_parser(
+        "status", help="Show configured agent asset manager status"
+    )
+    env_manager_status_parser.add_argument(
+        "--json", action="store_true", help="Print JSON output"
     )
 
     mcp_parser = subparsers.add_parser("mcp", help="Expose Rig as MCP tools")
@@ -192,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
                 return fail_run(args, store)
 
         if args.command == "guide" and args.guide_command == "agents":
-            return print_agents_snippet()
+            return guide_agents(args, store)
 
         if args.command == "env" and args.env_command == "doctor":
             return env_doctor(Path.cwd(), json_output=args.json)
@@ -200,6 +244,12 @@ def main(argv: list[str] | None = None) -> int:
             return env_plan(Path.cwd())
         if args.command == "env" and args.env_command == "bootstrap":
             return env_bootstrap(store)
+        if (
+            args.command == "env"
+            and args.env_command == "manager"
+            and args.env_manager_command == "status"
+        ):
+            return env_manager_status(Path.cwd(), json_output=args.json)
         if args.command == "mcp" and args.mcp_command == "serve":
             from rig.mcp_server import serve_mcp
 
@@ -550,9 +600,31 @@ def prune_worktree_runs(store: RunStore) -> int:
     return 1 if result.failed else 0
 
 
-def print_agents_snippet() -> int:
-    print(AGENTS_SNIPPET)
+def guide_agents(args: argparse.Namespace, store: RunStore) -> int:
+    if args.format != "markdown":
+        print(f"Unsupported guide format: {args.format}", file=sys.stderr)
+        return 2
+    if args.write:
+        result = write_rig_instruction_file(store.cwd, force=args.force)
+        if result is not None:
+            print(result, file=sys.stderr)
+            return 1
+        print(f"Wrote: {RIG_INSTRUCTION_PATH}")
+        print()
+    elif args.force:
+        print("--force requires --write.", file=sys.stderr)
+        return 2
+    print(agents_snippet(target=args.target))
     return 0
+
+
+def write_rig_instruction_file(cwd: Path, *, force: bool) -> str | None:
+    path = cwd / RIG_INSTRUCTION_PATH
+    if path.exists() and not force:
+        return f"{RIG_INSTRUCTION_PATH} already exists. Use --force to overwrite it."
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(rig_instruction_file_content(), encoding="utf-8")
+    return None
 
 
 def env_doctor(cwd: Path, *, json_output: bool = False) -> int:
@@ -566,6 +638,15 @@ def env_doctor(cwd: Path, *, json_output: bool = False) -> int:
 
 def env_plan(cwd: Path) -> int:
     print(format_env_plan(build_doctor_report(cwd)))
+    return 0
+
+
+def env_manager_status(cwd: Path, *, json_output: bool = False) -> int:
+    report = build_manager_status_report(cwd)
+    if json_output:
+        print(json.dumps(dataclasses.asdict(report), indent=2, ensure_ascii=False))
+    else:
+        print(format_manager_status_report(report))
     return 0
 
 

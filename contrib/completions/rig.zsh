@@ -29,6 +29,20 @@ _rig() {
     return
   fi
 
+  if [[ "$words[2]" == "guide" && "$words[3]" == "agents" ]]; then
+    _arguments \
+      '--target[agent instruction target]:target:(generic codex claude)' \
+      '--format[output format]:format:(markdown)' \
+      '--write[write .rig/instructions/rig.md]' \
+      '--force[overwrite .rig/instructions/rig.md with --write]'
+    return
+  fi
+
+  if [[ "$words[2]" == "env" && "$words[3]" == "manager" && "$words[4]" == "status" ]]; then
+    _arguments '--json[print JSON output]'
+    return
+  fi
+
   case "$words[2]" in
     worktree)
       local -a worktree_commands
@@ -59,8 +73,15 @@ _rig() {
         'doctor:diagnose environment'
         'plan:show environment plan'
         'bootstrap:create Rig-owned environment files'
+        'manager:inspect configured agent asset managers'
       )
-      _describe 'env command' env_commands
+      if [[ "$words[3]" == "manager" ]]; then
+        local -a manager_commands
+        manager_commands=('status:show configured agent asset manager status')
+        _describe 'manager command' manager_commands
+      else
+        _describe 'env command' env_commands
+      fi
       ;;
     mcp)
       local -a mcp_commands
