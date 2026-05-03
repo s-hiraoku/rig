@@ -339,6 +339,50 @@ def test_runs_complete_refuses_non_waiting_run(
     assert (run_dir / "result.md").read_text(encoding="utf-8") == "already done\n"
 
 
+def test_runs_fail_manual_run_with_error_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  external:
+    runner: manual
+""",
+        encoding="utf-8",
+    )
+    cli.main(["run", "external", "--task", "finish this elsewhere"])
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+
+    assert cli.main(["runs", "fail", "latest", "--error", "blocked elsewhere"]) == 1
+
+    output = capsys.readouterr().out
+    assert "Status: failed" in output
+    assert "Error: blocked elsewhere" in output
+    assert (run_dir / "stderr.log").read_text(encoding="utf-8") == "blocked elsewhere\n"
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["status"] == "failed"
+    assert status["exit_code"] == 1
+    assert status["finished_at"] is not None
+
+    assert cli.main(["runs", "show", "latest"]) == 0
+    show_output = capsys.readouterr().out
+    assert "--- Error ---" in show_output
+    assert "blocked elsewhere" in show_output
+
+
+def test_runs_fail_requires_one_error_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    assert cli.main(["runs", "fail", "latest"]) == 2
+
+    assert "Provide exactly one of --error or --error-file." in capsys.readouterr().err
+
+
 def test_run_codex_dry_run_writes_artifacts_without_executing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

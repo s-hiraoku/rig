@@ -315,6 +315,19 @@ uv run rig runs complete latest --result "Finished in Copilot Chat."
 uv run rig runs complete 20260502-203012-external --result-file result.md
 ```
 
+### `rig runs fail <run-id>`
+
+Fails a waiting manual run by writing `stderr.log` and marking the run as
+`failed`. Like `complete`, this command only operates on runs that are currently
+`waiting`.
+
+Example:
+
+```bash
+uv run rig runs fail latest --error "Blocked in external review."
+uv run rig runs fail 20260502-203012-external --error-file error.txt
+```
+
 ### `rig agents snippet`
 
 Prints a Markdown snippet that users can paste into `AGENTS.md` or similar
