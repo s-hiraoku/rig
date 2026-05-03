@@ -348,6 +348,19 @@ Example:
 uv run rig env plan
 ```
 
+### `rig env bootstrap`
+
+Creates missing Rig-owned environment files, then prints the remaining next
+steps from `rig env doctor`. It follows the same safety rule as `rig init`:
+existing `.rig/config.yaml` and `.rig/env.yaml` are not overwritten. Rig does
+not install external tools or deploy third-party agent assets.
+
+Example:
+
+```bash
+uv run rig env bootstrap
+```
+
 ## Run Artifacts
 
 Each run creates these files:

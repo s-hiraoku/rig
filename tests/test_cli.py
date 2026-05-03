@@ -437,3 +437,37 @@ def test_env_plan_prints_read_only_plan(
     assert "Desired harness" in output
     assert "Planned actions" in output
     assert "No files will be changed." in output
+
+
+def test_env_bootstrap_creates_missing_rig_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["env", "bootstrap"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig environment bootstrap" in output
+    assert "Created: .rig/config.yaml" in output
+    assert "Created: .rig/env.yaml" in output
+    assert "Next steps" in output
+    assert "Run: rig agents snippet" in output
+    assert "Rig did not install external tools or third-party agent assets." in output
+    assert (tmp_path / ".rig" / "config.yaml").is_file()
+    assert (tmp_path / ".rig" / "env.yaml").is_file()
+
+
+def test_env_bootstrap_does_not_overwrite_existing_env_yaml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "env.yaml").write_text("custom: true\n", encoding="utf-8")
+
+    assert cli.main(["env", "bootstrap"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig already up to date." in output
+    assert (tmp_path / ".rig" / "env.yaml").read_text(encoding="utf-8") == (
+        "custom: true\n"
+    )

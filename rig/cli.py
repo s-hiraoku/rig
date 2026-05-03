@@ -7,7 +7,7 @@ from pathlib import Path
 from rig.adapters.codex import CodexAdapter, CodexNotFoundError, iso_now
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
-from rig.run_store import RigNotInitializedError, RunStore
+from rig.run_store import InitResult, RigNotInitializedError, RunStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,6 +63,10 @@ def build_parser() -> argparse.ArgumentParser:
     env_subparsers.add_parser(
         "plan", help="Show a read-only plan for the desired harness environment"
     )
+    env_subparsers.add_parser(
+        "bootstrap",
+        help="Create missing Rig-owned environment files and print next steps",
+    )
 
     return parser
 
@@ -76,16 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             reset = "all" if args.force else args.reset
             result = store.init(reset=reset)
-            if result.changed:
-                print("Rig init complete.")
-                for path in result.created:
-                    print(f"Created: {path}")
-                for path in result.updated:
-                    print(f"Updated: {path}")
-                for path in result.backups:
-                    print(f"Backup: {path}")
-            else:
-                print("Rig already up to date.")
+            print_init_result(result)
             return 0
 
         if args.command == "run" and args.agent == "codex":
@@ -104,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
             return env_doctor(Path.cwd())
         if args.command == "env" and args.env_command == "plan":
             return env_plan(Path.cwd())
+        if args.command == "env" and args.env_command == "bootstrap":
+            return env_bootstrap(store)
 
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
@@ -257,6 +254,42 @@ def env_doctor(cwd: Path) -> int:
 def env_plan(cwd: Path) -> int:
     print(format_env_plan(build_doctor_report(cwd)))
     return 0
+
+
+def env_bootstrap(store: RunStore) -> int:
+    print("Rig environment bootstrap")
+    print()
+    result = store.init()
+    print_init_result(result)
+    print()
+    print("Next steps")
+    report = build_doctor_report(store.cwd)
+    suggestions = [
+        suggestion
+        for suggestion in report.suggestions
+        if suggestion != "Run: rig init"
+    ]
+    if suggestions:
+        for suggestion in suggestions:
+            print(f"- {suggestion}")
+    else:
+        print("- No action needed.")
+    print()
+    print("Rig did not install external tools or third-party agent assets.")
+    return 0
+
+
+def print_init_result(result: InitResult) -> None:
+    if result.changed:
+        print("Rig init complete.")
+        for path in result.created:
+            print(f"Created: {path}")
+        for path in result.updated:
+            print(f"Updated: {path}")
+        for path in result.backups:
+            print(f"Backup: {path}")
+    else:
+        print("Rig already up to date.")
 
 
 def format_started_at(value: str) -> str:

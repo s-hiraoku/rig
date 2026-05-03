@@ -60,6 +60,7 @@ Implemented:
 - `rig agents snippet`
 - `rig env doctor`
 - `rig env plan`
+- `rig env bootstrap`
 - default `.rig/env.yaml` with configurable required files and optional agent
   asset managers
 
@@ -72,7 +73,6 @@ Possible additions:
 - `rig agents snippet --target claude`
 - `rig agents snippet --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
-- `rig env bootstrap`
 - `rig env manager status`
 
 Skills and instruction files are not a replacement for MCP. They tell agents
