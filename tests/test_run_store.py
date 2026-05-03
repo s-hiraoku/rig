@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -109,6 +110,20 @@ def test_create_run_uses_suffix_for_same_second(tmp_path: Path) -> None:
     assert second.id == "20260502-203012-codex-2"
     assert first.run_dir.is_dir()
     assert second.run_dir.is_dir()
+
+
+def test_find_run_rejects_paths_outside_runs_dir(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    outside_dir = tmp_path / "outside"
+    outside_dir.mkdir()
+    (outside_dir / "status.json").write_text(
+        json.dumps({"id": "outside", "status": "succeeded"}),
+        encoding="utf-8",
+    )
+
+    assert store.find_run("../../outside") is None
+    assert store.find_run(str(outside_dir)) is None
 
 
 def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:

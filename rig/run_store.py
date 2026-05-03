@@ -332,7 +332,10 @@ class RunStore:
 
     def find_run(self, run_id: str) -> dict[str, Any] | None:
         self.ensure_initialized()
-        status_path = self.runs_dir / run_id / "status.json"
+        run_dir = resolve_run_lookup_path(run_id, runs_dir=self.runs_dir)
+        if run_dir is None:
+            return None
+        status_path = run_dir / "status.json"
         if not status_path.is_file():
             return None
         try:
@@ -377,6 +380,19 @@ def resolve_metadata_path(value: str, *, base: Path, root: Path, field: str) -> 
     resolved = path.resolve() if path.is_absolute() else (base / path).resolve()
     if not resolved.is_relative_to(root):
         raise ValueError(f"{field} is outside the expected Rig directory: {value}")
+    return resolved
+
+
+def resolve_run_lookup_path(run_id: str, *, runs_dir: Path) -> Path | None:
+    if not run_id:
+        return None
+    path = Path(run_id)
+    if path.is_absolute() or path.name != run_id or run_id in {".", ".."}:
+        return None
+    resolved = (runs_dir / run_id).resolve()
+    runs_root = runs_dir.resolve()
+    if resolved.parent != runs_root or not resolved.is_relative_to(runs_root):
+        return None
     return resolved
 
 

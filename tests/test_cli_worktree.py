@@ -9,6 +9,7 @@ import pytest
 from conftest import init_git_repo, install_fake_script
 
 from rig import cli
+from rig.worktree import WorktreeError
 
 
 def test_run_worktree_captures_diff(
@@ -79,6 +80,48 @@ agents:
     assert "new_file.txt" in diff
     assert "+new" in diff
     assert not (tmp_path / "new_file.txt").exists()
+
+
+def test_run_worktree_marks_run_failed_when_diff_capture_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="edit-file",
+        body="from pathlib import Path\nPath('tracked.txt').write_text('after\\n', encoding='utf-8')\nprint('edited')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  edit:
+    runner: exec
+    command: edit-file
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    def fail_capture_diff(worktree_path: Path) -> str:
+        raise WorktreeError("capture exploded")
+
+    monkeypatch.setattr("rig.orchestrator.capture_diff", fail_capture_diff)
+
+    assert cli.main(["worktree", "run", "edit", "--task", "edit tracked"]) == 1
+
+    captured = capsys.readouterr()
+    assert "capture exploded" in captured.err
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["status"] == "failed"
+    assert status["exit_code"] == 1
+    assert status["finished_at"] is not None
+    assert "Rig worktree diff capture failed: capture exploded" in (
+        run_dir / "stderr.log"
+    ).read_text(encoding="utf-8")
 
 
 def test_worktree_pty_run_uses_worktree_cwd(
