@@ -44,7 +44,11 @@ rig worktree apply latest
 - `rig env doctor [--json]`: diagnose the local harness environment.
 - `rig env plan`: show a read-only environment plan.
 - `rig env bootstrap`: create missing Rig-owned environment files.
-- `rig guide agents`: generate an `AGENTS.md` snippet.
+- `rig env manager status [--json]`: show configured agent asset manager status.
+- `rig guide agents [--target codex|claude] [--format markdown]`: generate an
+  agent instruction snippet.
+- `rig guide agents --write [--force]`: create `.rig/instructions/rig.md` and
+  print a short reference snippet.
 - `rig mcp serve`: run Rig's MCP server over stdio.
 
 ## Notes
