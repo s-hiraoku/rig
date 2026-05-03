@@ -5,12 +5,16 @@ title: GitHub Pages
 # GitHub Pages
 
 This repository publishes the user guide from the `docs/` directory with
-GitHub Actions and Jekyll.
+GitHub Actions and Jekyll. The site is intentionally separate from the README:
+the README is a short repository entry point, while Pages is the structured
+manual.
 
 ## Files
 
 - `docs/index.md`: guide landing page.
-- `docs/_config.yml`: Jekyll Pages metadata and theme.
+- `docs/_layouts/default.html`: site frame with header and navigation.
+- `docs/assets/site.css`: site styling.
+- `docs/_config.yml`: Jekyll Pages metadata and site defaults.
 - `.github/workflows/pages.yml`: build and deploy workflow.
 
 ## Publish

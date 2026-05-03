@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title | default: site.title }} | {{ site.title }}</title>
+    <meta name="description" content="{{ page.description | default: site.description }}">
+    <link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ '/' | relative_url }}">Rig</a>
+      <span class="tagline">Inspectable local AI coding runs</span>
+      <a class="repo-link" href="{{ site.github.repository_url | default: 'https://github.com/s-hiraoku/rig' }}">GitHub</a>
+    </header>
+    <div class="site-shell">
+      <aside class="site-nav" aria-label="Documentation navigation">
+        <nav>
+          <p class="nav-section">Start</p>
+          <a href="{{ '/' | relative_url }}">Overview</a>
+          <a href="{{ '/getting-started.html' | relative_url }}">Getting Started</a>
+          <a href="{{ '/concepts.html' | relative_url }}">Core Concepts</a>
+
+          <p class="nav-section">Use</p>
+          <a href="{{ '/workflows.html' | relative_url }}">Workflows</a>
+          <a href="{{ '/commands.html' | relative_url }}">Command Reference</a>
+          <a href="{{ '/artifacts.html' | relative_url }}">Run Artifacts</a>
+          <a href="{{ '/worktrees.html' | relative_url }}">Worktree Runs</a>
+
+          <p class="nav-section">Operate</p>
+          <a href="{{ '/configuration.html' | relative_url }}">Configuration</a>
+          <a href="{{ '/mcp.html' | relative_url }}">MCP Server</a>
+          <a href="{{ '/troubleshooting.html' | relative_url }}">Troubleshooting</a>
+          <a href="{{ '/github-pages.html' | relative_url }}">GitHub Pages</a>
+        </nav>
+      </aside>
+      <main class="content">
+        {{ content }}
+      </main>
+    </div>
+  </body>
+</html>

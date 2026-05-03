@@ -4,50 +4,46 @@ title: Rig User Guide
 
 # Rig User Guide
 
-Rig is a local AI coding harness for running coding agents with file-backed
-tasks, inspectable artifacts, and simple run history.
+Rig is a local harness for running AI coding agents while keeping their work
+inspectable. It records every task, command, result, log, and optional patch in
+plain files under the repository.
 
-Rig's main unit is a run. Each run stores the task, command metadata, stdout,
-stderr, result, status, and optional worktree patch under `.rig/runs/` so agent
-work stays reviewable after the command exits.
+This site is the structured user guide. The README stays short; these pages are
+organized by what you are trying to do.
 
-## Start Here
+<div class="callout">
+Use Rig when you want agent work to leave an audit trail: what was asked, what
+command ran, what changed, and where to inspect the result.
+</div>
 
-- [Getting Started](getting-started.md)
-- [Core Concepts](concepts.md)
-- [Configuration](configuration.md)
-- [Command Reference](commands.md)
-- [Worktree Runs](worktrees.md)
-- [MCP Server](mcp.md)
-- [GitHub Pages](github-pages.md)
-- [Troubleshooting](troubleshooting.md)
+## Choose A Path
 
-## Common Flow
+<div class="card-grid">
+  <a href="getting-started.html"><strong>Install and run once</strong><span>Set up Rig, run Codex through it, and inspect the first result.</span></a>
+  <a href="workflows.html"><strong>Pick the right workflow</strong><span>Normal runs, isolated worktree edits, manual runs, and environment setup.</span></a>
+  <a href="configuration.html"><strong>Configure agents</strong><span>Agent commands, runners, prompt styles, timeouts, and environment checks.</span></a>
+  <a href="mcp.html"><strong>Connect MCP clients</strong><span>Expose Rig as structured MCP tools with cwd and patch-apply safety gates.</span></a>
+</div>
 
-```bash
-rig init
-rig suggest "Review the current diff."
-rig run codex --task "Review the current diff."
-rig list
-rig show latest
-```
+## Mental Model
 
-## Isolated Edit Flow
+Rig has four layers:
 
-```bash
-rig worktree run codex --task "Make the requested change."
-rig worktree show latest
-rig worktree apply latest
-```
+| Layer | What it answers | Start with |
+| --- | --- | --- |
+| Runs | What did the agent do? | [Core Concepts](concepts.md) |
+| Workflows | How should I run this task? | [Workflows](workflows.md) |
+| Configuration | Which command and policy should Rig use? | [Configuration](configuration.md) |
+| Integrations | How do other tools call Rig? | [MCP Server](mcp.md) |
 
-## Harness Setup Flow
+## Common Jobs
 
-```bash
-rig env doctor
-rig env plan
-rig env bootstrap
-rig guide agents
-```
+- First-time setup: [Getting Started](getting-started.md)
+- Choose normal run versus worktree run: [Workflows](workflows.md)
+- Inspect files written by a run: [Run Artifacts](artifacts.md)
+- Look up exact flags: [Command Reference](commands.md)
+- Fix local setup issues: [Troubleshooting](troubleshooting.md)
+- Maintain this documentation site: [GitHub Pages](github-pages.md)
 
 ## Repository
 

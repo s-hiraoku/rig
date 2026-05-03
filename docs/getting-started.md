@@ -4,6 +4,10 @@ title: Getting Started
 
 # Getting Started
 
+This page is the shortest path from no Rig setup to one inspectable run. For
+choosing between normal, worktree, and manual flows, see
+[Workflows](workflows.md).
+
 ## Installation
 
 Install Rig directly from GitHub:
@@ -62,6 +66,9 @@ uv run rig run codex --task "Review the current diff and identify risky changes.
 uv run rig list
 uv run rig show latest
 ```
+
+Inspect the generated files with [Run Artifacts](artifacts.md) when you need
+more detail than `rig show` prints.
 
 ## Environment Check
 

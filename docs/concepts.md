@@ -45,6 +45,12 @@ A worktree run executes an agent in an isolated Git worktree and captures the
 resulting patch. This keeps the main working tree unchanged until the patch is
 reviewed and applied.
 
+## Artifact
+
+An artifact is a file written under `.rig/runs/<run-id>/`. Artifacts make runs
+inspectable after the command exits and give integrations stable files to read.
+See [Run Artifacts](artifacts.md) for the file-by-file reference.
+
 ## Environment Checks
 
 `.rig/env.yaml` describes project-specific harness expectations such as required

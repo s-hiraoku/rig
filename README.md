@@ -9,8 +9,9 @@ stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 generic execution runners, and MCP tools.
 See [docs/commands.md](docs/commands.md) for the compact command reference.
-The GitHub Pages user guide starts at [docs/index.md](docs/index.md), with
-publishing notes in [docs/github-pages.md](docs/github-pages.md).
+The GitHub Pages user guide starts at [docs/index.md](docs/index.md). It is the
+structured manual for workflows, artifacts, configuration, MCP integration, and
+site publishing.
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
@@ -665,6 +666,8 @@ The user guide lives in `docs/` and is published by
 Key files:
 
 - `docs/index.md`: guide landing page
+- `docs/workflows.md`: scenario-based workflow guide
+- `docs/artifacts.md`: run artifact reference
 - `docs/_config.yml`: Pages/Jekyll metadata
 - `docs/github-pages.md`: publishing and local review notes
 - `.github/workflows/pages.yml`: Pages build and deploy workflow
