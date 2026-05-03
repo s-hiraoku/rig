@@ -22,7 +22,7 @@ def test_build_doctor_report_reports_missing_basics(
     assert labels["Rig env config"].status == "optional"
     assert "Run: git init" in report.suggestions
     assert "Run: rig init" in report.suggestions
-    assert "Run: rig agents snippet" in report.suggestions
+    assert "Run: rig guide agents" in report.suggestions
     assert (
         "Create .rig/env.yaml to declare project-specific harness requirements."
         in report.suggestions
@@ -60,7 +60,7 @@ agent_asset_managers:
 required_files:
   - path: AGENTS.md
     label: Agent instructions
-    hint: "Run: rig agents snippet"
+    hint: "Run: rig guide agents"
   - path: docs/harness.md
     label: Harness docs
     hint: "Create docs/harness.md"
@@ -68,7 +68,7 @@ required_files:
         encoding="utf-8",
     )
     (tmp_path / "AGENTS.md").write_text(
-        "## Rig\n\nRun `rig runs show latest`.\n", encoding="utf-8"
+        "## Rig\n\nRun `rig show latest`.\n", encoding="utf-8"
     )
 
     def fake_which(command: str) -> str | None:

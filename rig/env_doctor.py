@@ -126,14 +126,14 @@ def add_agent_asset_checks(
     if agents_path.is_file():
         checks.append(DoctorCheck("AGENTS.md", "ok", "found"))
         content = agents_path.read_text(encoding="utf-8", errors="replace")
-        if "## Rig" in content and "rig runs show latest" in content:
+        if "## Rig" in content and "rig show latest" in content:
             checks.append(DoctorCheck("Rig AGENTS.md snippet", "ok", "found"))
         else:
             checks.append(DoctorCheck("Rig AGENTS.md snippet", "warn", "not found"))
-            suggestions.append("Run: rig agents snippet")
+            suggestions.append("Run: rig guide agents")
     else:
         checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
-        suggestions.append("Run: rig agents snippet")
+        suggestions.append("Run: rig guide agents")
 
 
 def add_env_config_checks(

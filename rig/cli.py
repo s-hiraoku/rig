@@ -48,36 +48,50 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the agent in an isolated git worktree and capture diff.patch",
     )
 
-    runs_parser = subparsers.add_parser("runs", help="Inspect run history")
-    runs_subparsers = runs_parser.add_subparsers(dest="runs_command", required=True)
-    runs_subparsers.add_parser("list", help="List recent runs")
-    show_parser = runs_subparsers.add_parser("show", help="Show a run")
+    subparsers.add_parser("list", help="List recent runs")
+    show_parser = subparsers.add_parser("show", help="Show a run")
     show_parser.add_argument("run_id", help="Run ID, or 'latest'")
-    complete_parser = runs_subparsers.add_parser(
+    worktree_parser = subparsers.add_parser(
+        "worktree", help="Manage isolated worktree run changes"
+    )
+    worktree_subparsers = worktree_parser.add_subparsers(
+        dest="worktree_command", required=True
+    )
+    worktree_show_parser = worktree_subparsers.add_parser(
+        "show", help="Show changes captured from a worktree run"
+    )
+    worktree_show_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    worktree_apply_parser = worktree_subparsers.add_parser(
+        "apply", help="Apply changes captured from a worktree run"
+    )
+    worktree_apply_parser.add_argument("run_id", help="Run ID, or 'latest'")
+
+    history_parser = subparsers.add_parser("history", help="Inspect run history")
+    history_subparsers = history_parser.add_subparsers(
+        dest="history_command", required=True
+    )
+    history_subparsers.add_parser("list", help="List recent runs")
+    show_parser = history_subparsers.add_parser("show", help="Show a run")
+    show_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    complete_parser = history_subparsers.add_parser(
         "complete", help="Complete a waiting manual run"
     )
     complete_parser.add_argument("run_id", help="Run ID, or 'latest'")
     complete_parser.add_argument("--result", help="Result text to write")
     complete_parser.add_argument("--result-file", help="Path to a result file")
-    fail_parser = runs_subparsers.add_parser("fail", help="Fail a waiting manual run")
+    fail_parser = history_subparsers.add_parser(
+        "fail", help="Fail a waiting manual run"
+    )
     fail_parser.add_argument("run_id", help="Run ID, or 'latest'")
     fail_parser.add_argument("--error", help="Error text to write")
     fail_parser.add_argument("--error-file", help="Path to an error file")
 
-    diff_parser = subparsers.add_parser("diff", help="Show a captured run diff")
-    diff_parser.add_argument("run_id", help="Run ID, or 'latest'")
-
-    apply_parser = subparsers.add_parser("apply", help="Apply a captured run diff")
-    apply_parser.add_argument("run_id", help="Run ID, or 'latest'")
-
-    agents_parser = subparsers.add_parser(
-        "agents", help="Print instructions for AI coding agents"
+    guide_parser = subparsers.add_parser(
+        "guide", help="Generate setup guidance for humans and AI agents"
     )
-    agents_subparsers = agents_parser.add_subparsers(
-        dest="agents_command", required=True
-    )
-    agents_subparsers.add_parser(
-        "snippet", help="Print an AGENTS.md snippet for using Rig"
+    guide_subparsers = guide_parser.add_subparsers(dest="guide_command", required=True)
+    guide_subparsers.add_parser(
+        "agents", help="Generate an AGENTS.md snippet for using Rig"
     )
 
     env_parser = subparsers.add_parser("env", help="Inspect the agent environment")
@@ -111,22 +125,27 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "run":
             return run_agent(args, store)
 
-        if args.command == "runs":
-            if args.runs_command == "list":
+        if args.command == "list":
+            return list_runs(store)
+        if args.command == "show":
+            return show_run(store, args.run_id)
+        if args.command == "worktree":
+            if args.worktree_command == "show":
+                return show_diff(store, args.run_id)
+            if args.worktree_command == "apply":
+                return apply_diff(store, args.run_id)
+
+        if args.command == "history":
+            if args.history_command == "list":
                 return list_runs(store)
-            if args.runs_command == "show":
+            if args.history_command == "show":
                 return show_run(store, args.run_id)
-            if args.runs_command == "complete":
+            if args.history_command == "complete":
                 return complete_run(args, store)
-            if args.runs_command == "fail":
+            if args.history_command == "fail":
                 return fail_run(args, store)
 
-        if args.command == "diff":
-            return show_diff(store, args.run_id)
-        if args.command == "apply":
-            return apply_diff(store, args.run_id)
-
-        if args.command == "agents" and args.agents_command == "snippet":
+        if args.command == "guide" and args.guide_command == "agents":
             return print_agents_snippet()
 
         if args.command == "env" and args.env_command == "doctor":
@@ -516,8 +535,8 @@ rig run codex --task-file tasks/review.md
 Inspect the result:
 
 ```bash
-rig runs list
-rig runs show latest
+rig list
+rig show latest
 ```
 
 Rules:

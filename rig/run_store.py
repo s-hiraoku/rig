@@ -51,7 +51,7 @@ agent_asset_managers:
 required_files:
   - path: AGENTS.md
     label: Agent instructions
-    hint: "Run: rig agents snippet"
+    hint: "Run: rig guide agents"
 """
 
 

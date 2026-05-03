@@ -81,6 +81,20 @@ def init_git_repo(path: Path) -> None:
     )
 
 
+def test_top_level_help_shows_command_shape(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["--help"])
+
+    assert exc_info.value.code == 0
+    output = capsys.readouterr().out
+    assert "{init,run,list,show,worktree,history,guide,env}" in output
+    assert "worktree" in output
+    assert "diff" not in output
+    assert "apply" not in output
+
+
 def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -400,7 +414,7 @@ agents:
     assert status["exit_code"] == 124
 
 
-def test_runs_complete_manual_run_with_result_text(
+def test_complete_manual_run_with_result_text(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -416,7 +430,7 @@ agents:
     cli.main(["run", "external", "--task", "finish this elsewhere"])
     run_dir = next((tmp_path / ".rig" / "runs").iterdir())
 
-    assert cli.main(["runs", "complete", "latest", "--result", "done elsewhere"]) == 0
+    assert cli.main(["history", "complete", "latest", "--result", "done elsewhere"]) == 0
 
     output = capsys.readouterr().out
     assert "Status: succeeded" in output
@@ -427,18 +441,18 @@ agents:
     assert status["finished_at"] is not None
 
 
-def test_runs_complete_requires_one_result_source(
+def test_complete_requires_one_result_source(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
 
-    assert cli.main(["runs", "complete", "latest"]) == 2
+    assert cli.main(["history", "complete", "latest"]) == 2
 
     assert "Provide exactly one of --result or --result-file." in capsys.readouterr().err
 
 
-def test_runs_complete_refuses_non_waiting_run(
+def test_complete_refuses_non_waiting_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -447,14 +461,14 @@ def test_runs_complete_refuses_non_waiting_run(
     cli.main(["run", "codex", "--task", "hello"])
     run_dir = next((tmp_path / ".rig" / "runs").iterdir())
 
-    assert cli.main(["runs", "complete", "latest", "--result", "overwrite"]) == 1
+    assert cli.main(["history", "complete", "latest", "--result", "overwrite"]) == 1
 
     captured = capsys.readouterr()
     assert "Run is not waiting and cannot be completed" in captured.err
     assert (run_dir / "result.md").read_text(encoding="utf-8") == "already done\n"
 
 
-def test_runs_fail_manual_run_with_error_text(
+def test_fail_manual_run_with_error_text(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -470,7 +484,7 @@ agents:
     cli.main(["run", "external", "--task", "finish this elsewhere"])
     run_dir = next((tmp_path / ".rig" / "runs").iterdir())
 
-    assert cli.main(["runs", "fail", "latest", "--error", "blocked elsewhere"]) == 1
+    assert cli.main(["history", "fail", "latest", "--error", "blocked elsewhere"]) == 1
 
     output = capsys.readouterr().out
     assert "Status: failed" in output
@@ -481,19 +495,19 @@ agents:
     assert status["exit_code"] == 1
     assert status["finished_at"] is not None
 
-    assert cli.main(["runs", "show", "latest"]) == 0
+    assert cli.main(["show", "latest"]) == 0
     show_output = capsys.readouterr().out
     assert "--- Error ---" in show_output
     assert "blocked elsewhere" in show_output
 
 
-def test_runs_fail_requires_one_error_source(
+def test_fail_requires_one_error_source(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
 
-    assert cli.main(["runs", "fail", "latest"]) == 2
+    assert cli.main(["history", "fail", "latest"]) == 2
 
     assert "Provide exactly one of --error or --error-file." in capsys.readouterr().err
 
@@ -607,7 +621,7 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
-def test_diff_and_apply_worktree_run(
+def test_worktree_show_and_apply_worktree_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -631,18 +645,18 @@ agents:
     )
     cli.main(["run", "edit", "--task", "edit tracked", "--worktree"])
 
-    assert cli.main(["diff", "latest"]) == 0
+    assert cli.main(["worktree", "show", "latest"]) == 0
     diff_output = capsys.readouterr().out
     assert "+after" in diff_output
 
-    assert cli.main(["apply", "latest"]) == 0
+    assert cli.main(["worktree", "apply", "latest"]) == 0
 
     output = capsys.readouterr().out
     assert "Applied: .rig/runs/" in output
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
 
 
-def test_apply_empty_worktree_diff_is_noop(
+def test_worktree_apply_empty_worktree_diff_is_noop(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -666,14 +680,14 @@ agents:
     )
     cli.main(["run", "noop", "--task", "do nothing", "--worktree"])
 
-    assert cli.main(["apply", "latest"]) == 0
+    assert cli.main(["worktree", "apply", "latest"]) == 0
 
     output = capsys.readouterr().out
     assert "No changes to apply: .rig/runs/" in output
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
-def test_runs_list_and_show_latest(
+def test_list_and_show_latest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -681,43 +695,58 @@ def test_runs_list_and_show_latest(
     install_fake_command(tmp_path, monkeypatch, stdout="latest result\n")
     cli.main(["run", "codex", "--task", "hello"])
 
-    assert cli.main(["runs", "list"]) == 0
+    assert cli.main(["list"]) == 0
     list_output = capsys.readouterr().out
     assert "ID" in list_output
     assert "codex" in list_output
     assert "succeeded" in list_output
 
-    assert cli.main(["runs", "show", "latest"]) == 0
+    assert cli.main(["show", "latest"]) == 0
     show_output = capsys.readouterr().out
     assert "--- Result ---" in show_output
     assert "latest result" in show_output
 
 
-def test_runs_list_handles_empty_history(
+def test_history_group_remains_available(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="latest result\n")
+    cli.main(["run", "codex", "--task", "hello"])
+
+    assert cli.main(["history", "list"]) == 0
+    assert "codex" in capsys.readouterr().out
+
+    assert cli.main(["history", "show", "latest"]) == 0
+    assert "latest result" in capsys.readouterr().out
+
+
+def test_list_handles_empty_history(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
 
-    assert cli.main(["runs", "list"]) == 0
+    assert cli.main(["list"]) == 0
 
     output = capsys.readouterr().out
     assert "ID" in output
     assert "No runs found." in output
 
 
-def test_runs_show_latest_handles_empty_history(
+def test_show_latest_handles_empty_history(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
 
-    assert cli.main(["runs", "show", "latest"]) == 1
+    assert cli.main(["show", "latest"]) == 1
 
     assert "No runs found." in capsys.readouterr().err
 
 
-def test_runs_show_handles_unreadable_status(
+def test_show_handles_unreadable_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -726,12 +755,12 @@ def test_runs_show_handles_unreadable_status(
     run_dir.mkdir()
     (run_dir / "status.json").write_text("{not json", encoding="utf-8")
 
-    assert cli.main(["runs", "show", "bad-run"]) == 1
+    assert cli.main(["show", "bad-run"]) == 1
 
     assert "Run not found or unreadable: bad-run" in capsys.readouterr().err
 
 
-def test_runs_show_handles_missing_result(
+def test_show_handles_missing_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -753,7 +782,7 @@ def test_runs_show_handles_missing_result(
         encoding="utf-8",
     )
 
-    assert cli.main(["runs", "show", "missing-result"]) == 0
+    assert cli.main(["show", "missing-result"]) == 0
 
     output = capsys.readouterr().out
     assert "ID:        missing-result" in output
@@ -761,7 +790,7 @@ def test_runs_show_handles_missing_result(
     assert "(result.md is missing or empty)" in output
 
 
-def test_runs_show_failed_run_includes_stderr(
+def test_show_failed_run_includes_stderr(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -785,7 +814,7 @@ def test_runs_show_failed_run_includes_stderr(
     (run_dir / "result.md").write_text("", encoding="utf-8")
     (run_dir / "stderr.log").write_text("first error\nsecond error\n", encoding="utf-8")
 
-    assert cli.main(["runs", "show", "failed-run"]) == 0
+    assert cli.main(["show", "failed-run"]) == 0
 
     output = capsys.readouterr().out
     assert "Status:    failed" in output
@@ -796,18 +825,18 @@ def test_runs_show_failed_run_includes_stderr(
     assert "second error" in output
 
 
-def test_agents_snippet_prints_agents_md_section(
+def test_guide_agents_prints_agents_md_section(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
-    assert cli.main(["agents", "snippet"]) == 0
+    assert cli.main(["guide", "agents"]) == 0
 
     output = capsys.readouterr().out
     assert "## Rig" in output
     assert "Prefer Rig MCP tools when available" in output
     assert "rig run codex --task-file" in output
-    assert "rig runs show latest" in output
+    assert "rig show latest" in output
 
 
 def test_env_doctor_prints_report(
@@ -849,7 +878,7 @@ def test_env_bootstrap_creates_missing_rig_files(
     assert "Created: .rig/config.yaml" in output
     assert "Created: .rig/env.yaml" in output
     assert "Next steps" in output
-    assert "Run: rig agents snippet" in output
+    assert "Run: rig guide agents" in output
     assert "Rig did not install external tools or third-party agent assets." in output
     assert (tmp_path / ".rig" / "config.yaml").is_file()
     assert (tmp_path / ".rig" / "env.yaml").is_file()

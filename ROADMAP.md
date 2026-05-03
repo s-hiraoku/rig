@@ -30,6 +30,35 @@ Design rules:
 
 Rig may ship defaults, but defaults should be examples, not lock-in.
 
+## Command Design
+
+Rig commands should read well in a Quick Start before they are optimized for
+internal implementation categories.
+
+Design rules:
+
+- keep common first-run operations at the top level
+- put feature-specific operations under the feature name
+- do not expose a command at the top level if it only works for one feature
+- prefer command names with a clear object, such as `worktree apply`
+- keep grouped commands only when the group explains the scope
+
+Current shape:
+
+```bash
+rig init
+rig run <agent> --task "..."
+rig list
+rig show latest
+rig run <agent> --worktree --task "..."
+rig worktree show latest
+rig worktree apply latest
+rig history complete latest --result "..."
+rig history fail latest --error "..."
+rig env doctor
+rig guide agents
+```
+
 ## Phase 1: CLI and Run Artifacts
 
 Goal: provide the smallest useful local harness.
@@ -39,9 +68,10 @@ Implemented:
 - `rig init`
 - `rig run codex --task "..."`
 - `rig run codex --task-file task.md`
-- `rig runs list`
-- `rig runs show latest`
-- `rig runs show <run-id>`
+- `rig list`
+- `rig show latest`
+- `rig show <run-id>`
+- grouped `rig history ...` forms for the same run-history operations
 - file-backed run artifacts under `.rig/runs/<run-id>/`
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
@@ -57,7 +87,7 @@ server configuration.
 
 Implemented:
 
-- `rig agents snippet`
+- `rig guide agents`
 - `rig env doctor`
 - `rig env plan`
 - `rig env bootstrap`
@@ -69,9 +99,9 @@ User repositories own their own agent instructions.
 
 Possible additions:
 
-- `rig agents snippet --target codex`
-- `rig agents snippet --target claude`
-- `rig agents snippet --format markdown`
+- `rig guide agents --target codex`
+- `rig guide agents --target claude`
+- `rig guide agents --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
 - `rig env manager status`
 
@@ -199,7 +229,7 @@ required_files:
 instructions:
   agents_md:
     recommended: true
-    snippet_command: rig agents snippet
+    snippet_command: rig guide agents
 ```
 
 `rig env doctor` should be diagnostic. If it suggests installing or updating
@@ -214,8 +244,8 @@ Potential commands:
 
 ```bash
 rig run codex --worktree --task "..."
-rig diff latest
-rig apply latest
+rig worktree show latest
+rig worktree apply latest
 ```
 
 Concepts:
@@ -232,8 +262,8 @@ Implemented:
 - `rig run <agent> --worktree`
 - `.rig/worktrees/<run-id>/`
 - `.rig/runs/<run-id>/diff.patch`
-- `rig diff latest`
-- `rig apply latest`
+- `rig worktree show latest`
+- `rig worktree apply latest`
 
 ## Phase 3: Generic Execution Runners
 
@@ -259,7 +289,7 @@ Implemented:
 - `runner: exec`
 - `runner: manual`
 - `runner: pty` with timeout-backed transcript capture
-- `rig runs complete` and `rig runs fail` for manual run lifecycle management
+- `rig history complete` and `rig history fail` for manual run lifecycle management
 
 Vendor tools should usually be presets over runner types:
 

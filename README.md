@@ -84,8 +84,8 @@ From a project where you want to use Rig:
 ```bash
 rig init
 rig run codex --task "Review the current diff and identify risky changes."
-rig runs list
-rig runs show latest
+rig list
+rig show latest
 ```
 
 From this repository checkout, prefix commands with `uv run`:
@@ -93,8 +93,16 @@ From this repository checkout, prefix commands with `uv run`:
 ```bash
 uv run rig init
 uv run rig run codex --task "Review the current diff and identify risky changes."
-uv run rig runs list
-uv run rig runs show latest
+uv run rig list
+uv run rig show latest
+```
+
+For an isolated agent edit:
+
+```bash
+rig run codex --worktree --task "Make the requested change."
+rig worktree show latest
+rig worktree apply latest
 ```
 
 ## Commands
@@ -276,17 +284,17 @@ uv run rig run codex --task-file task.md
 Provide exactly one of `--task` or `--task-file`. Passing both, or passing
 neither, is an error.
 
-### `rig runs list`
+### `rig list`
 
 Lists recent runs by reading `.rig/runs/*/status.json`.
 
 Unreadable run metadata is skipped. If there are no readable runs, Rig prints
-`No runs found.`.
+`No runs found.`. The grouped form is also available as `rig history list`.
 
 Example:
 
 ```bash
-uv run rig runs list
+uv run rig list
 ```
 
 Example output:
@@ -297,19 +305,20 @@ ID                         AGENT   STATUS     STARTED
 20260502-201500-codex      codex   failed     2026-05-02 20:15:00
 ```
 
-### `rig runs show latest`
+### `rig show latest`
 
 Shows metadata and the result for the most recent run.
 
-If no readable runs exist, Rig prints `No runs found.`.
+If no readable runs exist, Rig prints `No runs found.`. The grouped form is
+also available as `rig history show latest`.
 
 Example:
 
 ```bash
-uv run rig runs show latest
+uv run rig show latest
 ```
 
-### `rig runs show <run-id>`
+### `rig show <run-id>`
 
 Shows metadata and the result for a specific run.
 
@@ -321,32 +330,32 @@ Failed runs also show the exit code and an `--- Error ---` section sourced from
 Example:
 
 ```bash
-uv run rig runs show 20260502-203012-codex
+uv run rig show 20260502-203012-codex
 ```
 
-### `rig diff <run-id>`
+### `rig worktree show <run-id>`
 
-Prints the captured `diff.patch` for a worktree run. Use `latest` for the most
-recent run.
+Prints the captured patch for a worktree run. Use `latest` for the most recent
+run.
 
 Example:
 
 ```bash
-uv run rig diff latest
+uv run rig worktree show latest
 ```
 
-### `rig apply <run-id>`
+### `rig worktree apply <run-id>`
 
-Applies a captured worktree diff to the current repository using `git apply`.
-Use this only after inspecting the diff.
+Applies a captured worktree patch to the current repository using `git apply`.
+Use this only after inspecting the patch.
 
 Example:
 
 ```bash
-uv run rig apply latest
+uv run rig worktree apply latest
 ```
 
-### `rig runs complete <run-id>`
+### `rig history complete <run-id>`
 
 Completes a waiting manual run by writing `result.md` and marking the run as
 `succeeded`. Use `latest` to complete the most recent run. Rig refuses to
@@ -356,11 +365,11 @@ overwrite finished exec runs by accident.
 Example:
 
 ```bash
-uv run rig runs complete latest --result "Finished in Copilot Chat."
-uv run rig runs complete 20260502-203012-external --result-file result.md
+uv run rig history complete latest --result "Finished in Copilot Chat."
+uv run rig history complete 20260502-203012-external --result-file result.md
 ```
 
-### `rig runs fail <run-id>`
+### `rig history fail <run-id>`
 
 Fails a waiting manual run by writing `stderr.log` and marking the run as
 `failed`. Like `complete`, this command only operates on runs that are currently
@@ -369,11 +378,11 @@ Fails a waiting manual run by writing `stderr.log` and marking the run as
 Example:
 
 ```bash
-uv run rig runs fail latest --error "Blocked in external review."
-uv run rig runs fail 20260502-203012-external --error-file error.txt
+uv run rig history fail latest --error "Blocked in external review."
+uv run rig history fail 20260502-203012-external --error-file error.txt
 ```
 
-### `rig agents snippet`
+### `rig guide agents`
 
 Prints a Markdown snippet that users can paste into `AGENTS.md` or similar
 agent instruction files.
@@ -385,7 +394,7 @@ inspect run artifacts after each run.
 Example:
 
 ```bash
-uv run rig agents snippet
+uv run rig guide agents
 ```
 
 ### `rig env doctor`
