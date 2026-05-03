@@ -7,3 +7,4 @@
 - Add isolated worktree runs with captured patch review and apply commands.
 - Add environment diagnostics for project-specific harness requirements.
 - Add an initial MCP stdio server with structured Rig run tools.
+- Add MCP cwd, task file, and patch-apply safety gates.

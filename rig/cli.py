@@ -512,6 +512,7 @@ rig show latest
 Rules:
 
 - Do not assume Rig applies patches automatically.
+- Do not call `rig_apply_patch` unless the user explicitly asks to apply a reviewed diff.
 - Inspect `result.md` after each run.
 - Check `stderr.log` when a run fails.
 - Prefer `--task-file` for long or structured tasks.

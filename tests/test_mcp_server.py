@@ -35,7 +35,10 @@ def test_mcp_run_and_read_result(
     )["content"] == "done\n"
 
 
-def test_mcp_run_returns_structured_error_for_bad_input(tmp_path: Path) -> None:
+def test_mcp_run_returns_structured_error_for_bad_input(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
     store = cli.RunStore(tmp_path)
     store.init()
 
@@ -55,6 +58,7 @@ def test_mcp_run_resolves_relative_task_file_from_cwd(
     other_dir.mkdir()
     repo_dir.mkdir()
     monkeypatch.chdir(other_dir)
+    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
     cli.RunStore(repo_dir).init()
     install_fake_command(tmp_path, monkeypatch, stdout="done\n")
     (repo_dir / "task.md").write_text("hello from file\n", encoding="utf-8")
@@ -66,7 +70,41 @@ def test_mcp_run_resolves_relative_task_file_from_cwd(
     assert (run_dir / "task.md").read_text(encoding="utf-8") == "hello from file\n"
 
 
-def test_mcp_get_run_handles_missing_history(tmp_path: Path) -> None:
+def test_mcp_run_rejects_task_file_outside_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    outside_file = tmp_path.parent / "outside-task.md"
+    outside_file.write_text("outside\n", encoding="utf-8")
+
+    result = run_tool(task_file=str(outside_file), cwd=str(tmp_path))
+
+    assert result == {
+        "ok": False,
+        "error": f"task_file is outside the project: {outside_file}",
+    }
+
+
+def test_mcp_rejects_cwd_outside_allowed_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    allowed_dir = tmp_path / "allowed"
+    other_dir = tmp_path / "other"
+    allowed_dir.mkdir()
+    other_dir.mkdir()
+    monkeypatch.chdir(allowed_dir)
+
+    result = list_runs_tool(cwd=str(other_dir))
+
+    assert result["ok"] is False
+    assert result["error"].startswith("cwd outside allowed root:")
+
+
+def test_mcp_get_run_handles_missing_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
     cli.RunStore(tmp_path).init()
 
     result = get_run_tool(run_id="latest", cwd=str(tmp_path))
@@ -78,6 +116,7 @@ def test_mcp_worktree_diff_and_apply(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RIG_MCP_ALLOW_APPLY", "1")
     init_git_repo(tmp_path)
     cli.main(["init"])
     install_fake_script(
@@ -106,3 +145,14 @@ agents:
     assert applied["ok"] is True
     assert applied["applied"] is True
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
+
+
+def test_mcp_apply_patch_requires_explicit_opt_in(tmp_path: Path) -> None:
+    cli.RunStore(tmp_path).init()
+
+    result = apply_patch_tool(cwd=str(tmp_path))
+
+    assert result == {
+        "ok": False,
+        "error": "rig_apply_patch is disabled. Set RIG_MCP_ALLOW_APPLY=1 to enable it.",
+    }

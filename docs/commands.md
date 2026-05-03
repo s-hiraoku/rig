@@ -48,3 +48,8 @@ rig worktree apply latest
 - MCP tools expose the same run store and orchestrator as the CLI. The initial
   tool set is `rig_run`, `rig_list_runs`, `rig_get_run`, `rig_get_result`,
   `rig_get_diff`, and `rig_apply_patch`.
+- MCP `cwd` values must stay under the server launch directory, or under
+  `RIG_MCP_ROOT` when it is set. MCP `task_file` paths are resolved from `cwd`
+  and must stay inside that project.
+- MCP `rig_apply_patch` is disabled unless the server is started with
+  `RIG_MCP_ALLOW_APPLY=1`.

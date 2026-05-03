@@ -338,6 +338,8 @@ Implemented:
 - `rig_get_diff`
 - `rig_apply_patch`
 - `rig mcp serve` stdio server entrypoint
+- `RIG_MCP_ROOT` bounds accepted `cwd` values
+- `RIG_MCP_ALLOW_APPLY=1` gates MCP patch application
 
 Why MCP:
 
@@ -346,6 +348,13 @@ Why MCP:
 - Agents do not need to parse CLI text to discover run IDs or statuses.
 - MCP tools can return stable JSON-like data while Rig keeps the CLI for humans
   and fallback automation.
+
+MCP safety defaults:
+
+- `cwd` is restricted to the server launch directory unless `RIG_MCP_ROOT` is
+  set.
+- `task_file` paths must stay inside the selected project.
+- `rig_apply_patch` is disabled unless `RIG_MCP_ALLOW_APPLY=1` is set.
 
 Skills and `AGENTS.md` should remain useful after MCP exists. They should
 explain when to use Rig, which policies to follow, and how to inspect artifacts.

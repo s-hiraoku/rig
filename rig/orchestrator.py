@@ -24,6 +24,13 @@ class RunRequest:
 class RunOutcome:
     exit_code: int
     lines: list[str]
+    run_id: str
+    status: str
+    task_path: str | None = None
+    command_path: str | None = None
+    result_path: str | None = None
+    diff_path: str | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -65,13 +72,19 @@ class RunOrchestrator:
                 command_adapter.result_template(context), encoding="utf-8"
             )
             self.store.write_status(context, status="waiting", started_at=started_at)
+            task_path = str(context.task_path.relative_to(context.cwd))
+            result_path = str(context.result_path.relative_to(context.cwd))
             return RunOutcome(
                 exit_code=0,
+                run_id=context.id,
+                status="waiting",
+                task_path=task_path,
+                result_path=result_path,
                 lines=[
                     f"Run: {context.id}",
                     "Status: waiting",
-                    f"Task: {context.task_path.relative_to(context.cwd)}",
-                    f"Result: {context.result_path.relative_to(context.cwd)}",
+                    f"Task: {task_path}",
+                    f"Result: {result_path}",
                 ],
             )
 
@@ -86,13 +99,19 @@ class RunOrchestrator:
                 "Dry run: command was not executed.\n", encoding="utf-8"
             )
             self.store.write_status(context, status="created", started_at=started_at)
+            command_path = str(context.command_path.relative_to(context.cwd))
+            result_path = str(context.result_path.relative_to(context.cwd))
             return RunOutcome(
                 exit_code=0,
+                run_id=context.id,
+                status="created",
+                command_path=command_path,
+                result_path=result_path,
                 lines=[
                     f"Run: {context.id}",
                     "Status: created",
-                    f"Command: {context.command_path.relative_to(context.cwd)}",
-                    f"Result: {context.result_path.relative_to(context.cwd)}",
+                    f"Command: {command_path}",
+                    f"Result: {result_path}",
                 ],
             )
 
@@ -120,12 +139,16 @@ class RunOrchestrator:
                 finished_at=finished_at,
                 exit_code=130,
             )
+            error_path = str(context.stderr_path.relative_to(context.cwd))
             return RunOutcome(
                 exit_code=130,
+                run_id=context.id,
+                status="aborted",
+                error_summary=error_path,
                 lines=[
                     f"Run: {context.id}",
                     "Status: aborted",
-                    f"Error: {context.stderr_path.relative_to(context.cwd)}",
+                    f"Error: {error_path}",
                 ],
             )
 
@@ -148,16 +171,35 @@ class RunOrchestrator:
             exit_code=result.exit_code,
         )
 
+        result_path = str(context.result_path.relative_to(context.cwd))
+        diff_path = (
+            str(context.diff_path.relative_to(context.cwd))
+            if context.worktree_path is not None
+            else None
+        )
+        error_summary = (
+            first_line(result.stderr)
+            if status == "failed" and result.stderr.strip()
+            else None
+        )
         lines = [
             f"Run: {context.id}",
             f"Status: {status}",
-            f"Result: {context.result_path.relative_to(context.cwd)}",
+            f"Result: {result_path}",
         ]
-        if context.worktree_path is not None:
-            lines.append(f"Diff: {context.diff_path.relative_to(context.cwd)}")
-        if status == "failed" and result.stderr.strip():
-            lines.append(f"Error: {first_line(result.stderr)}")
-        return RunOutcome(exit_code=0 if result.exit_code == 0 else 1, lines=lines)
+        if diff_path is not None:
+            lines.append(f"Diff: {diff_path}")
+        if error_summary is not None:
+            lines.append(f"Error: {error_summary}")
+        return RunOutcome(
+            exit_code=0 if result.exit_code == 0 else 1,
+            run_id=context.id,
+            status=status,
+            result_path=result_path,
+            diff_path=diff_path,
+            error_summary=error_summary,
+            lines=lines,
+        )
 
 
 def read_task(request: RunRequest) -> TaskInput:

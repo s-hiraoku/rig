@@ -435,8 +435,8 @@ uv run rig guide agents
 ### `rig mcp serve`
 
 Runs Rig's MCP server over stdio. MCP-capable agents can use the server to
-start runs, list and inspect run history, read results, read captured worktree
-diffs, and apply reviewed worktree patches without parsing CLI text.
+start runs, list and inspect run history, read results, and read captured
+worktree diffs without parsing CLI text.
 
 Initial MCP tools:
 
@@ -446,6 +446,15 @@ Initial MCP tools:
 - `rig_get_result`
 - `rig_get_diff`
 - `rig_apply_patch`
+
+For safety, MCP calls are limited to the server's launch directory by default.
+Set `RIG_MCP_ROOT=/path/to/root` when the server must operate on repositories
+under a broader root. Relative `task_file` values are resolved from the selected
+`cwd` and must stay inside that project.
+
+`rig_apply_patch` is disabled unless the server is started with
+`RIG_MCP_ALLOW_APPLY=1`. Do not enable it unless the agent should be allowed to
+apply reviewed worktree patches after explicit user instruction.
 
 Example:
 
