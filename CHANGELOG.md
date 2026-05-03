@@ -1,0 +1,8 @@
+# Changelog
+
+## 0.1.0
+
+- Add Rig initialization and file-backed run artifacts.
+- Add exec, manual, and pty runners.
+- Add isolated worktree runs with captured patch review and apply commands.
+- Add environment diagnostics for project-specific harness requirements.

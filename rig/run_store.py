@@ -19,14 +19,6 @@ agents:
     runner: exec
     args:
       - exec
-
-policy:
-  default_mode: review
-  allow_write: false
-  allow_network: false
-
-runs:
-  directory: .rig/runs
 """
 
 DEFAULT_ENV_CONFIG = """version: 1
@@ -46,6 +38,10 @@ agent_asset_managers:
   - id: vercel-skills
     label: Vercel skills manager
     command: npx
+    args:
+      - --no-install
+      - skills
+      - --help
     hint: "Install Node.js/npm if this project uses Vercel `skills` workflows."
 
 required_files:
@@ -69,6 +65,35 @@ class InitResult:
     @property
     def changed(self) -> bool:
         return bool(self.created or self.updated)
+
+
+@dataclass(frozen=True)
+class RunArtifacts:
+    cwd: Path
+    run: dict[str, Any]
+
+    @property
+    def run_dir(self) -> Path | None:
+        run_dir_value = self.run.get("run_dir")
+        if not isinstance(run_dir_value, str) or not run_dir_value:
+            return None
+        return self.cwd / run_dir_value
+
+    def path(self, filename: str) -> Path | None:
+        run_dir = self.run_dir
+        return None if run_dir is None else run_dir / filename
+
+    def read(self, filename: str) -> str:
+        artifact_path = self.path(filename)
+        if artifact_path is None or not artifact_path.is_file():
+            return ""
+        return artifact_path.read_text(encoding="utf-8", errors="replace")
+
+    def write(self, filename: str, content: str) -> None:
+        artifact_path = self.path(filename)
+        if artifact_path is None:
+            raise RigNotInitializedError("Run metadata does not contain a run directory.")
+        artifact_path.write_text(content, encoding="utf-8")
 
 
 class RunStore:
@@ -208,8 +233,9 @@ class RunStore:
             execution_cwd=self.cwd,
         )
 
-    def write_task(self, context: RunContext, task: str) -> None:
-        context.task_path.write_text(f"# Task\n\n{task.rstrip()}\n", encoding="utf-8")
+    def write_task(self, context: RunContext, task: str, *, wrap: bool = True) -> None:
+        content = f"# Task\n\n{task.rstrip()}\n" if wrap else ensure_trailing_newline(task)
+        context.task_path.write_text(content, encoding="utf-8")
 
     def write_command(self, context: RunContext, command: dict[str, Any]) -> None:
         context.command_path.write_text(
@@ -252,10 +278,10 @@ class RunStore:
         finished_at: str | None = None,
         exit_code: int | None = None,
     ) -> None:
-        run_dir_value = run.get("run_dir")
-        if not isinstance(run_dir_value, str) or not run_dir_value:
+        run_dir = RunArtifacts(self.cwd, run).run_dir
+        if run_dir is None:
             raise RigNotInitializedError("Run metadata does not contain a run directory.")
-        status_path = self.cwd / run_dir_value / "status.json"
+        status_path = run_dir / "status.json"
         data = dict(run)
         data["status"] = status
         data["finished_at"] = finished_at
@@ -268,11 +294,7 @@ class RunStore:
     def write_run_artifact(
         self, run: dict[str, Any], filename: str, content: str
     ) -> None:
-        run_dir_value = run.get("run_dir")
-        if not isinstance(run_dir_value, str) or not run_dir_value:
-            raise RigNotInitializedError("Run metadata does not contain a run directory.")
-        artifact_path = self.cwd / run_dir_value / filename
-        artifact_path.write_text(content, encoding="utf-8")
+        RunArtifacts(self.cwd, run).write(filename, content)
 
     def list_runs(self) -> list[dict[str, Any]]:
         self.ensure_initialized()
@@ -288,6 +310,9 @@ class RunStore:
     def latest_run(self) -> dict[str, Any] | None:
         runs = self.list_runs()
         return runs[0] if runs else None
+
+    def resolve_run(self, run_id: str) -> dict[str, Any] | None:
+        return self.latest_run() if run_id == "latest" else self.find_run(run_id)
 
     def find_run(self, run_id: str) -> dict[str, Any] | None:
         self.ensure_initialized()
@@ -305,17 +330,14 @@ class RunStore:
         return self.read_artifact(run, "result.md")
 
     def read_artifact(self, run: dict[str, Any], filename: str) -> str:
-        run_dir_value = run.get("run_dir")
-        if not isinstance(run_dir_value, str) or not run_dir_value:
-            return ""
-        run_dir = self.cwd / run_dir_value
-        artifact_path = run_dir / filename
-        if not artifact_path.is_file():
-            return ""
-        return artifact_path.read_text(encoding="utf-8", errors="replace")
+        return RunArtifacts(self.cwd, run).read(filename)
 
     def _display_path(self, path: Path) -> str:
         try:
             return str(path.relative_to(self.cwd))
         except ValueError:
             return str(path)
+
+
+def ensure_trailing_newline(value: str) -> str:
+    return value if value.endswith("\n") else f"{value}\n"

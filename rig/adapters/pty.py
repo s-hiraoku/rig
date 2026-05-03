@@ -30,7 +30,7 @@ class PtyAdapter(ExecAdapter):
         try:
             process = subprocess.Popen(
                 command,
-                cwd=context.cwd,
+                cwd=context.execution_cwd,
                 stdin=slave_fd,
                 stdout=slave_fd,
                 stderr=slave_fd,

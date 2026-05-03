@@ -18,6 +18,7 @@ class CodexAdapter(ExecAdapter):
             command=command,
             args=args or ["exec"],
             prompt_style="rig",
+            prompt_template=None,
             timeout_seconds=300,
         )
         super().__init__("codex", config)

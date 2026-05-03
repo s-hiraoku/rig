@@ -8,6 +8,7 @@ stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 generic execution runners, and MCP tools.
+See [docs/commands.md](docs/commands.md) for the compact command reference.
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
@@ -57,6 +58,8 @@ uv run rig --help
 
 If you are working from a checkout, use `uv run rig ...`. If you installed Rig
 with `uv tool install`, use `rig ...`.
+
+Optional zsh completion is available at `contrib/completions/rig.zsh`.
 
 ## Requirements
 
@@ -144,7 +147,8 @@ uv run rig init
 ```
 
 The generated `.rig/config.yaml` controls the command Rig uses for each agent.
-For Codex, Rig reads `agents.codex.command` and `agents.codex.args`:
+If `rig run` omits the agent name, Rig uses `default_agent`. For Codex, Rig
+reads `agents.codex.command` and `agents.codex.args`:
 
 ```yaml
 agents:
@@ -176,7 +180,9 @@ agents:
 ```
 
 `prompt_style: rig` passes Rig's standard instruction prompt with a task file
-path. `prompt_style: task` passes the raw task file content.
+path. `prompt_style: task` passes the raw task file content. `timeout_seconds`
+applies to both `exec` and `pty` runners. `prompt_template` can replace Rig's
+generated prompt and may use `{agent}`, `{task_path}`, and `{task}` placeholders.
 
 Rig also supports the `manual` runner for human-driven, GUI-driven, or external
 agent work. It creates a run with status `waiting` and writes the task/artifact
@@ -293,7 +299,8 @@ uv run rig worktree run codex --task "Make the requested change."
 Lists recent runs by reading `.rig/runs/*/status.json`.
 
 Unreadable run metadata is skipped. If there are no readable runs, Rig prints
-`No runs found.`. The grouped form is also available as `rig history list`.
+`No runs found.`. Add `--json` for machine-readable output. The grouped form is
+also available as `rig history list`.
 
 Example:
 
@@ -313,8 +320,9 @@ ID                         AGENT   STATUS     STARTED
 
 Shows metadata and the result for the most recent run.
 
-If no readable runs exist, Rig prints `No runs found.`. The grouped form is
-also available as `rig history show latest`.
+If no readable runs exist, Rig prints `No runs found.`. Add `--json` to print
+metadata only as JSON. The grouped form is also available as
+`rig history show latest`.
 
 Example:
 
@@ -357,6 +365,16 @@ Example:
 
 ```bash
 uv run rig worktree apply latest
+```
+
+### `rig worktree prune`
+
+Removes Rig-created worktrees under `.rig/worktrees/`.
+
+Example:
+
+```bash
+uv run rig worktree prune
 ```
 
 ### `rig history complete <run-id>`

@@ -8,6 +8,8 @@ from typing import Any, cast
 
 import yaml
 
+from rig.config import ConfigError, load_config
+
 
 @dataclass(frozen=True)
 class DoctorCheck:
@@ -52,7 +54,7 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
 
     add_git_checks(root, checks, suggestions)
     add_rig_checks(root, checks, suggestions)
-    add_codex_check(checks, suggestions)
+    add_configured_agent_checks(root, checks, suggestions)
     add_agent_asset_checks(root, checks, suggestions)
     add_env_config_checks(root, checks, suggestions)
 
@@ -89,15 +91,33 @@ def add_rig_checks(
         suggestions.append("Run: rig init")
 
 
-def add_codex_check(checks: list[DoctorCheck], suggestions: list[str]) -> None:
-    add_tool_check(
-        checks,
-        suggestions,
-        label="Codex CLI",
-        command="codex",
-        install_hint="Install Codex CLI and ensure `codex` is on PATH.",
-        missing_status="missing",
-    )
+def add_configured_agent_checks(
+    root: Path, checks: list[DoctorCheck], suggestions: list[str]
+) -> None:
+    config_path = root / ".rig" / "config.yaml"
+    if not config_path.is_file():
+        return
+
+    try:
+        config = load_config(config_path)
+    except ConfigError as exc:
+        checks.append(DoctorCheck("Configured agents", "warn", str(exc)))
+        return
+
+    for name, agent in config.agents.items():
+        if agent.runner == "manual":
+            continue
+        add_tool_check(
+            checks,
+            suggestions,
+            label=f"Agent command: {name}",
+            command=agent.command,
+            install_hint=(
+                f"Install `{agent.command}` or update agents.{name}.command in "
+                ".rig/config.yaml."
+            ),
+            missing_status="missing",
+        )
 
 
 def add_tool_check(

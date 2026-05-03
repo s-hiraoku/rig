@@ -121,3 +121,13 @@ def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:
     assert context.task_path.read_text(encoding="utf-8") == (
         "# Task\n\nReview the current diff.\n"
     )
+
+
+def test_write_task_can_preserve_task_file_content(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    context = store.create_run("codex")
+
+    store.write_task(context, "# Existing\n\nDo it.\n", wrap=False)
+
+    assert context.task_path.read_text(encoding="utf-8") == "# Existing\n\nDo it.\n"

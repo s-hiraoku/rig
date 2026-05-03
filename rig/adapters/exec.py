@@ -35,6 +35,12 @@ class ExecAdapter:
 
     def build_prompt(self, context: RunContext) -> str:
         task_path = relpath(context.task_path, context.execution_cwd)
+        if self.config.prompt_template is not None:
+            return self.config.prompt_template.format(
+                agent=self.name,
+                task_path=task_path,
+                task=context.task_path.read_text(encoding="utf-8"),
+            )
         if self.config.prompt_style == "task":
             return context.task_path.read_text(encoding="utf-8")
         return "\n".join(
@@ -74,15 +80,33 @@ class ExecAdapter:
                 "Install the command or update .rig/config.yaml."
             )
 
-        completed = subprocess.run(
-            command,
-            cwd=context.execution_cwd,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=context.execution_cwd,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=self.config.timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as exc:
+            stdout = decode_timeout_output(exc.stdout)
+            stderr = decode_timeout_output(exc.stderr)
+            if stderr and not stderr.endswith("\n"):
+                stderr += "\n"
+            stderr += f"Rig exec runner timed out after {self.config.timeout_seconds} seconds.\n"
+            return AgentResult(exit_code=124, stdout=stdout, stderr=stderr)
+
         return AgentResult(
             exit_code=completed.returncode,
             stdout=completed.stdout,
             stderr=completed.stderr,
         )
+
+
+def decode_timeout_output(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value

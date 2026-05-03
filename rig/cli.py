@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 from rig.adapters.codex import iso_now
-from rig.adapters.exec import AgentCommandNotFoundError, ExecAdapter
-from rig.adapters.manual import ManualAdapter
-from rig.adapters.pty import PtyAdapter
+from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
+from rig.orchestrator import RunOrchestrator, RunRequest
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
-from rig.worktree import WorktreeError, apply_patch, capture_diff, create_worktree
+from rig.worktree import WorktreeError, apply_patch, prune_worktrees
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,7 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     run_parser = subparsers.add_parser("run", help="Run an agent")
-    run_parser.add_argument("agent", help="Configured agent name, such as codex")
+    run_parser.add_argument(
+        "agent",
+        nargs="?",
+        help="Configured agent name, such as codex. Defaults to default_agent.",
+    )
     run_parser.add_argument("--task", help="Task text to pass to the agent")
     run_parser.add_argument("--task-file", help="Path to a file containing the task")
     run_parser.add_argument(
@@ -43,9 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Create run artifacts and command metadata without executing the agent",
     )
 
-    subparsers.add_parser("list", help="List recent runs")
+    list_parser = subparsers.add_parser("list", help="List recent runs")
     show_parser = subparsers.add_parser("show", help="Show a run")
     show_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    list_parser.add_argument("--json", action="store_true", help="Print JSON output")
+    show_parser.add_argument("--json", action="store_true", help="Print JSON output")
     worktree_parser = subparsers.add_parser(
         "worktree", help="Manage isolated worktree run changes"
     )
@@ -56,7 +61,9 @@ def build_parser() -> argparse.ArgumentParser:
         "run", help="Run an agent in an isolated git worktree"
     )
     worktree_run_parser.add_argument(
-        "agent", help="Configured agent name, such as codex"
+        "agent",
+        nargs="?",
+        help="Configured agent name, such as codex. Defaults to default_agent.",
     )
     worktree_run_parser.add_argument("--task", help="Task text to pass to the agent")
     worktree_run_parser.add_argument(
@@ -75,14 +82,19 @@ def build_parser() -> argparse.ArgumentParser:
         "apply", help="Apply changes captured from a worktree run"
     )
     worktree_apply_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    worktree_subparsers.add_parser("prune", help="Remove Rig-created worktrees")
 
     history_parser = subparsers.add_parser("history", help="Inspect run history")
     history_subparsers = history_parser.add_subparsers(
         dest="history_command", required=True
     )
-    history_subparsers.add_parser("list", help="List recent runs")
+    history_list_parser = history_subparsers.add_parser("list", help="List recent runs")
     show_parser = history_subparsers.add_parser("show", help="Show a run")
     show_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    history_list_parser.add_argument(
+        "--json", action="store_true", help="Print JSON output"
+    )
+    show_parser.add_argument("--json", action="store_true", help="Print JSON output")
     complete_parser = history_subparsers.add_parser(
         "complete", help="Complete a waiting manual run"
     )
@@ -136,9 +148,9 @@ def main(argv: list[str] | None = None) -> int:
             return run_agent(args, store)
 
         if args.command == "list":
-            return list_runs(store)
+            return list_runs(store, json_output=args.json)
         if args.command == "show":
-            return show_run(store, args.run_id)
+            return show_run(store, args.run_id, json_output=args.json)
         if args.command == "worktree":
             if args.worktree_command == "run":
                 return run_agent(args, store, worktree=True)
@@ -146,12 +158,14 @@ def main(argv: list[str] | None = None) -> int:
                 return show_diff(store, args.run_id)
             if args.worktree_command == "apply":
                 return apply_diff(store, args.run_id)
+            if args.worktree_command == "prune":
+                return prune_worktree_runs(store)
 
         if args.command == "history":
             if args.history_command == "list":
-                return list_runs(store)
+                return list_runs(store, json_output=args.json)
             if args.history_command == "show":
-                return show_run(store, args.run_id)
+                return show_run(store, args.run_id, json_output=args.json)
             if args.history_command == "complete":
                 return complete_run(args, store)
             if args.history_command == "fail":
@@ -187,110 +201,28 @@ def main(argv: list[str] | None = None) -> int:
 def run_agent(
     args: argparse.Namespace, store: RunStore, *, worktree: bool = False
 ) -> int:
-    if bool(args.task) == bool(args.task_file):
-        print("Provide exactly one of --task or --task-file.", file=sys.stderr)
-        return 2
-
-    task = args.task
-    if args.task_file:
-        task = Path(args.task_file).read_text(encoding="utf-8")
-
-    agent_config = store.load_config().agent(args.agent)
-    context = store.create_run(args.agent)
-    if worktree:
-        worktree_path = store.worktrees_dir / context.id
-        create_worktree(store.cwd, worktree_path)
-        context = replace(
-            context,
-            worktree_path=worktree_path,
-            execution_cwd=worktree_path,
-        )
-    store.write_task(context, task)
-
-    started_at = iso_now()
-    if agent_config.runner == "manual":
-        manual_adapter = ManualAdapter(args.agent, agent_config)
-        store.write_command(
-            context, manual_adapter.command_metadata(context, started_at)
-        )
-        context.stdout_path.write_text("", encoding="utf-8")
-        context.stderr_path.write_text("", encoding="utf-8")
-        context.result_path.write_text(
-            manual_adapter.result_template(context), encoding="utf-8"
-        )
-        store.write_status(context, status="waiting", started_at=started_at)
-        print(f"Run: {context.id}")
-        print("Status: waiting")
-        print(f"Task: {context.task_path.relative_to(context.cwd)}")
-        print(f"Result: {context.result_path.relative_to(context.cwd)}")
-        return 0
-
-    command_adapter = (
-        PtyAdapter(args.agent, agent_config)
-        if agent_config.runner == "pty"
-        else ExecAdapter(args.agent, agent_config)
+    request = RunRequest(
+        agent=args.agent,
+        task=args.task,
+        task_file=args.task_file,
+        dry_run=args.dry_run,
+        worktree=worktree,
     )
-    store.write_command(context, command_adapter.command_metadata(context, started_at))
-
-    if args.dry_run:
-        context.stdout_path.write_text("", encoding="utf-8")
-        context.stderr_path.write_text("", encoding="utf-8")
-        context.result_path.write_text(
-            "Dry run: command was not executed.\n", encoding="utf-8"
-        )
-        store.write_status(context, status="created", started_at=started_at)
-        print(f"Run: {context.id}")
-        print("Status: created")
-        print(f"Command: {context.command_path.relative_to(context.cwd)}")
-        print(f"Result: {context.result_path.relative_to(context.cwd)}")
-        return 0
-
-    store.write_status(context, status="running", started_at=started_at)
-
     try:
-        result = command_adapter.run(context)
-    except AgentCommandNotFoundError:
-        finished_at = iso_now()
-        store.write_status(
-            context,
-            status="failed",
-            started_at=started_at,
-            finished_at=finished_at,
-            exit_code=127,
-        )
-        raise
-
-    context.stdout_path.write_text(result.stdout, encoding="utf-8")
-    context.stderr_path.write_text(result.stderr, encoding="utf-8")
-    context.result_path.write_text(result.stdout, encoding="utf-8")
-    if context.worktree_path is not None:
-        context.diff_path.write_text(
-            capture_diff(context.worktree_path),
-            encoding="utf-8",
-        )
-
-    finished_at = iso_now()
-    status = "succeeded" if result.exit_code == 0 else "failed"
-    store.write_status(
-        context,
-        status=status,
-        started_at=started_at,
-        finished_at=finished_at,
-        exit_code=result.exit_code,
-    )
-
-    print(f"Run: {context.id}")
-    print(f"Status: {status}")
-    print(f"Result: {context.result_path.relative_to(context.cwd)}")
-    if context.worktree_path is not None:
-        print(f"Diff: {context.diff_path.relative_to(context.cwd)}")
-    if status == "failed" and result.stderr.strip():
-        print(f"Error: {first_line(result.stderr)}")
-    return 0 if result.exit_code == 0 else 1
+        outcome = RunOrchestrator(store).run(request)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    for line in outcome.lines:
+        print(line)
+    return outcome.exit_code
 
 
-def list_runs(store: RunStore) -> int:
+def list_runs(store: RunStore, *, json_output: bool = False) -> int:
     runs = store.list_runs()
+    if json_output:
+        print(json.dumps(runs, indent=2, ensure_ascii=False))
+        return 0
     print(f"{'ID':<26} {'AGENT':<7} {'STATUS':<10} STARTED")
     if not runs:
         print("No runs found.")
@@ -306,14 +238,18 @@ def list_runs(store: RunStore) -> int:
     return 0
 
 
-def show_run(store: RunStore, run_id: str) -> int:
-    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+def show_run(store: RunStore, run_id: str, *, json_output: bool = False) -> int:
+    run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
             print("No runs found.", file=sys.stderr)
         else:
             print(f"Run not found or unreadable: {run_id}", file=sys.stderr)
         return 1
+
+    if json_output:
+        print(json.dumps(run, indent=2, ensure_ascii=False))
+        return 0
 
     run_dir = str(run.get("run_dir", ""))
     result_path = f"{run_dir}/result.md" if run_dir else "result.md"
@@ -406,7 +342,7 @@ def fail_run(args: argparse.Namespace, store: RunStore) -> int:
 def waiting_run(
     run_id: str, store: RunStore, *, action: str
 ) -> dict[str, object] | None:
-    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+    run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
             print("No runs found.", file=sys.stderr)
@@ -423,7 +359,7 @@ def waiting_run(
 
 
 def show_diff(store: RunStore, run_id: str) -> int:
-    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+    run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
             print("No runs found.", file=sys.stderr)
@@ -450,7 +386,7 @@ def show_diff(store: RunStore, run_id: str) -> int:
 
 
 def apply_diff(store: RunStore, run_id: str) -> int:
-    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+    run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
             print("No runs found.", file=sys.stderr)
@@ -464,12 +400,27 @@ def apply_diff(store: RunStore, run_id: str) -> int:
         return 1
 
     diff_path = store.cwd / diff_path_value
-    if diff_path.is_file() and not diff_path.read_text(encoding="utf-8").strip():
+    if not diff_path.is_file():
+        print(f"Diff file is missing: {diff_path_value}", file=sys.stderr)
+        return 1
+    if not diff_path.read_text(encoding="utf-8").strip():
         print(f"No changes to apply: {diff_path_value}")
         return 0
 
-    apply_patch(store.cwd, diff_path)
+    applied_to_index = apply_patch(store.cwd, diff_path)
     print(f"Applied: {diff_path_value}")
+    if not applied_to_index:
+        print("Note: patch was applied to the working tree but not staged.")
+    return 0
+
+
+def prune_worktree_runs(store: RunStore) -> int:
+    removed = prune_worktrees(store.cwd, store.worktrees_dir)
+    if not removed:
+        print("No Rig worktrees found.")
+        return 0
+    for path in removed:
+        print(f"Removed: {store._display_path(path)}")
     return 0
 
 
@@ -531,7 +482,8 @@ def format_started_at(value: str) -> str:
 
 
 def first_line(value: str) -> str:
-    return value.strip().splitlines()[0]
+    stripped = value.strip()
+    return stripped.splitlines()[0] if stripped else ""
 
 
 AGENTS_SNIPPET = """## Rig

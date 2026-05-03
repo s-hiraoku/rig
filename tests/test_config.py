@@ -31,7 +31,27 @@ agents:
     assert config.agent("codex").command == "custom-codex"
     assert config.agent("codex").args == ["exec", "--sandbox"]
     assert config.agent("codex").prompt_style == "task"
+    assert config.agent("codex").prompt_template is None
     assert config.agent("codex").timeout_seconds == 300
+
+
+def test_load_config_accepts_prompt_template(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  codex:
+    command: codex
+    prompt_template: "Agent {agent} reads {task_path}: {task}"
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.agent("codex").prompt_template == (
+        "Agent {agent} reads {task_path}: {task}"
+    )
 
 
 def test_load_config_rejects_invalid_agent_args(tmp_path: Path) -> None:

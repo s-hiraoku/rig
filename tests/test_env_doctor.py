@@ -18,7 +18,6 @@ def test_build_doctor_report_reports_missing_basics(
     labels = {check.label: check for check in report.checks}
     assert labels["Git repository"].status == "missing"
     assert labels["Rig config"].status == "missing"
-    assert labels["Codex CLI"].status == "missing"
     assert labels["Rig env config"].status == "optional"
     assert "Run: git init" in report.suggestions
     assert "Run: rig init" in report.suggestions
@@ -34,7 +33,15 @@ def test_build_doctor_report_detects_agent_environment_files(
 ) -> None:
     (tmp_path / ".git").mkdir()
     (tmp_path / ".rig" / "runs").mkdir(parents=True)
-    (tmp_path / ".rig" / "config.yaml").write_text("version: 1\n", encoding="utf-8")
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  codex:
+    runner: exec
+    command: codex
+""",
+        encoding="utf-8",
+    )
     (tmp_path / ".rig" / "env.yaml").write_text(
         """version: 1
 agent_asset_managers:
@@ -93,7 +100,7 @@ required_files:
     assert labels["Git repository"].status == "ok"
     assert labels["Rig config"].status == "ok"
     assert labels["Rig runs directory"].status == "ok"
-    assert labels["Codex CLI"].status == "ok"
+    assert labels["Agent command: codex"].status == "ok"
     assert labels["Agent asset manager: APM"].status == "ok"
     assert labels["Agent asset manager: GitHub skills manager"].status == "ok"
     assert labels["Agent asset manager: Vercel skills manager"].status == "ok"
@@ -108,16 +115,20 @@ required_files:
 
 def test_format_doctor_report_includes_suggestions() -> None:
     report = env_doctor.DoctorReport(
-        checks=[env_doctor.DoctorCheck("Codex CLI", "missing", "`codex` not found")],
-        suggestions=["Install Codex CLI."],
+        checks=[
+            env_doctor.DoctorCheck(
+                "Agent command: codex", "missing", "`codex` not found"
+            )
+        ],
+        suggestions=["Install `codex` or update agents.codex.command."],
     )
 
     output = env_doctor.format_doctor_report(report)
 
     assert "Rig environment" in output
-    assert "[missing] Codex CLI: `codex` not found" in output
+    assert "[missing] Agent command: codex: `codex` not found" in output
     assert "Suggested next steps" in output
-    assert "- Install Codex CLI." in output
+    assert "- Install `codex` or update agents.codex.command." in output
 
 
 def test_build_doctor_report_warns_for_missing_rig_snippet(

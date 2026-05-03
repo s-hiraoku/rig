@@ -71,13 +71,17 @@ Implemented:
 - `rig list`
 - `rig show latest`
 - `rig show <run-id>`
+- `rig list --json`
+- `rig show latest --json`
 - grouped `rig history ...` forms for the same run-history operations
 - file-backed run artifacts under `.rig/runs/<run-id>/`
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
+- `default_agent` support when `rig run` omits the agent name
 - friendlier handling of empty, damaged, or incomplete run history
 - `rig run codex --dry-run` command preview mode
 - clearer failed-run inspection output
+- task files are preserved without adding Rig's `# Task` wrapper
 
 ## Phase 1.5: Agent Environment Integration
 
@@ -93,6 +97,7 @@ Implemented:
 - `rig env bootstrap`
 - default `.rig/env.yaml` with configurable required files and optional agent
   asset managers
+- configured agent command checks are derived from `.rig/config.yaml`
 
 This prints an `AGENTS.md` snippet instead of editing user files automatically.
 User repositories own their own agent instructions.
@@ -290,6 +295,9 @@ Implemented:
 - `runner: manual`
 - `runner: pty` with timeout-backed transcript capture
 - `rig history complete` and `rig history fail` for manual run lifecycle management
+- runner registry and `RunOrchestrator` keep execution setup reusable outside CLI
+- `timeout_seconds` applies to exec and pty runners
+- `prompt_template` supports project-specific prompt formatting
 
 Vendor tools should usually be presets over runner types:
 

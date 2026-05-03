@@ -227,6 +227,143 @@ def test_run_codex_writes_artifacts(
     assert status["exit_code"] == 0
 
 
+def test_run_uses_default_agent_when_agent_is_omitted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, name="custom-agent", stdout="done\n")
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+default_agent: helper
+agents:
+  helper:
+    runner: exec
+    command: custom-agent
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "--task", "hello"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert run_dir.name.endswith("-helper")
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["agent"] == "helper"
+
+
+def test_task_file_is_preserved_without_added_heading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
+    task_file = tmp_path / "task.md"
+    task_file.write_text("# Existing Task\n\nDo it.\n", encoding="utf-8")
+
+    assert cli.main(["run", "codex", "--task-file", str(task_file)]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert (run_dir / "task.md").read_text(encoding="utf-8") == (
+        "# Existing Task\n\nDo it.\n"
+    )
+
+
+def test_prompt_template_can_override_rig_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  templated:
+    runner: exec
+    command: codex
+    prompt_template: "Agent={agent}; Path={task_path}; Body={task}"
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "templated", "--task", "hello"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    prompt = command["args"][-1]
+    assert "Agent=templated" in prompt
+    assert "Path=.rig/runs/" in prompt
+    assert "Body=# Task" in prompt
+
+
+def test_exec_runner_times_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="slow-exec",
+        body="import time\nprint('started')\ntime.sleep(5)\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  slow:
+    runner: exec
+    command: slow-exec
+    timeout_seconds: 1
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "slow", "--task", "hello"]) == 1
+
+    output = capsys.readouterr().out
+    assert "Status: failed" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["exit_code"] == 124
+    assert "timed out" in (run_dir / "stderr.log").read_text(encoding="utf-8")
+
+
+def test_large_stdout_result_is_truncated_but_log_is_preserved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="loud",
+        body="print('x' * 50000)\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  loud:
+    runner: exec
+    command: loud
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "loud", "--task", "hello"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert len((run_dir / "stdout.log").read_text(encoding="utf-8")) > 50000
+    result = (run_dir / "result.md").read_text(encoding="utf-8")
+    assert result.startswith("Result truncated from stdout.log.")
+    assert len(result) < 41000
+
+
 def test_run_codex_uses_configured_command(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -412,6 +549,30 @@ agents:
     assert "Rig PTY runner timed out after 1 seconds." in result
     status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
     assert status["exit_code"] == 124
+
+
+def test_run_pty_agent_reports_missing_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  missing:
+    runner: pty
+    command: missing-pty-command
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "missing", "--task", "hello"]) == 1
+
+    captured = capsys.readouterr()
+    assert "missing-pty-command" in captured.err
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["exit_code"] == 127
 
 
 def test_complete_manual_run_with_result_text(
@@ -621,6 +782,73 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
+def test_run_worktree_captures_untracked_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="create-file",
+        body="from pathlib import Path\nPath('new_file.txt').write_text('new\\n', encoding='utf-8')\nprint('created')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  creator:
+    runner: exec
+    command: create-file
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["worktree", "run", "creator", "--task", "create file"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    diff = (run_dir / "diff.patch").read_text(encoding="utf-8")
+    assert "new_file.txt" in diff
+    assert "+new" in diff
+    assert not (tmp_path / "new_file.txt").exists()
+
+
+def test_worktree_pty_run_uses_worktree_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="pty-edit",
+        body="from pathlib import Path\nPath('tracked.txt').write_text('after\\n', encoding='utf-8')\nprint('edited')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  pty_edit:
+    runner: pty
+    command: pty-edit
+    timeout_seconds: 5
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["worktree", "run", "pty_edit", "--task", "edit tracked"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    diff = (run_dir / "diff.patch").read_text(encoding="utf-8")
+    assert "-before" in diff
+    assert "+after" in diff
+    assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
+
+
 def test_worktree_show_and_apply_worktree_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -687,6 +915,69 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
+def test_worktree_apply_missing_diff_reports_specific_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    run_dir = tmp_path / ".rig" / "runs" / "missing-diff"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "id": "missing-diff",
+                "agent": "codex",
+                "status": "succeeded",
+                "started_at": "2026-05-02T20:30:12+09:00",
+                "finished_at": "2026-05-02T20:31:04+09:00",
+                "run_dir": ".rig/runs/missing-diff",
+                "diff_path": ".rig/runs/missing-diff/diff.patch",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert cli.main(["worktree", "apply", "missing-diff"]) == 1
+
+    assert (
+        "Diff file is missing: .rig/runs/missing-diff/diff.patch"
+        in capsys.readouterr().err
+    )
+
+
+def test_worktree_prune_removes_rig_worktrees(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="noop",
+        body="print('noop')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  noop:
+    runner: exec
+    command: noop
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+    cli.main(["worktree", "run", "noop", "--task", "do nothing"])
+    capsys.readouterr()
+
+    assert any((tmp_path / ".rig" / "worktrees").iterdir())
+    assert cli.main(["worktree", "prune"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Removed: .rig/worktrees/" in output
+    assert list((tmp_path / ".rig" / "worktrees").iterdir()) == []
+
+
 def test_list_and_show_latest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -705,6 +996,24 @@ def test_list_and_show_latest(
     show_output = capsys.readouterr().out
     assert "--- Result ---" in show_output
     assert "latest result" in show_output
+
+
+def test_list_and_show_support_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="latest result\n")
+    cli.main(["run", "codex", "--task", "hello"])
+    capsys.readouterr()
+
+    assert cli.main(["list", "--json"]) == 0
+    list_data = json.loads(capsys.readouterr().out)
+    assert list_data[0]["agent"] == "codex"
+
+    assert cli.main(["show", "latest", "--json"]) == 0
+    show_data = json.loads(capsys.readouterr().out)
+    assert show_data["agent"] == "codex"
 
 
 def test_history_group_remains_available(
