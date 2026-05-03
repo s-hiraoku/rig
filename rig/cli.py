@@ -33,18 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     run_parser = subparsers.add_parser("run", help="Run an agent")
-    run_parser.add_argument(
-        "agent",
-        nargs="?",
-        help="Configured agent name, such as codex. Defaults to default_agent.",
-    )
-    run_parser.add_argument("--task", help="Task text to pass to the agent")
-    run_parser.add_argument("--task-file", help="Path to a file containing the task")
-    run_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Create run artifacts and command metadata without executing the agent",
-    )
+    add_run_options(run_parser)
 
     list_parser = subparsers.add_parser("list", help="List recent runs")
     show_parser = subparsers.add_parser("show", help="Show a run")
@@ -60,20 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     worktree_run_parser = worktree_subparsers.add_parser(
         "run", help="Run an agent in an isolated git worktree"
     )
-    worktree_run_parser.add_argument(
-        "agent",
-        nargs="?",
-        help="Configured agent name, such as codex. Defaults to default_agent.",
-    )
-    worktree_run_parser.add_argument("--task", help="Task text to pass to the agent")
-    worktree_run_parser.add_argument(
-        "--task-file", help="Path to a file containing the task"
-    )
-    worktree_run_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Create run artifacts and command metadata without executing the agent",
-    )
+    add_run_options(worktree_run_parser)
     worktree_show_parser = worktree_subparsers.add_parser(
         "show", help="Show changes captured from a worktree run"
     )
@@ -130,6 +106,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     return parser
+
+
+def add_run_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "agent",
+        nargs="?",
+        help="Configured agent name, such as codex. Defaults to default_agent.",
+    )
+    parser.add_argument("--task", help="Task text to pass to the agent")
+    parser.add_argument("--task-file", help="Path to a file containing the task")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Create run artifacts and command metadata without executing the agent",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

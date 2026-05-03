@@ -8,6 +8,7 @@ from pathlib import Path
 class RunContext:
     id: str
     agent: str
+    raw_task: str
     run_dir: Path
     task_path: Path
     command_path: Path

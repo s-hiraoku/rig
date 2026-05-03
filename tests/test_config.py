@@ -55,6 +55,44 @@ agents:
     )
 
 
+def test_load_config_rejects_prompt_template_unknown_placeholder(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  codex:
+    command: codex
+    prompt_style: template
+    prompt_template: "Agent {agent} reads {wrong_key}"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="unknown placeholder: wrong_key"):
+        load_config(config_path)
+
+
+def test_load_config_rejects_prompt_template_invalid_format(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  codex:
+    command: codex
+    prompt_style: template
+    prompt_template: "Agent {agent"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="invalid format"):
+        load_config(config_path)
+
+
 def test_load_config_rejects_prompt_template_without_template_style(
     tmp_path: Path,
 ) -> None:

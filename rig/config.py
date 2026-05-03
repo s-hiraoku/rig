@@ -107,6 +107,8 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
         raise ConfigError(
             f"Config value `agents.{name}.prompt_template` is required when prompt_style is `template`."
         )
+    if prompt_template is not None:
+        validate_prompt_template(name, prompt_template)
 
     timeout_seconds = value.get("timeout_seconds", 300)
     if (
@@ -126,3 +128,16 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
         prompt_template=prompt_template,
         timeout_seconds=timeout_seconds,
     )
+
+
+def validate_prompt_template(name: str, prompt_template: str) -> None:
+    try:
+        prompt_template.format(agent="", task_path="", task="", task_md="")
+    except KeyError as exc:
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_template` uses unknown placeholder: {exc.args[0]}"
+        ) from exc
+    except (IndexError, ValueError) as exc:
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_template` has invalid format: {exc}"
+        ) from exc

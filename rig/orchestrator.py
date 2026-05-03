@@ -26,17 +26,23 @@ class RunOutcome:
     lines: list[str]
 
 
+@dataclass(frozen=True)
+class TaskInput:
+    text: str
+    wrap: bool
+
+
 class RunOrchestrator:
     def __init__(self, store: RunStore) -> None:
         self.store = store
 
     def run(self, request: RunRequest) -> RunOutcome:
-        task, wrap_task = read_task(request)
+        task_input = read_task(request)
         config = self.store.load_config()
         agent_name = request.agent or config.default_agent
         agent_config = config.agent(agent_name)
 
-        context = self.store.create_run(agent_name)
+        context = self.store.create_run(agent_name, raw_task=task_input.text)
         if request.worktree:
             worktree_path = self.store.worktrees_dir / context.id
             create_worktree(self.store.cwd, worktree_path)
@@ -45,10 +51,10 @@ class RunOrchestrator:
                 worktree_path=worktree_path,
                 execution_cwd=worktree_path,
             )
-        self.store.write_task(context, task, wrap=wrap_task)
+        self.store.write_task(context, task_input.text, wrap=task_input.wrap)
 
         started_at = iso_now()
-        command_adapter = create_adapter(agent_name, agent_config, task=task)
+        command_adapter = create_adapter(agent_name, agent_config)
         if isinstance(command_adapter, ManualAdapter):
             self.store.write_command(
                 context, command_adapter.command_metadata(context, started_at)
@@ -154,16 +160,18 @@ class RunOrchestrator:
         return RunOutcome(exit_code=0 if result.exit_code == 0 else 1, lines=lines)
 
 
-def read_task(request: RunRequest) -> tuple[str, bool]:
+def read_task(request: RunRequest) -> TaskInput:
     has_task = request.task is not None
     has_task_file = request.task_file is not None
     if has_task == has_task_file:
         raise ValueError("Provide exactly one of --task or --task-file.")
-    if request.task_file:
-        return Path(request.task_file).read_text(encoding="utf-8"), False
+    if request.task_file is not None:
+        if not request.task_file:
+            raise ValueError("--task-file requires a non-empty path.")
+        return TaskInput(Path(request.task_file).read_text(encoding="utf-8"), False)
     if request.task is None:
         raise ValueError("Provide exactly one of --task or --task-file.")
-    return request.task, True
+    return TaskInput(request.task, True)
 
 
 def build_result_document(stdout: str) -> str:

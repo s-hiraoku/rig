@@ -18,13 +18,10 @@ RUNNERS: dict[str, type[AgentAdapter]] = {
     "pty": PtyAdapter,
 }
 
-assert set(RUNNERS) == set(SUPPORTED_RUNNERS)
+if set(RUNNERS) != set(SUPPORTED_RUNNERS):
+    mismatch = ", ".join(sorted(set(RUNNERS) ^ set(SUPPORTED_RUNNERS)))
+    raise RuntimeError(f"Runner registry mismatch: {mismatch}")
 
 
-def create_adapter(
-    name: str, config: AgentConfig, *, task: str | None = None
-) -> AgentAdapter:
-    adapter = RUNNERS[config.runner](name, config)
-    if isinstance(adapter, ExecAdapter):
-        adapter.task = task
-    return adapter
+def create_adapter(name: str, config: AgentConfig) -> AgentAdapter:
+    return RUNNERS[config.runner](name, config)

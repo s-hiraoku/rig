@@ -179,7 +179,7 @@ class RunStore:
         if path.exists():
             backup_path = self.backup_path(path, now=now)
             path.replace(backup_path)
-            backups.append(self._display_path(backup_path))
+            backups.append(self.display_path(backup_path))
             updated.append(display_path)
         else:
             created.append(display_path)
@@ -205,7 +205,9 @@ class RunStore:
         self.ensure_initialized()
         return load_config(self.config_path)
 
-    def create_run(self, agent: str, now: datetime | None = None) -> RunContext:
+    def create_run(
+        self, agent: str, raw_task: str = "", now: datetime | None = None
+    ) -> RunContext:
         self.ensure_initialized()
         timestamp = (now or datetime.now().astimezone()).strftime("%Y%m%d-%H%M%S")
         base_id = f"{timestamp}-{agent}"
@@ -220,6 +222,7 @@ class RunStore:
         return RunContext(
             id=run_id,
             agent=agent,
+            raw_task=raw_task,
             run_dir=run_dir,
             task_path=run_dir / "task.md",
             command_path=run_dir / "command.json",
@@ -259,12 +262,12 @@ class RunStore:
             "started_at": started_at,
             "finished_at": finished_at,
             "exit_code": exit_code,
-            "run_dir": self._display_path(context.run_dir),
-            "execution_cwd": self._display_path(context.execution_cwd),
+            "run_dir": self.display_path(context.run_dir),
+            "execution_cwd": self.display_path(context.execution_cwd),
         }
         if context.worktree_path is not None:
-            data["worktree_dir"] = self._display_path(context.worktree_path)
-            data["diff_path"] = self._display_path(context.diff_path)
+            data["worktree_dir"] = self.display_path(context.worktree_path)
+            data["diff_path"] = self.display_path(context.diff_path)
         context.status_path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
@@ -331,9 +334,6 @@ class RunStore:
 
     def read_artifact(self, run: dict[str, Any], filename: str) -> str:
         return RunArtifacts(self.cwd, run).read(filename)
-
-    def _display_path(self, path: Path) -> str:
-        return self.display_path(path)
 
     def display_path(self, path: Path) -> str:
         try:

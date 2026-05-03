@@ -47,7 +47,13 @@ def apply_patch(repo_root: Path, patch_path: Path) -> ApplyResult:
     if completed.returncode != 0:
         completed = run_git(repo_root, ["apply", str(patch_path)], check=False)
     if completed.returncode != 0:
-        raise WorktreeError(completed.stderr.strip() or "Could not apply patch.")
+        apply_error = completed.stderr.strip() or "Could not apply patch."
+        if index_error:
+            raise WorktreeError(
+                f"git apply failed: {apply_error} "
+                f"(initial --index attempt: {index_error})"
+            )
+        raise WorktreeError(f"git apply failed: {apply_error}")
     return ApplyResult(applied_to_index=applied_to_index, index_error=index_error)
 
 
