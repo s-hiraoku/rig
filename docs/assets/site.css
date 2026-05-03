@@ -106,18 +106,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-body[data-lang="ja"] {
-  font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont,
-    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo",
-    sans-serif;
-  line-height: 1.8;
-}
-
-body[data-lang="ja"] .content p,
-body[data-lang="ja"] .content li {
-  letter-spacing: 0.01em;
-}
-
 a {
   color: var(--accent);
   text-decoration: none;
@@ -144,8 +132,8 @@ a:hover {
   -webkit-backdrop-filter: saturate(160%) blur(10px);
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr auto auto auto auto;
+  gap: 16px;
+  grid-template-columns: auto 1fr auto auto auto;
   height: var(--header-h);
   padding: 0 28px;
   position: sticky;
@@ -191,8 +179,7 @@ a:hover {
 
 .repo-link,
 .theme-toggle,
-.nav-toggle,
-.lang-toggle {
+.nav-toggle {
   align-items: center;
   background: transparent;
   border: 1px solid var(--line);
@@ -212,8 +199,7 @@ a:hover {
 
 .repo-link:hover,
 .theme-toggle:hover,
-.nav-toggle:hover,
-.lang-toggle:hover {
+.nav-toggle:hover {
   background: var(--bg-hover);
   border-color: var(--line-strong);
   color: var(--text-strong);
@@ -793,24 +779,12 @@ pre code {
 
 @media (max-width: 820px) {
   .site-header {
-    grid-template-columns: auto 1fr auto auto auto;
-    gap: 8px;
-    padding: 0 14px;
+    grid-template-columns: auto 1fr auto auto;
+    padding: 0 16px;
   }
 
   .tagline {
     display: none;
-  }
-
-  .lang-toggle span,
-  .repo-link span {
-    display: none;
-  }
-
-  .lang-toggle,
-  .repo-link {
-    width: 36px;
-    padding: 0;
   }
 
   .nav-toggle {
