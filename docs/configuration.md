@@ -1,25 +1,26 @@
 ---
 title: Configuration
-description: Rig's two configuration files — .rig/config.yaml for agents and .rig/env.yaml for environment checks.
+description: Rig's two configuration files — .rig/config.yaml for child agents and .rig/env.yaml for environment checks.
 ---
 
 # Configuration
 
 Rig keeps configuration in two files under `.rig/`. `rig init` creates them
-with sensible defaults. Both files are plain YAML and can be hand-edited.
+with sensible defaults. Both are plain YAML and can be hand-edited.
 
 ```txt
 .rig/
-  config.yaml   # agents, runners, prompt styles
+  config.yaml   # child agents, runners, prompt styles
   env.yaml      # required files and optional asset managers
-  runs/         # run history
+  runs/         # run history (per-machine)
 ```
 
-For specific CLI configurations (Codex, Claude, Gemini, Copilot, manual), see
-[Agents](agents.md). For prompt-string options, see
+For per-CLI working examples (Codex, Claude, Gemini, Copilot, manual), see
+[Agents](agents.md). For prompt-string behavior, see
 [Prompt Styles](prompts.md).
 
 ## Initialize Or Reset
+{: #initialize-or-reset }
 
 ```bash
 rig init                # create missing files; never overwrite
@@ -34,8 +35,9 @@ rig init --force        # equivalent to --reset all
 
 ## Agent Configuration
 
-`.rig/config.yaml` controls the command Rig uses for each agent. If `rig run`
-omits the agent name, Rig uses `default_agent`.
+`.rig/config.yaml` defines the child-agent commands Rig launches when the
+parent agent calls `rig_run`. If the parent omits the agent name, Rig uses
+`default_agent`.
 
 ```yaml
 default_agent: codex
@@ -52,7 +54,7 @@ agents:
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `default_agent` | string | Agent name used when `rig run` is called without one. |
+| `default_agent` | string | Agent name used when `rig_run` / `rig run` is called without one. |
 | `agents.<name>.runner` | `exec` / `manual` / `pty` | See [Runner](#runner). |
 | `agents.<name>.command` | string | The executable Rig launches. Required for `exec` and `pty`. |
 | `agents.<name>.args` | list of string | Extra args inserted before the rendered prompt. |
@@ -62,10 +64,12 @@ agents:
 
 ### Runner
 
-- `exec` — non-interactive command execution. Rig appends the rendered prompt
-  as the final argument.
-- `manual` — create a `waiting` run without executing a command.
-- `pty` — experimental TTY-backed execution for CLIs that require a terminal.
+- `exec` — non-interactive command execution. Rig appends the rendered
+  prompt as the final argument.
+- `manual` — create a `waiting` run without executing a command. Used for
+  GUI / chat / out-of-band work.
+- `pty` — experimental TTY-backed execution for CLIs that require a
+  terminal.
 
 ### Examples
 
@@ -105,7 +109,7 @@ agents:
 
 ## Prompt Styles
 
-`prompt_style` decides what string Rig appends to the agent command.
+`prompt_style` decides what string Rig appends to the child-agent command.
 
 - `rig` (default) — Rig's standard instruction with a task file path.
 - `task` — the raw task file content, verbatim.
@@ -113,7 +117,7 @@ agents:
 
 Template variables:
 
-- `{agent}` — configured agent name.
+- `{agent}` — child-agent name.
 - `{task}` — raw task text passed to `--task` or read from `--task-file`.
 - `{task_md}` — saved task file content.
 - `{task_path}` — path to the saved task file relative to the run cwd.
@@ -121,6 +125,7 @@ Template variables:
 See [Prompt Styles](prompts.md) for worked examples and per-CLI guidance.
 
 ## Environment Configuration
+{: #environment-configuration }
 
 `.rig/env.yaml` declares harness checks for `rig env doctor` and
 `rig env plan`. The schema is intentionally small and forward-compatible

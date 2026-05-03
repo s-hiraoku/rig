@@ -1,29 +1,37 @@
 ---
 title: Getting Started
-description: The shortest path from no Rig setup to one inspectable run, plus local development from a checkout.
+description: Install Rig and wire your parent AI agent to use it. Three steps; the CLI is mostly something you read about, not something you type.
 ---
 
 # Getting Started
 
-This page is the shortest path from no Rig setup to one inspectable run. For
-choosing between normal, worktree, and manual flows, see
-[Workflows](workflows.md). For end-to-end recipes, see [Recipes](recipes.md).
+The goal of this page is one-time setup so that **the next time you ask your
+AI to make a code change, it routes the work through Rig automatically**.
 
-## Installation
+Three steps:
 
-Install Rig directly from GitHub:
+1. Install Rig.
+2. Run `rig init` in the project.
+3. Tell the parent AI to use Rig (paste a snippet into `AGENTS.md` /
+   `CLAUDE.md`).
+
+After that, you talk to your AI; the AI talks to Rig.
+
+## 1. Install
+
+Rig ships as a `uv tool`:
 
 ```bash
 uv tool install "rig @ git+https://github.com/s-hiraoku/rig.git"
 ```
 
-Check that the command is available:
+Verify:
 
 ```bash
 rig --help
 ```
 
-To reinstall the latest version:
+To pull the latest version later:
 
 ```bash
 uv tool install --force --refresh "rig @ git+https://github.com/s-hiraoku/rig.git"
@@ -31,96 +39,140 @@ uv tool install --force --refresh "rig @ git+https://github.com/s-hiraoku/rig.gi
 
 <div class="callout" markdown="1">
 <span class="callout-title">Requires uv</span>
-Rig is published as a <code>uv tool</code>. Install
-<a href="https://docs.astral.sh/uv/">uv</a> first if you do not have it.
+If you don't have uv yet, install it from
+<a href="https://docs.astral.sh/uv/">docs.astral.sh/uv</a> first.
 </div>
 
-## Local Development
+## 2. Initialize The Project
 
-Clone the repository and install the development environment:
+In the repo where you want Rig:
+
+```bash
+rig init
+```
+
+That creates:
+
+```txt
+.rig/
+  config.yaml   # the child agent Rig will launch (Codex by default)
+  env.yaml      # required files and optional asset managers
+  runs/         # run history, per-machine
+```
+
+`rig init` is safe to run repeatedly. For reset flags see
+[Configuration → Initialize Or Reset](configuration.md#initialize-or-reset).
+
+## 3. Tell Your AI To Use Rig
+
+This is the step that actually matters. The parent agent only knows to call
+Rig if your project's instruction file says so.
+
+Generate the snippet:
+
+```bash
+rig guide agents --target codex --write   # for AGENTS.md
+rig guide agents --target claude --write  # for CLAUDE.md
+```
+
+`--write` writes the long-form policy to `.rig/instructions/rig.md` and prints
+a 3–4 line snippet. Paste the snippet into `AGENTS.md` or `CLAUDE.md`.
+
+Example `AGENTS.md`:
+
+```markdown
+## Rig
+
+See `.rig/instructions/rig.md` for Rig usage policy, artifact inspection
+rules, and patch-apply safety rules.
+```
+
+That's it. Any agent that reads AGENTS.md (Codex CLI, Cursor with custom
+instructions, Claude Code with project rules) will now prefer Rig for
+delegated work.
+
+### MCP-aware parents (Cursor, Claude Code, …)
+
+If your parent agent speaks MCP, also expose Rig as an MCP server so it can
+call structured tools instead of parsing CLI text:
+
+```bash
+rig mcp serve
+```
+
+Add an entry to your client's MCP config that runs `rig mcp serve` over
+stdio. Details: [MCP Server](mcp.md).
+
+## 4. Try It
+
+Now stop typing Rig commands. Talk to your AI:
+
+> **You:** "Review the current diff in `rig/cli.py` and flag anything risky."
+
+The parent agent calls `rig_run` (MCP) or `rig run` (CLI) under the hood.
+Rig writes to `.rig/runs/<run-id>/`:
+
+- `task.md` — the request
+- `command.json` — the child agent invocation
+- `stdout.log` / `stderr.log` — the child agent's output
+- `result.md` — the trimmed final answer
+- `status.json` — outcome, exit code, timestamps
+
+The parent agent reads `result.md` and reports the summary to you.
+
+For risky edits, ask for isolation:
+
+> **You:** "Refactor the worktree helper. Use a worktree, the change is
+> non-trivial."
+>
+> **Parent agent:** *(calls `rig_run` with `worktree=True`)* "Done. The patch
+> is in `.rig/runs/…/diff.patch`. Highlights: … Want me to apply it?"
+
+You decide. If you say "apply," the agent calls `rig worktree apply` (assuming
+patch application is enabled in your client — see
+[MCP → Safety Defaults](mcp.md#safety-defaults)).
+
+## Appendix A: Local Development Of Rig Itself
+
+For contributors hacking on Rig:
 
 ```bash
 git clone https://github.com/s-hiraoku/rig.git
 cd rig
 uv sync --group dev
-```
-
-Run Rig from the checkout:
-
-```bash
 uv run rig --help
 ```
 
-Optional zsh completion is available at `contrib/completions/rig.zsh`.
+zsh completion: `contrib/completions/rig.zsh`.
 
-## First Run
+## Appendix B: When You Do Type CLI Commands
 
-From a project where you want to use Rig:
-
-```bash
-rig init
-rig suggest "Review the current diff and identify risky changes."
-rig run codex --task "Review the current diff and identify risky changes."
-rig list
-rig show latest
-```
-
-If you are working from the Rig repository checkout, prefix commands with
-`uv run`:
+You'll occasionally use the CLI directly — for setup, debugging, audit, and
+operational tasks. The parent agent does not need to be involved for these:
 
 ```bash
-uv run rig init
-uv run rig suggest "Review the current diff and identify risky changes."
-uv run rig run codex --task "Review the current diff and identify risky changes."
-uv run rig list
-uv run rig show latest
+rig list                    # recent runs
+rig show latest             # last run's metadata + result
+rig env doctor              # local setup diagnostics
+rig env doctor --json       # CI-friendly diagnostics
+rig worktree show latest    # the captured patch
+rig worktree apply latest   # apply the captured patch
 ```
 
-Inspect the generated files with [Run Artifacts](artifacts.md) when you need
-more detail than `rig show` prints.
-
-## What `rig init` Creates
-
-```txt
-.rig/
-  config.yaml   # agents, runners, prompt styles
-  env.yaml      # required files and optional asset managers
-  runs/         # run history (per-machine)
-```
-
-`rig init` is safe to run repeatedly. See
-[Configuration → Initialize Or Reset](configuration.md#initialize-or-reset)
-for the reset flags.
-
-## Environment Check
-
-After initialization, inspect the local harness setup:
-
-```bash
-rig env doctor
-rig env doctor --json   # machine-readable form for CI
-rig env plan
-```
-
-Use `rig env bootstrap` to create missing Rig-owned files. Rig will not
-install external tools or third-party agent assets.
+Full surface: [Command Reference](commands.md). Day-to-day delegation does not
+require any of this.
 
 ## Requirements
 
-The default `codex` agent uses `codex exec`, so the Codex CLI must be
-installed and available on `PATH`. To use a different CLI, see
-[Agents](agents.md).
+The default child agent `codex` runs `codex exec`, so the Codex CLI must be
+installed and on `PATH`. To use a different child agent, see [Agents](agents.md).
 
-Codex may require the current directory to be a trusted Git repository. If a
-run fails with a trusted-directory error, initialize the project first:
-
-```bash
-git init
-```
+Codex requires the working directory to be a trusted Git repository. If a run
+fails with a trusted-directory error, run `git init` first.
 
 ## Next Steps
 
-- Pick a workflow: [Workflows](workflows.md)
-- Try a real recipe: [Recipes](recipes.md)
-- Configure another agent: [Agents](agents.md)
-- Customize prompts: [Prompt Styles](prompts.md)
+- Learn the role model: [Core Concepts](concepts.md)
+- Pick a delegation flow: [Workflows](workflows.md)
+- Read prompts you can give your AI: [Recipes](recipes.md)
+- Add another child agent: [Agents](agents.md)

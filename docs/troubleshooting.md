@@ -29,8 +29,8 @@ after the first `uv tool install`).
 
 ## Codex Is Not Found
 
-The default `codex` agent runs `codex exec`. Install the Codex CLI and
-confirm that `codex` is available on `PATH`:
+The default child agent runs `codex exec`. Install the Codex CLI and confirm
+that `codex` is available on `PATH`:
 
 ```bash
 codex --help
@@ -40,6 +40,7 @@ If you use a different CLI, configure it in `.rig/config.yaml`. See
 [Agents](agents.md).
 
 ## Trusted Directory Error
+{: #trusted-directory-error }
 
 If Codex reports that the current directory is not trusted:
 
@@ -56,16 +57,35 @@ git init
 This is a Codex requirement, not a Rig requirement. Other CLIs may not need
 a Git repository.
 
+## My AI Doesn't Use Rig
+
+You set up Rig but the parent agent (Cursor, Claude Code, …) keeps editing
+files directly instead of calling `rig_run`.
+
+The parent agent only knows to use Rig if your project's instruction file
+says so. Run:
+
+```bash
+rig guide agents --target codex --write
+# or --target claude
+```
+
+Then paste the printed snippet into `AGENTS.md` / `CLAUDE.md`. For
+MCP-aware parents, also expose Rig as an MCP server (`rig mcp serve`) and
+add it to the client's MCP config. See
+[Getting Started → 3. Tell Your AI To Use Rig](getting-started.md).
+
 ## No Runs Found
 
-`rig list` and `rig show latest` read `.rig/runs/`. Start a run first:
+`rig list` and `rig show latest` read `.rig/runs/`. Start a run first — ask
+your parent agent for a task, or directly:
 
 ```bash
 rig run codex --task "Review the current diff."
 ```
 
-If `rig list` consistently prints `No runs found.` even after running, check
-that you are in the same project directory. `.rig/runs/` is per-project.
+If `rig list` still prints `No runs found.`, confirm you are in the same
+project directory; `.rig/runs/` is per-project.
 
 ## Run Is Waiting
 
@@ -82,7 +102,7 @@ These commands operate only on runs currently in `waiting`, so a real
 
 ## Run Failed With Exit Code 124
 
-That is Rig's timeout signal. The configured agent ran longer than
+That is Rig's timeout signal. The child agent ran longer than
 `timeout_seconds`. Either raise the timeout in `.rig/config.yaml` or split
 the task into smaller runs.
 
@@ -94,9 +114,9 @@ agents:
 
 ## Worktree Patch Includes Unexpected Files
 
-Worktree patches include untracked files that are not ignored by Git. If the
-captured patch contains build artifacts, caches, or `node_modules`, add them
-to `.gitignore` *before* re-running:
+Worktree patches include untracked files that are not ignored by Git. If
+the captured patch contains build artifacts, caches, or `node_modules`, add
+them to `.gitignore` *before* re-running:
 
 ```text
 node_modules/
@@ -116,8 +136,8 @@ rig env doctor --json   # structured form for CI or scripts
 rig env plan
 ```
 
-These commands report missing Rig files, required project files declared in
-`.rig/env.yaml`, configured agent commands, and optional agent asset
+These commands report missing Rig files, required project files declared
+in `.rig/env.yaml`, configured agent commands, and optional agent asset
 managers. Statuses are `ok`, `missing`, `optional`, and `warn`.
 
 `rig env bootstrap` creates Rig-owned files only. It does not install
@@ -126,10 +146,10 @@ external tools.
 ## MCP Client Cannot Read A File
 
 MCP `cwd` values must resolve inside the server's launch directory, or
-inside `RIG_MCP_ROOT` when set. MCP `task_file` values are resolved from the
-selected `cwd` and must stay inside that project. If a client gets a
-permission-style error, confirm the path is inside the allowed scope. See
-[MCP Server → Safety Defaults](mcp.md#safety-defaults).
+inside `RIG_MCP_ROOT` when set. MCP `task_file` values are resolved from
+the selected `cwd` and must stay inside that project. If a parent agent
+gets a permission-style error, confirm the path is inside the allowed
+scope. See [MCP Server → Safety Defaults](mcp.md#safety-defaults).
 
 ## MCP `rig_apply_patch` Returns Disabled
 
@@ -142,6 +162,7 @@ RIG_MCP_ALLOW_APPLY=1 rig mcp serve
 ```
 
 ## GitHub Pages Does Not Update
+{: #github-pages-does-not-update }
 
 The Pages site is built from `docs/` by `.github/workflows/pages.yml`.
 Confirm that GitHub Pages is configured to deploy from GitHub Actions, then

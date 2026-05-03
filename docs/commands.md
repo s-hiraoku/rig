@@ -1,12 +1,20 @@
 ---
 title: Command Reference
-description: Compact reference of every Rig CLI command, flag, and JSON output, with cross-links to scenario-based pages.
+description: Compact reference of every Rig CLI command. The parent agent invokes most of these on your behalf; this page is for setup, debugging, and audit.
 ---
 
 # Command Reference
 
 This page is a compact reference. For scenario-based guidance, start with
 [Workflows](workflows.md) or [Recipes](recipes.md).
+
+<div class="callout" markdown="1">
+<span class="callout-title">Who runs these?</span>
+In day-to-day use, the parent AI agent calls these commands (or the
+equivalent MCP tools). You'll mostly type them yourself for first-time setup,
+debugging, and audit — see <a href="getting-started.html">Getting Started →
+Appendix B</a>.
+</div>
 
 ## Common Flow
 
@@ -36,14 +44,15 @@ rig worktree apply latest
 | `rig init --reset config` | Back up and recreate `.rig/config.yaml`. |
 | `rig init --reset env` | Back up and recreate `.rig/env.yaml`. |
 | `rig init --reset all` / `--force` | Reset both. |
+| `rig guide agents [--target codex|claude] [--write] [--force]` | Generate AGENTS.md / CLAUDE.md snippets and (with `--write`) `.rig/instructions/rig.md`. |
 
 ### Run
 
 | Command | Purpose |
 | --- | --- |
-| `rig run [agent] --task "..."` | Run an agent in the current working tree. Falls back to `default_agent` when `[agent]` is omitted. |
+| `rig run [agent] --task "..."` | Run a child agent in the current working tree. Falls back to `default_agent`. |
 | `rig run [agent] --task-file task.md` | Run with a task read from a file. |
-| `rig run [agent] --task "..." --dry-run` | Write run artifacts and command preview without executing the agent. |
+| `rig run [agent] --task "..." --dry-run` | Write run artifacts and command preview without executing the child agent. |
 | `rig run [agent] --task "..." --json` | Print the run outcome as JSON. |
 | `rig suggest "..." [--json]` | Recommend `rig run` vs `rig worktree run` without executing. |
 
@@ -82,13 +91,6 @@ rig worktree apply latest
 | `rig env bootstrap` | Create missing Rig-owned environment files. |
 | `rig env manager status [--json]` | Show configured agent asset manager status. |
 
-### Guide
-
-| Command | Purpose |
-| --- | --- |
-| `rig guide agents [--target codex|claude] [--format markdown]` | Print an agent instruction snippet. |
-| `rig guide agents --write [--force]` | Create `.rig/instructions/rig.md` and print the snippet. |
-
 ### MCP
 
 | Command | Purpose |
@@ -101,7 +103,7 @@ Provide exactly one of `--task` or `--task-file`. Passing both, or passing
 neither, is an error.
 
 `--dry-run` writes the task, command preview, and status metadata without
-starting the configured agent. Dry runs use status `created`.
+starting the child agent. Dry runs use status `created`.
 
 `--json` is available on `run`, `list`, `show`, `suggest`, and `env doctor`
 for scripts and MCP-style integrations that should not parse human text.
@@ -116,8 +118,9 @@ to the most recent run.
 
 - Worktree patches include untracked files that are not ignored by Git. Keep
   large generated directories in `.gitignore` before applying a patch.
-- Agents can print `--- RIG RESULT ---`; Rig will keep only the text after
-  that marker in `result.md` while preserving full stdout in `stdout.log`.
+- Child agents can print `--- RIG RESULT ---`; Rig will keep only the text
+  after that marker in `result.md` while preserving full stdout in
+  `stdout.log`.
 - `prompt_style: template` enables `prompt_template` with `{agent}`,
   `{task_path}`, `{task}`, and `{task_md}` placeholders. See
   [Prompt Styles](prompts.md).
@@ -139,6 +142,6 @@ to the most recent run.
 ## See Also
 
 - [Configuration](configuration.md) — `.rig/config.yaml` and `.rig/env.yaml`.
-- [Agents](agents.md) — per-CLI configurations.
-- [Prompt Styles](prompts.md) — what Rig sends to the agent.
+- [Agents](agents.md) — per-CLI child agent configurations.
+- [Prompt Styles](prompts.md) — what Rig sends to the child agent.
 - [Run Artifacts](artifacts.md) — what Rig writes to disk.
