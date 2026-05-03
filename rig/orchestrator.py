@@ -174,10 +174,19 @@ class RunOrchestrator:
             except WorktreeError as exc:
                 finished_at = iso_now()
                 diff_error = f"Rig worktree diff capture failed: {exc}\n"
+                result_hint = (
+                    "\n"
+                    "Rig: worktree diff capture failed. "
+                    "See stderr.log for details.\n"
+                )
                 stderr = result.stderr
                 if stderr and not stderr.endswith("\n"):
                     stderr += "\n"
                 context.stderr_path.write_text(stderr + diff_error, encoding="utf-8")
+                context.result_path.write_text(
+                    build_result_document(result.stdout) + result_hint,
+                    encoding="utf-8",
+                )
                 self.store.write_status(
                     context,
                     status="failed",

@@ -104,7 +104,10 @@ def build_parser() -> argparse.ArgumentParser:
     guide_agents_parser.add_argument(
         "--write",
         action="store_true",
-        help=f"Write {RIG_INSTRUCTION_PATH} and print a short reference snippet",
+        help=(
+            f"Write target-independent {RIG_INSTRUCTION_PATH} and print "
+            "a short reference snippet"
+        ),
     )
     guide_agents_parser.add_argument(
         "--force",
@@ -615,6 +618,11 @@ def guide_agents(args: argparse.Namespace, store: RunStore) -> int:
         print("--force requires --write.", file=sys.stderr)
         return 2
     print(agents_snippet(target=args.target))
+    if not args.write and args.target in {"codex", "claude"}:
+        instruction_path = store.cwd / RIG_INSTRUCTION_PATH
+        if not instruction_path.is_file():
+            print()
+            print(f"Note: Run `rig guide agents --write` to create {RIG_INSTRUCTION_PATH}.")
     return 0
 
 

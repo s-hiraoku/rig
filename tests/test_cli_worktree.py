@@ -122,6 +122,9 @@ agents:
     assert "Rig worktree diff capture failed: capture exploded" in (
         run_dir / "stderr.log"
     ).read_text(encoding="utf-8")
+    assert "Rig: worktree diff capture failed. See stderr.log for details." in (
+        run_dir / "result.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_worktree_pty_run_uses_worktree_cwd(

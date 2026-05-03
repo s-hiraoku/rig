@@ -124,6 +124,9 @@ def test_find_run_rejects_paths_outside_runs_dir(tmp_path: Path) -> None:
 
     assert store.find_run("../../outside") is None
     assert store.find_run(str(outside_dir)) is None
+    assert store.find_run("nested/run") is None
+    assert store.find_run("nested\\run") is None
+    assert store.find_run("..") is None
 
 
 def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:

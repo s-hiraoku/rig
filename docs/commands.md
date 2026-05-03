@@ -49,8 +49,8 @@ rig worktree apply latest
 - `rig env manager status [--json]`: show configured agent asset manager status.
 - `rig guide agents [--target codex|claude] [--format markdown]`: generate an
   agent instruction snippet.
-- `rig guide agents --write [--force]`: create `.rig/instructions/rig.md` and
-  print a short reference snippet.
+- `rig guide agents --write [--force]`: create target-independent
+  `.rig/instructions/rig.md` and print a short reference snippet.
 - `rig mcp serve`: run Rig's MCP server over stdio.
 
 ## Run Options

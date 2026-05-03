@@ -10,6 +10,8 @@ import yaml
 
 from rig.config import ConfigError, load_config
 
+MANAGER_CHECK_TIMEOUT_SECONDS = 5
+
 
 @dataclass(frozen=True)
 class DoctorCheck:
@@ -141,7 +143,7 @@ def check_manager_command(manager: AssetManager) -> tuple[str, str]:
             command,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=MANAGER_CHECK_TIMEOUT_SECONDS,
             check=False,
         )
     except (OSError, subprocess.SubprocessError):
@@ -337,7 +339,7 @@ def add_asset_manager_check(
             command,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=MANAGER_CHECK_TIMEOUT_SECONDS,
             check=False,
         )
     except (OSError, subprocess.SubprocessError):
