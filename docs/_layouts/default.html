@@ -3,40 +3,153 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ page.title | default: site.title }} | {{ site.title }}</title>
-    <meta name="description" content="{{ page.description | default: site.description }}">
+    {% seo %}
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='32' y='42' font-family='ui-sans-serif,system-ui' font-size='32' font-weight='800' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}">
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("rig-theme");
+          if (stored === "dark" || stored === "light") {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
+    {%- assign nav_groups = "Start,Use,Operate" | split: "," -%}
+
+    {%- comment -%} Ordered nav: each entry is "Group|/url|Title", separated by `;;`. {%- endcomment -%}
+    {%- assign nav_data = "Start|/|Overview;;Start|/getting-started.html|Getting Started;;Start|/concepts.html|Core Concepts;;Use|/workflows.html|Workflows;;Use|/recipes.html|Recipes;;Use|/commands.html|Command Reference;;Use|/artifacts.html|Run Artifacts;;Use|/worktrees.html|Worktree Runs;;Operate|/configuration.html|Configuration;;Operate|/agents.html|Agents;;Operate|/prompts.html|Prompt Styles;;Operate|/mcp.html|MCP Server;;Operate|/troubleshooting.html|Troubleshooting;;Operate|/faq.html|FAQ;;Operate|/github-pages.html|GitHub Pages" -%}
+    {%- assign nav_lines = nav_data | split: ";;" -%}
+
+    {%- comment -%} Build flat ordered list for prev/next. {%- endcomment -%}
+    {%- assign current_url = page.url -%}
+    {%- if current_url == "/index.html" -%}{%- assign current_url = "/" -%}{%- endif -%}
+    {%- assign current_index = -1 -%}
+    {%- for line in nav_lines -%}
+      {%- assign parts = line | split: "|" -%}
+      {%- assign u = parts[1] -%}
+      {%- if u == current_url -%}
+        {%- assign current_index = forloop.index0 -%}
+      {%- endif -%}
+    {%- endfor -%}
+
     <header class="site-header">
-      <a class="brand" href="{{ '/' | relative_url }}">Rig</a>
+      <a class="brand" href="{{ '/' | relative_url }}">
+        <span class="brand-mark">R</span>
+        <span>Rig</span>
+      </a>
       <span class="tagline">Inspectable local AI coding runs</span>
-      <a class="repo-link" href="{{ site.github.repository_url | default: 'https://github.com/s-hiraoku/rig' }}">GitHub</a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="repo-link" href="{{ site.github.repository_url | default: 'https://github.com/s-hiraoku/rig' }}" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.18c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.7 1.25 3.36.96.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.97 10.97 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.7 5.36-5.27 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+        <span>GitHub</span>
+      </a>
     </header>
+
     <div class="site-shell">
-      <aside class="site-nav" aria-label="Documentation navigation">
+      <aside class="site-nav" id="site-nav" aria-label="Documentation navigation">
         <nav>
-          <p class="nav-section">Start</p>
-          <a href="{{ '/' | relative_url }}">Overview</a>
-          <a href="{{ '/getting-started.html' | relative_url }}">Getting Started</a>
-          <a href="{{ '/concepts.html' | relative_url }}">Core Concepts</a>
-
-          <p class="nav-section">Use</p>
-          <a href="{{ '/workflows.html' | relative_url }}">Workflows</a>
-          <a href="{{ '/commands.html' | relative_url }}">Command Reference</a>
-          <a href="{{ '/artifacts.html' | relative_url }}">Run Artifacts</a>
-          <a href="{{ '/worktrees.html' | relative_url }}">Worktree Runs</a>
-
-          <p class="nav-section">Operate</p>
-          <a href="{{ '/configuration.html' | relative_url }}">Configuration</a>
-          <a href="{{ '/mcp.html' | relative_url }}">MCP Server</a>
-          <a href="{{ '/troubleshooting.html' | relative_url }}">Troubleshooting</a>
-          <a href="{{ '/github-pages.html' | relative_url }}">GitHub Pages</a>
+          {%- for group in nav_groups -%}
+            <p class="nav-section">{{ group }}</p>
+            {%- for line in nav_lines -%}
+              {%- assign parts = line | split: "|" -%}
+              {%- assign g = parts[0] -%}
+              {%- assign u = parts[1] -%}
+              {%- assign t = parts[2] -%}
+              {%- if g == group -%}
+                {%- assign is_active = false -%}
+                {%- if u == current_url -%}{%- assign is_active = true -%}{%- endif -%}
+                <a href="{{ u | relative_url }}"{% if is_active %} class="is-active" aria-current="page"{% endif %}>{{ t }}</a>
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
         </nav>
       </aside>
+
       <main class="content">
         {{ content }}
+
+        {%- if current_index >= 0 -%}
+          {%- assign prev_index = current_index | minus: 1 -%}
+          {%- assign next_index = current_index | plus: 1 -%}
+          {%- assign prev_line = "" -%}
+          {%- assign next_line = "" -%}
+          {%- if prev_index >= 0 -%}
+            {%- assign prev_line = nav_lines[prev_index] -%}
+          {%- endif -%}
+          {%- if next_index < nav_lines.size -%}
+            {%- assign next_line = nav_lines[next_index] -%}
+          {%- endif -%}
+
+          {%- if prev_line != "" or next_line != "" -%}
+          <nav class="page-footer" aria-label="Page navigation">
+            {%- if prev_line != "" -%}
+              {%- assign pp = prev_line | split: "|" -%}
+              <a href="{{ pp[1] | relative_url }}">
+                <span class="pf-label">← Previous</span>
+                <span class="pf-title">{{ pp[2] }}</span>
+              </a>
+            {%- else -%}
+              <span class="pf-empty"></span>
+            {%- endif -%}
+            {%- if next_line != "" -%}
+              {%- assign nn = next_line | split: "|" -%}
+              <a class="pf-next" href="{{ nn[1] | relative_url }}">
+                <span class="pf-label">Next →</span>
+                <span class="pf-title">{{ nn[2] }}</span>
+              </a>
+            {%- else -%}
+              <span class="pf-empty"></span>
+            {%- endif -%}
+          </nav>
+          {%- endif -%}
+        {%- endif -%}
       </main>
     </div>
+
+    <footer class="site-footer">
+      Rig is open source under the
+      <a href="https://github.com/s-hiraoku/rig/blob/main/LICENSE">MIT license</a>.
+      Built with Jekyll and hosted on GitHub Pages.
+    </footer>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("theme-toggle");
+        if (btn) {
+          btn.addEventListener("click", function () {
+            var current = document.documentElement.getAttribute("data-theme");
+            if (!current) {
+              var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+              current = prefersDark ? "dark" : "light";
+            }
+            var next = current === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            try { localStorage.setItem("rig-theme", next); } catch (e) {}
+          });
+        }
+
+        var navBtn = document.getElementById("nav-toggle");
+        var nav = document.getElementById("site-nav");
+        if (navBtn && nav) {
+          navBtn.addEventListener("click", function () {
+            var open = nav.classList.toggle("is-open");
+            navBtn.setAttribute("aria-expanded", open ? "true" : "false");
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

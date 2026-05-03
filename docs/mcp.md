@@ -1,5 +1,6 @@
 ---
 title: MCP Server
+description: Run Rig as an MCP server over stdio, exposing run, list, suggest, get, and apply tools with cwd and patch-apply safety gates.
 ---
 
 # MCP Server
@@ -10,36 +11,47 @@ Rig can run an MCP server over stdio:
 rig mcp serve
 ```
 
-MCP-capable agents can use the server to start runs, list run history, inspect
-results, and read captured worktree diffs without parsing CLI output.
+MCP-capable agents can use the server to start runs, list run history,
+inspect results, and read captured worktree diffs without parsing CLI
+output.
 
-## Initial Tools
+## Tools
 
-- `rig_run`
-- `rig_list_runs`
-- `rig_list_agents`
-- `rig_suggest`
-- `rig_get_run`
-- `rig_get_result`
-- `rig_get_diff`
-- `rig_apply_patch`
+| Tool | Purpose |
+| --- | --- |
+| `rig_run` | Start a new run. Mirrors `rig run`. |
+| `rig_list_runs` | List recent runs. Mirrors `rig list`. |
+| `rig_list_agents` | List configured agents from `.rig/config.yaml`. |
+| `rig_suggest` | Recommend `rig run` vs `rig worktree run` for a task. |
+| `rig_get_run` | Read run metadata. |
+| `rig_get_result` | Read `result.md`. |
+| `rig_get_diff` | Read `diff.patch` for a worktree run. |
+| `rig_apply_patch` | Apply a captured worktree patch. **Disabled by default.** |
 
-## Resources and Prompts
+The orchestrator and run store backing these tools are exactly the same as
+the ones the CLI uses. There is no parallel code path.
+
+## Resources And Prompts
 
 The MCP server also exposes:
 
-- `rig_policy` prompt
-- `rig://policy` resource
-- `rig://agents-md` resource
+- `rig_policy` — a prompt the client can invoke to fetch Rig's usage policy.
+- `rig://policy` — the same policy as a resource URI.
+- `rig://agents-md` — the project's `AGENTS.md` content (when present), so
+  clients can pull project-specific agent guidance over the same channel.
 
 ## Safety Defaults
 
-MCP calls are limited to the server's launch directory by default. Set
-`RIG_MCP_ROOT=/path/to/root` when the server must operate on repositories under
-a broader root.
+MCP calls are limited to the server's launch directory by default. To work
+on repositories under a broader root:
 
-Relative `task_file` values are resolved from the selected `cwd`, and must stay
-inside that project.
+```bash
+RIG_MCP_ROOT=/Users/me/code rig mcp serve
+```
+
+`cwd` values supplied by MCP clients must resolve inside `RIG_MCP_ROOT`.
+Relative `task_file` paths are resolved from the selected `cwd` and must
+also stay inside that project.
 
 `rig_apply_patch` is disabled unless the server starts with:
 
@@ -48,4 +60,33 @@ RIG_MCP_ALLOW_APPLY=1 rig mcp serve
 ```
 
 Enable patch application only when the connected agent should be allowed to
-apply reviewed worktree patches after explicit user instruction.
+apply reviewed worktree patches after explicit user instruction. The
+default — disabled — is intentional: a remote MCP client should not modify
+your working tree without an out-of-band opt-in.
+
+## Environment Variables
+
+| Variable | Effect |
+| --- | --- |
+| `RIG_MCP_ROOT` | Allow MCP `cwd` and `task_file` paths to resolve under this root. Defaults to the server launch directory. |
+| `RIG_MCP_ALLOW_APPLY` | Set to `1` to enable `rig_apply_patch`. Defaults to disabled. |
+
+## Connecting From An MCP Client
+
+The exact wiring depends on the client. The pattern is:
+
+1. Add a server entry that runs `rig mcp serve` over stdio.
+2. (Optional) set `RIG_MCP_ROOT` if the client needs to operate on multiple
+   repositories.
+3. (Optional, opt-in) set `RIG_MCP_ALLOW_APPLY=1` when patch application is
+   intentional.
+
+See [Recipes → Run Rig Through MCP](recipes.md#run-rig-through-mcp) for a
+short end-to-end example.
+
+## Inspecting MCP Calls
+
+MCP-driven runs land in the same `.rig/runs/<run-id>/` layout as CLI runs,
+including `command.json` showing the resolved argv. There is no separate
+"MCP run" surface — every MCP `rig_run` call produces a normal run that
+`rig list` and `rig show` can read.

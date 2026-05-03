@@ -1,30 +1,41 @@
 ---
 title: Configuration
+description: Rig's two configuration files — .rig/config.yaml for agents and .rig/env.yaml for environment checks.
 ---
 
 # Configuration
 
-Rig creates its local files with:
-
-```bash
-rig init
-```
-
-The generated structure is:
+Rig keeps configuration in two files under `.rig/`. `rig init` creates them
+with sensible defaults. Both files are plain YAML and can be hand-edited.
 
 ```txt
 .rig/
-  config.yaml
-  env.yaml
-  runs/
+  config.yaml   # agents, runners, prompt styles
+  env.yaml      # required files and optional asset managers
+  runs/         # run history
 ```
+
+For specific CLI configurations (Codex, Claude, Gemini, Copilot, manual), see
+[Agents](agents.md). For prompt-string options, see
+[Prompt Styles](prompts.md).
+
+## Initialize Or Reset
+
+```bash
+rig init                # create missing files; never overwrite
+rig init --reset config # back up and recreate config.yaml
+rig init --reset env    # back up and recreate env.yaml
+rig init --reset all    # both
+rig init --force        # equivalent to --reset all
+```
+
+`rig init` is safe to run repeatedly. If nothing changes, it prints
+`Rig already up to date.`
 
 ## Agent Configuration
 
 `.rig/config.yaml` controls the command Rig uses for each agent. If `rig run`
 omits the agent name, Rig uses `default_agent`.
-
-Example:
 
 ```yaml
 default_agent: codex
@@ -37,14 +48,28 @@ agents:
       - exec
 ```
 
-Supported runners:
+### Schema
 
-- `exec`: non-interactive command execution. Rig appends the rendered prompt as
-  the final argument.
-- `manual`: create a waiting run without executing a command.
-- `pty`: experimental TTY-backed execution for CLIs that require a terminal.
+| Field | Type | Notes |
+| --- | --- | --- |
+| `default_agent` | string | Agent name used when `rig run` is called without one. |
+| `agents.<name>.runner` | `exec` / `manual` / `pty` | See [Runner](#runner). |
+| `agents.<name>.command` | string | The executable Rig launches. Required for `exec` and `pty`. |
+| `agents.<name>.args` | list of string | Extra args inserted before the rendered prompt. |
+| `agents.<name>.prompt_style` | `rig` (default) / `task` / `template` | See [Prompt Styles](prompts.md). |
+| `agents.<name>.prompt_template` | string | Required when `prompt_style: template`. |
+| `agents.<name>.timeout_seconds` | integer | Applies to `exec` and `pty`. |
 
-For another CLI, configure the command and prompt style:
+### Runner
+
+- `exec` — non-interactive command execution. Rig appends the rendered prompt
+  as the final argument.
+- `manual` — create a `waiting` run without executing a command.
+- `pty` — experimental TTY-backed execution for CLIs that require a terminal.
+
+### Examples
+
+A second `exec` agent for a different CLI:
 
 ```yaml
 agents:
@@ -54,9 +79,10 @@ agents:
     args:
       - --prompt
     prompt_style: task
+    timeout_seconds: 600
 ```
 
-Manual runners are useful for GUI-driven or external agent work:
+A manual runner for GUI work:
 
 ```yaml
 agents:
@@ -64,25 +90,41 @@ agents:
     runner: manual
 ```
 
+A templated prompt:
+
+```yaml
+agents:
+  reviewer:
+    runner: exec
+    command: codex
+    args: [exec]
+    prompt_style: template
+    prompt_template: |
+      You are {agent}. Read {task_path} and reply with a Markdown report.
+```
+
 ## Prompt Styles
 
-- `rig`: passes Rig's standard instruction prompt with a task file path.
-- `task`: passes the raw task file content.
-- `template`: renders `prompt_template`.
+`prompt_style` decides what string Rig appends to the agent command.
+
+- `rig` (default) — Rig's standard instruction with a task file path.
+- `task` — the raw task file content, verbatim.
+- `template` — renders `prompt_template`.
 
 Template variables:
 
-- `{agent}`: configured agent name.
-- `{task_path}`: path to the saved task file.
-- `{task}`: raw user task text.
-- `{task_md}`: saved task file content.
+- `{agent}` — configured agent name.
+- `{task}` — raw task text passed to `--task` or read from `--task-file`.
+- `{task_md}` — saved task file content.
+- `{task_path}` — path to the saved task file relative to the run cwd.
+
+See [Prompt Styles](prompts.md) for worked examples and per-CLI guidance.
 
 ## Environment Configuration
 
 `.rig/env.yaml` declares harness checks for `rig env doctor` and
-`rig env plan`.
-
-Example:
+`rig env plan`. The schema is intentionally small and forward-compatible
+through the `version` field.
 
 ```yaml
 version: 1
@@ -92,10 +134,6 @@ required_files:
     label: Agent instructions
     hint: "Create AGENTS.md with project-specific agent guidance."
 ```
-
-The generated default also declares optional agent asset managers for APM,
-GitHub CLI `gh skills`, and Vercel `skills` via `npx`. Rig checks whether the
-configured commands exist, but does not install them.
 
 Required files can be written as strings or mappings:
 
@@ -107,7 +145,29 @@ required_files:
     hint: "Create docs/agent-harness.md with team setup notes."
 ```
 
-Asset managers can also declare their own required files:
+Optional asset managers live under `agent_asset_managers`. The generated
+default declares APM, GitHub CLI `gh skills`, and Vercel `skills` via `npx`.
+Rig checks whether the configured commands exist; it does not install them.
+
+```yaml
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+  - id: gh-skills
+    label: GitHub skills manager
+    command: gh
+    args:
+      - skills
+      - --help
+  - id: vercel-skills
+    label: Vercel skills manager
+    command: npx
+```
+
+Asset managers can also declare their own required files. When a file is
+missing, `rig env doctor` reports both the manager name and the missing
+file:
 
 ```yaml
 agent_asset_managers:
@@ -117,7 +177,18 @@ agent_asset_managers:
     required_files:
       - path: apm.yml
         label: APM manifest
+        hint: "Create apm.yml or remove this manager from .rig/env.yaml."
 ```
 
 Rig reports missing files and tools, but it does not silently install global
 tools or rewrite third-party agent assets.
+
+## What `rig init` Does Not Do
+
+- It does not edit existing `.rig/config.yaml` or `.rig/env.yaml`.
+- It does not install Codex, Claude, Gemini, Copilot, or any asset manager.
+- It does not create or edit `AGENTS.md`, `CLAUDE.md`, or skill files.
+- It does not commit or push.
+
+If you want generated config to match the current Rig defaults, use
+`rig init --reset config` (the previous file is backed up first).

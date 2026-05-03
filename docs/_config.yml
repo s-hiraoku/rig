@@ -1,5 +1,13 @@
 title: Rig User Guide
-description: Structured guide for Rig, a local AI coding harness.
+description: A local AI coding harness — file-backed tasks, inspectable run artifacts, isolated worktree edits, and an MCP server.
+
+plugins:
+  - jekyll-seo-tag
+
+markdown: kramdown
+kramdown:
+  parse_block_html: true
+  syntax_highlighter: rouge
 
 defaults:
   - scope:
@@ -9,3 +17,6 @@ defaults:
 
 exclude:
   - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
