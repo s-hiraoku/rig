@@ -1,6 +1,7 @@
 title: Rig User Guide
 description: User guide for Rig, a local AI coding harness.
 theme: jekyll-theme-minimal
+show_downloads: true
 
 defaults:
   - scope:

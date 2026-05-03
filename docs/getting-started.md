@@ -46,6 +46,7 @@ From a project where you want to use Rig:
 
 ```bash
 rig init
+rig suggest "Review the current diff and identify risky changes."
 rig run codex --task "Review the current diff and identify risky changes."
 rig list
 rig show latest
@@ -56,10 +57,23 @@ If you are working from the Rig repository checkout, prefix commands with
 
 ```bash
 uv run rig init
+uv run rig suggest "Review the current diff and identify risky changes."
 uv run rig run codex --task "Review the current diff and identify risky changes."
 uv run rig list
 uv run rig show latest
 ```
+
+## Environment Check
+
+After initialization, inspect the local harness setup:
+
+```bash
+rig env doctor
+rig env plan
+```
+
+Use `rig env bootstrap` to create missing Rig-owned files. Rig will not install
+external tools or third-party agent assets.
 
 ## Requirements
 

@@ -9,7 +9,8 @@ stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 generic execution runners, and MCP tools.
 See [docs/commands.md](docs/commands.md) for the compact command reference.
-The GitHub Pages user guide starts at [docs/index.md](docs/index.md).
+The GitHub Pages user guide starts at [docs/index.md](docs/index.md), with
+publishing notes in [docs/github-pages.md](docs/github-pages.md).
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
@@ -596,8 +597,25 @@ Each run creates these files:
 - `command.json`: the command Rig executed and when it started
 - `stdout.log`: raw stdout from the agent command
 - `stderr.log`: raw stderr from the agent command
-- `result.md`: human-readable result; currently copied from stdout
+- `result.md`: human-readable result, either stdout or the text after
+  `--- RIG RESULT ---` when the agent prints that marker
 - `status.json`: run ID, agent, status, timestamps, exit code, and run path
+
+Worktree runs also write `diff.patch` with the captured patch.
+
+## Documentation and GitHub Pages
+
+The user guide lives in `docs/` and is published by
+`.github/workflows/pages.yml` using GitHub Pages and Jekyll.
+
+Key files:
+
+- `docs/index.md`: guide landing page
+- `docs/_config.yml`: Pages/Jekyll metadata
+- `docs/github-pages.md`: publishing and local review notes
+- `.github/workflows/pages.yml`: Pages build and deploy workflow
+
+GitHub Pages should be configured to deploy from GitHub Actions.
 
 ## Development
 
