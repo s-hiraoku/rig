@@ -247,6 +247,10 @@ It checks for the Git repository, `.rig/config.yaml`, `.rig/runs/`, Codex CLI,
 APM, GitHub CLI, `gh skill`, `npx`, `AGENTS.md`, and APM manifest files. Rig
 does not install tools or edit third-party agent asset files.
 
+Statuses are `ok`, `missing`, `optional`, and `warn`. Required Rig/Codex basics
+use `missing` when absent; external asset managers are usually `optional`;
+partial or inconsistent setup uses `warn`.
+
 Example:
 
 ```bash

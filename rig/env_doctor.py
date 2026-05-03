@@ -38,7 +38,7 @@ def add_git_checks(
     if find_git_dir(root) is not None:
         checks.append(DoctorCheck("Git repository", "ok", "found"))
     else:
-        checks.append(DoctorCheck("Git repository", "warn", "not found"))
+        checks.append(DoctorCheck("Git repository", "missing", "not found"))
         suggestions.append("Run: git init")
 
 
@@ -52,13 +52,13 @@ def add_rig_checks(
     if config_path.is_file():
         checks.append(DoctorCheck("Rig config", "ok", ".rig/config.yaml"))
     else:
-        checks.append(DoctorCheck("Rig config", "warn", "missing .rig/config.yaml"))
+        checks.append(DoctorCheck("Rig config", "missing", "missing .rig/config.yaml"))
         suggestions.append("Run: rig init")
 
     if runs_dir.is_dir():
         checks.append(DoctorCheck("Rig runs directory", "ok", ".rig/runs/"))
     else:
-        checks.append(DoctorCheck("Rig runs directory", "warn", "missing .rig/runs/"))
+        checks.append(DoctorCheck("Rig runs directory", "missing", "missing .rig/runs/"))
         suggestions.append("Run: rig init")
 
 
@@ -69,6 +69,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         label="Codex CLI",
         command="codex",
         install_hint="Install Codex CLI and ensure `codex` is on PATH.",
+        missing_status="missing",
     )
     add_tool_check(
         checks,
@@ -76,6 +77,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         label="APM",
         command="apm",
         install_hint="Install APM if this project uses APM-managed agent assets.",
+        missing_status="optional",
     )
     gh_found = add_tool_check(
         checks,
@@ -83,6 +85,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         label="GitHub CLI",
         command="gh",
         install_hint="Install GitHub CLI if you use `gh skill` workflows.",
+        missing_status="optional",
     )
     if gh_found:
         add_gh_skill_check(checks, suggestions)
@@ -93,6 +96,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         label="npx",
         command="npx",
         install_hint="Install Node.js/npm if you use Vercel `skills` workflows.",
+        missing_status="optional",
     )
 
 
@@ -103,13 +107,14 @@ def add_tool_check(
     label: str,
     command: str,
     install_hint: str,
+    missing_status: str,
 ) -> bool:
     path = shutil.which(command)
     if path:
         checks.append(DoctorCheck(label, "ok", path))
         return True
 
-    checks.append(DoctorCheck(label, "info", f"`{command}` not found on PATH"))
+    checks.append(DoctorCheck(label, missing_status, f"`{command}` not found on PATH"))
     suggestions.append(install_hint)
     return False
 
@@ -124,14 +129,14 @@ def add_gh_skill_check(checks: list[DoctorCheck], suggestions: list[str]) -> Non
             check=False,
         )
     except (OSError, subprocess.SubprocessError):
-        checks.append(DoctorCheck("gh skill", "info", "could not check"))
+        checks.append(DoctorCheck("gh skill", "warn", "could not check"))
         suggestions.append("Run: gh skill --help")
         return
 
     if completed.returncode == 0:
         checks.append(DoctorCheck("gh skill", "ok", "available"))
     else:
-        checks.append(DoctorCheck("gh skill", "info", "not available"))
+        checks.append(DoctorCheck("gh skill", "optional", "not available"))
         suggestions.append("Update GitHub CLI or enable `gh skill` if needed.")
 
 
@@ -145,10 +150,10 @@ def add_agent_asset_checks(
         if "## Rig" in content and "rig runs show latest" in content:
             checks.append(DoctorCheck("Rig AGENTS.md snippet", "ok", "found"))
         else:
-            checks.append(DoctorCheck("Rig AGENTS.md snippet", "info", "not found"))
+            checks.append(DoctorCheck("Rig AGENTS.md snippet", "warn", "not found"))
             suggestions.append("Run: rig agents snippet")
     else:
-        checks.append(DoctorCheck("AGENTS.md", "info", "not found"))
+        checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
         suggestions.append("Run: rig agents snippet")
 
     apm_path = root / "apm.yml"
@@ -158,10 +163,10 @@ def add_agent_asset_checks(
         if apm_lock_path.is_file():
             checks.append(DoctorCheck("APM lockfile", "ok", "apm.lock.yaml"))
         else:
-            checks.append(DoctorCheck("APM lockfile", "info", "not found"))
+            checks.append(DoctorCheck("APM lockfile", "warn", "not found"))
             suggestions.append("Run: apm install")
     else:
-        checks.append(DoctorCheck("APM manifest", "info", "not found"))
+        checks.append(DoctorCheck("APM manifest", "optional", "not found"))
         suggestions.append("Create apm.yml if this project uses APM.")
 
 
@@ -191,9 +196,13 @@ def format_doctor_report(report: DoctorReport) -> str:
 def format_status(status: str) -> str:
     if status == "ok":
         return "[ok]"
+    if status == "missing":
+        return "[missing]"
+    if status == "optional":
+        return "[optional]"
     if status == "warn":
         return "[warn]"
-    return "[info]"
+    return f"[{status}]"
 
 
 def dedupe(values: list[str]) -> list[str]:
@@ -204,4 +213,3 @@ def dedupe(values: list[str]) -> list[str]:
             seen.add(value)
             result.append(value)
     return result
-
