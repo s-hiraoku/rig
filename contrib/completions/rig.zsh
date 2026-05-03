@@ -8,9 +8,10 @@ _rig() {
     'list:list recent runs'
     'show:show a run'
     'worktree:manage isolated worktree run changes'
-    'history:inspect run history'
+    'manual:complete or fail waiting manual runs'
     'guide:generate setup guidance'
     'env:inspect the agent environment'
+    'mcp:expose Rig as MCP tools'
   )
 
   if (( CURRENT == 2 )); then
@@ -22,7 +23,8 @@ _rig() {
     _arguments \
       '--task[task text]:task:' \
       '--task-file[task file path]:filename:_files' \
-      '--dry-run[create artifacts without executing]'
+      '--dry-run[create artifacts without executing]' \
+      '--json[print JSON output]'
     return
   fi
 
@@ -37,15 +39,13 @@ _rig() {
       )
       _describe 'worktree command' worktree_commands
       ;;
-    history)
-      local -a history_commands
-      history_commands=(
-        'list:list recent runs'
-        'show:show a run'
+    manual)
+      local -a manual_commands
+      manual_commands=(
         'complete:complete a waiting manual run'
         'fail:fail a waiting manual run'
       )
-      _describe 'history command' history_commands
+      _describe 'manual command' manual_commands
       ;;
     guide)
       local -a guide_commands
@@ -60,6 +60,11 @@ _rig() {
         'bootstrap:create Rig-owned environment files'
       )
       _describe 'env command' env_commands
+      ;;
+    mcp)
+      local -a mcp_commands
+      mcp_commands=('serve:run the Rig MCP server over stdio')
+      _describe 'mcp command' mcp_commands
       ;;
   esac
 }
