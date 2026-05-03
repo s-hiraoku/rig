@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any
 
 from rig.adapters import create_adapter
 from rig.adapters.codex import iso_now
@@ -31,6 +33,14 @@ class RunOutcome:
     result_path: str | None = None
     diff_path: str | None = None
     error_summary: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.exit_code == 0
+
+
+def run_outcome_payload(outcome: RunOutcome) -> dict[str, Any]:
+    return {"ok": outcome.ok, **dataclasses.asdict(outcome)}
 
 
 @dataclass(frozen=True)

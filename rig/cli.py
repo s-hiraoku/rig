@@ -11,7 +11,7 @@ from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
-from rig.orchestrator import RunOrchestrator, RunOutcome, RunRequest
+from rig.orchestrator import RunOrchestrator, RunRequest, run_outcome_payload
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
 from rig.suggest import Suggestion, build_suggestion
@@ -20,11 +20,7 @@ from rig.worktree import WorktreeError, apply_patch, prune_worktrees
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rig")
-    subparsers = parser.add_subparsers(
-        dest="command",
-        required=True,
-        metavar="{init,run,list,show,worktree,manual,guide,env,mcp,suggest}",
-    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser(
         "init", help="Initialize Rig in the current repository"
@@ -185,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.worktree_command == "show":
                 return show_worktree_run(store, args.run_id)
             if args.worktree_command == "apply":
-                return apply_diff(store, args.run_id)
+                return apply_worktree_run(store, args.run_id)
             if args.worktree_command == "prune":
                 return prune_worktree_runs(store)
 
@@ -224,6 +220,9 @@ def main(argv: list[str] | None = None) -> int:
     except WorktreeError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     parser.error("unsupported command")
     return 2
@@ -258,17 +257,11 @@ def run_agent(
         print(str(exc), file=sys.stderr)
         return 2
     if args.json:
-        print(json.dumps(run_outcome_json(outcome), indent=2, ensure_ascii=False))
+        print(json.dumps(run_outcome_payload(outcome), indent=2, ensure_ascii=False))
         return outcome.exit_code
     for line in outcome.lines:
         print(line)
     return outcome.exit_code
-
-
-def run_outcome_json(outcome: RunOutcome) -> dict[str, Any]:
-    data: dict[str, Any] = dataclasses.asdict(outcome)
-    data["ok"] = data["exit_code"] == 0
-    return data
 
 
 def suggest_run(args: argparse.Namespace, store: RunStore) -> int:
@@ -491,8 +484,8 @@ def show_worktree_run(store: RunStore, run_id: str) -> int:
         print(f"Run has no captured diff: {run.get('id', run_id)}", file=sys.stderr)
         return 1
 
-    diff_path = store.cwd / diff_path_value
-    if not diff_path.is_file():
+    diff_path = store.resolve_diff_path(run)
+    if diff_path is None or not diff_path.is_file():
         print(f"Diff file is missing: {diff_path_value}", file=sys.stderr)
         return 1
 
@@ -514,7 +507,7 @@ def show_worktree_run(store: RunStore, run_id: str) -> int:
     return 0
 
 
-def apply_diff(store: RunStore, run_id: str) -> int:
+def apply_worktree_run(store: RunStore, run_id: str) -> int:
     run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
@@ -528,8 +521,8 @@ def apply_diff(store: RunStore, run_id: str) -> int:
         print(f"Run has no captured diff: {run.get('id', run_id)}", file=sys.stderr)
         return 1
 
-    diff_path = store.cwd / diff_path_value
-    if not diff_path.is_file():
+    diff_path = store.resolve_diff_path(run)
+    if diff_path is None or not diff_path.is_file():
         print(f"Diff file is missing: {diff_path_value}", file=sys.stderr)
         return 1
     if not diff_path.read_text(encoding="utf-8").strip():

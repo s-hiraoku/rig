@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -281,6 +282,74 @@ agents:
     assert applied["ok"] is True
     assert applied["applied"] is True
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
+
+
+def test_mcp_get_diff_rejects_diff_path_outside_run_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.RunStore(tmp_path).init()
+    run_dir = tmp_path / ".rig" / "runs" / "bad-diff"
+    run_dir.mkdir()
+    (tmp_path / ".rig" / "runs" / "secret.patch").write_text(
+        "not this patch\n", encoding="utf-8"
+    )
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "id": "bad-diff",
+                "agent": "codex",
+                "status": "succeeded",
+                "started_at": "2026-05-02T20:30:12+09:00",
+                "run_dir": ".rig/runs/bad-diff",
+                "diff_path": ".rig/runs/bad-diff/../secret.patch",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = get_diff_tool(run_id="bad-diff", cwd=str(tmp_path))
+
+    assert result == {
+        "ok": False,
+        "error": (
+            "diff_path is outside the expected Rig directory: "
+            ".rig/runs/bad-diff/../secret.patch"
+        ),
+    }
+
+
+def test_mcp_get_result_rejects_run_dir_outside_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.RunStore(tmp_path).init()
+    outside_dir = tmp_path / "outside-run"
+    outside_dir.mkdir()
+    (outside_dir / "result.md").write_text("secret\n", encoding="utf-8")
+    run_dir = tmp_path / ".rig" / "runs" / "bad-run-dir"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "id": "bad-run-dir",
+                "agent": "codex",
+                "status": "succeeded",
+                "started_at": "2026-05-02T20:30:12+09:00",
+                "run_dir": "../outside-run",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = get_artifact_tool(
+        run_id="bad-run-dir", filename="result.md", cwd=str(tmp_path)
+    )
+
+    assert result == {
+        "ok": False,
+        "error": "run_dir is outside the expected Rig directory: ../outside-run",
+    }
 
 
 def test_mcp_apply_patch_requires_explicit_opt_in(tmp_path: Path) -> None:
