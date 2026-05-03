@@ -45,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
     runs_subparsers.add_parser("list", help="List recent runs")
     show_parser = runs_subparsers.add_parser("show", help="Show a run")
     show_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    complete_parser = runs_subparsers.add_parser(
+        "complete", help="Complete a waiting manual run"
+    )
+    complete_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    complete_parser.add_argument("--result", help="Result text to write")
+    complete_parser.add_argument("--result-file", help="Path to a result file")
 
     agents_parser = subparsers.add_parser(
         "agents", help="Print instructions for AI coding agents"
@@ -92,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
                 return list_runs(store)
             if args.runs_command == "show":
                 return show_run(store, args.run_id)
+            if args.runs_command == "complete":
+                return complete_run(args, store)
 
         if args.command == "agents" and args.agents_command == "snippet":
             return print_agents_snippet()
@@ -256,6 +264,36 @@ def show_run(store: RunStore, run_id: str) -> int:
             print(stderr, end="" if stderr.endswith("\n") else "\n")
         else:
             print("(stderr.log is missing or empty)")
+    return 0
+
+
+def complete_run(args: argparse.Namespace, store: RunStore) -> int:
+    if bool(args.result) == bool(args.result_file):
+        print("Provide exactly one of --result or --result-file.", file=sys.stderr)
+        return 2
+
+    run = store.latest_run() if args.run_id == "latest" else store.find_run(args.run_id)
+    if run is None:
+        if args.run_id == "latest":
+            print("No runs found.", file=sys.stderr)
+        else:
+            print(f"Run not found or unreadable: {args.run_id}", file=sys.stderr)
+        return 1
+
+    result = args.result
+    if args.result_file:
+        result = Path(args.result_file).read_text(encoding="utf-8")
+    store.write_run_artifact(run, "result.md", result.rstrip() + "\n")
+    store.write_run_status(
+        run,
+        status="succeeded",
+        finished_at=iso_now(),
+        exit_code=0,
+    )
+
+    print(f"Run: {run.get('id', '')}")
+    print("Status: succeeded")
+    print(f"Result: {run.get('run_dir', '')}/result.md")
     return 0
 
 

@@ -236,6 +236,36 @@ class RunStore:
             encoding="utf-8",
         )
 
+    def write_run_status(
+        self,
+        run: dict[str, Any],
+        *,
+        status: str,
+        finished_at: str | None = None,
+        exit_code: int | None = None,
+    ) -> None:
+        run_dir_value = run.get("run_dir")
+        if not isinstance(run_dir_value, str) or not run_dir_value:
+            raise RigNotInitializedError("Run metadata does not contain a run directory.")
+        status_path = self.cwd / run_dir_value / "status.json"
+        data = dict(run)
+        data["status"] = status
+        data["finished_at"] = finished_at
+        data["exit_code"] = exit_code
+        status_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    def write_run_artifact(
+        self, run: dict[str, Any], filename: str, content: str
+    ) -> None:
+        run_dir_value = run.get("run_dir")
+        if not isinstance(run_dir_value, str) or not run_dir_value:
+            raise RigNotInitializedError("Run metadata does not contain a run directory.")
+        artifact_path = self.cwd / run_dir_value / filename
+        artifact_path.write_text(content, encoding="utf-8")
+
     def list_runs(self) -> list[dict[str, Any]]:
         self.ensure_initialized()
         runs: list[dict[str, Any]] = []

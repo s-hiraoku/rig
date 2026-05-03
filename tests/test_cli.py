@@ -285,6 +285,44 @@ agents:
     assert status["exit_code"] is None
 
 
+def test_runs_complete_manual_run_with_result_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  external:
+    runner: manual
+""",
+        encoding="utf-8",
+    )
+    cli.main(["run", "external", "--task", "finish this elsewhere"])
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+
+    assert cli.main(["runs", "complete", "latest", "--result", "done elsewhere"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: succeeded" in output
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == "done elsewhere\n"
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["status"] == "succeeded"
+    assert status["exit_code"] == 0
+    assert status["finished_at"] is not None
+
+
+def test_runs_complete_requires_one_result_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    assert cli.main(["runs", "complete", "latest"]) == 2
+
+    assert "Provide exactly one of --result or --result-file." in capsys.readouterr().err
+
+
 def test_run_codex_dry_run_writes_artifacts_without_executing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

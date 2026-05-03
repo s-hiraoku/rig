@@ -301,6 +301,18 @@ Example:
 uv run rig runs show 20260502-203012-codex
 ```
 
+### `rig runs complete <run-id>`
+
+Completes a waiting manual run by writing `result.md` and marking the run as
+`succeeded`. Use `latest` to complete the most recent run.
+
+Example:
+
+```bash
+uv run rig runs complete latest --result "Finished in Copilot Chat."
+uv run rig runs complete 20260502-203012-external --result-file result.md
+```
+
 ### `rig agents snippet`
 
 Prints a Markdown snippet that users can paste into `AGENTS.md` or similar
