@@ -53,8 +53,8 @@ rig show latest
 rig worktree run <agent> --task "..."
 rig worktree show latest
 rig worktree apply latest
-rig history complete latest --result "..."
-rig history fail latest --error "..."
+rig manual complete latest --result "..."
+rig manual fail latest --error "..."
 rig env doctor
 rig guide agents
 ```
@@ -73,7 +73,8 @@ Implemented:
 - `rig show <run-id>`
 - `rig list --json`
 - `rig show latest --json`
-- grouped `rig history ...` forms for the same run-history operations
+- `rig run codex --json`
+- legacy `rig history list/show` arguments map to the canonical top-level forms
 - file-backed run artifacts under `.rig/runs/<run-id>/`
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
@@ -167,6 +168,7 @@ Potential commands:
 
 ```bash
 rig env doctor
+rig env doctor --json
 rig env plan
 rig env bootstrap
 ```
@@ -174,7 +176,7 @@ rig env bootstrap
 Suggested responsibilities:
 
 - `rig env doctor`: read-only diagnostics for the current repository and
-  machine.
+  machine. Use `--json` for structured CI output.
 - `rig env plan`: show the desired harness setup and the actions needed to reach
   it.
 - `rig env bootstrap`: initialize Rig-owned files and print commands for
@@ -294,7 +296,8 @@ Implemented:
 - `runner: exec`
 - `runner: manual`
 - `runner: pty` with timeout-backed transcript capture
-- `rig history complete` and `rig history fail` for manual run lifecycle management
+- `rig manual complete` and `rig manual fail` for manual run lifecycle management
+- `rig history complete` and `rig history fail` remain available as compatibility forms
 - runner registry and `RunOrchestrator` keep execution setup reusable outside CLI
 - `timeout_seconds` applies to exec and pty runners
 - `prompt_template` supports project-specific prompt formatting

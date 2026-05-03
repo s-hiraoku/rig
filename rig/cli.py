@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
-from rig.orchestrator import RunOrchestrator, RunRequest
+from rig.orchestrator import RunOrchestrator, RunOutcome, RunRequest
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
 from rig.worktree import WorktreeError, apply_patch, prune_worktrees
@@ -17,7 +19,11 @@ from rig.worktree import WorktreeError, apply_patch, prune_worktrees
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rig")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=True,
+        metavar="{init,run,list,show,worktree,manual,guide,env,mcp}",
+    )
 
     init_parser = subparsers.add_parser(
         "init", help="Initialize Rig in the current repository"
@@ -61,29 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
     worktree_apply_parser.add_argument("run_id", help="Run ID, or 'latest'")
     worktree_subparsers.add_parser("prune", help="Remove Rig-created worktrees")
 
-    history_parser = subparsers.add_parser("history", help="Inspect run history")
-    history_subparsers = history_parser.add_subparsers(
-        dest="history_command", required=True
+    manual_parser = subparsers.add_parser(
+        "manual", help="Complete or fail waiting manual runs"
     )
-    history_list_parser = history_subparsers.add_parser("list", help="List recent runs")
-    show_parser = history_subparsers.add_parser("show", help="Show a run")
-    show_parser.add_argument("run_id", help="Run ID, or 'latest'")
-    history_list_parser.add_argument(
-        "--json", action="store_true", help="Print JSON output"
+    manual_subparsers = manual_parser.add_subparsers(
+        dest="manual_command", required=True
     )
-    show_parser.add_argument("--json", action="store_true", help="Print JSON output")
-    complete_parser = history_subparsers.add_parser(
-        "complete", help="Complete a waiting manual run"
-    )
-    complete_parser.add_argument("run_id", help="Run ID, or 'latest'")
-    complete_parser.add_argument("--result", help="Result text to write")
-    complete_parser.add_argument("--result-file", help="Path to a result file")
-    fail_parser = history_subparsers.add_parser(
-        "fail", help="Fail a waiting manual run"
-    )
-    fail_parser.add_argument("run_id", help="Run ID, or 'latest'")
-    fail_parser.add_argument("--error", help="Error text to write")
-    fail_parser.add_argument("--error-file", help="Path to an error file")
+    add_manual_lifecycle_commands(manual_subparsers)
 
     guide_parser = subparsers.add_parser(
         "guide", help="Generate setup guidance for humans and AI agents"
@@ -95,9 +85,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     env_parser = subparsers.add_parser("env", help="Inspect the agent environment")
     env_subparsers = env_parser.add_subparsers(dest="env_command", required=True)
-    env_subparsers.add_parser(
+    env_doctor_parser = env_subparsers.add_parser(
         "doctor", help="Diagnose the local Rig and agent harness environment"
     )
+    env_doctor_parser.add_argument("--json", action="store_true", help="Print JSON output")
     env_subparsers.add_parser(
         "plan", help="Show a read-only plan for the desired harness environment"
     )
@@ -119,18 +110,46 @@ def add_run_options(parser: argparse.ArgumentParser) -> None:
         nargs="?",
         help="Configured agent name, such as codex. Defaults to default_agent.",
     )
-    parser.add_argument("--task", help="Task text to pass to the agent")
-    parser.add_argument("--task-file", help="Path to a file containing the task")
+    parser.add_argument(
+        "--task",
+        help=(
+            "Natural-language task text for the agent. Provide exactly one of "
+            "--task or --task-file."
+        ),
+    )
+    parser.add_argument(
+        "--task-file",
+        help=(
+            "Path to a file containing the task. Provide exactly one of --task "
+            "or --task-file."
+        ),
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Create run artifacts and command metadata without executing the agent",
     )
+    parser.add_argument("--json", action="store_true", help="Print JSON output")
+
+
+def add_manual_lifecycle_commands(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    complete_parser = subparsers.add_parser(
+        "complete", help="Complete a waiting manual run"
+    )
+    complete_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    complete_parser.add_argument("--result", help="Result text to write")
+    complete_parser.add_argument("--result-file", help="Path to a result file")
+    fail_parser = subparsers.add_parser("fail", help="Fail a waiting manual run")
+    fail_parser.add_argument("run_id", help="Run ID, or 'latest'")
+    fail_parser.add_argument("--error", help="Error text to write")
+    fail_parser.add_argument("--error-file", help="Path to an error file")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(normalize_legacy_history_args(argv))
     store = RunStore(Path.cwd())
 
     try:
@@ -151,27 +170,23 @@ def main(argv: list[str] | None = None) -> int:
             if args.worktree_command == "run":
                 return run_agent(args, store, worktree=True)
             if args.worktree_command == "show":
-                return show_diff(store, args.run_id)
+                return show_worktree_run(store, args.run_id)
             if args.worktree_command == "apply":
                 return apply_diff(store, args.run_id)
             if args.worktree_command == "prune":
                 return prune_worktree_runs(store)
 
-        if args.command == "history":
-            if args.history_command == "list":
-                return list_runs(store, json_output=args.json)
-            if args.history_command == "show":
-                return show_run(store, args.run_id, json_output=args.json)
-            if args.history_command == "complete":
+        if args.command == "manual":
+            if args.manual_command == "complete":
                 return complete_run(args, store)
-            if args.history_command == "fail":
+            if args.manual_command == "fail":
                 return fail_run(args, store)
 
         if args.command == "guide" and args.guide_command == "agents":
             return print_agents_snippet()
 
         if args.command == "env" and args.env_command == "doctor":
-            return env_doctor(Path.cwd())
+            return env_doctor(Path.cwd(), json_output=args.json)
         if args.command == "env" and args.env_command == "plan":
             return env_plan(Path.cwd())
         if args.command == "env" and args.env_command == "bootstrap":
@@ -199,6 +214,19 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
+def normalize_legacy_history_args(argv: list[str] | None) -> list[str] | None:
+    values = sys.argv[1:] if argv is None else argv
+    if not values or values[0] != "history" or len(values) < 2:
+        return argv
+    if values[1] == "list":
+        return ["list", *values[2:]]
+    if values[1] == "show":
+        return ["show", *values[2:]]
+    if values[1] in {"complete", "fail"}:
+        return ["manual", *values[1:]]
+    return argv
+
+
 def run_agent(
     args: argparse.Namespace, store: RunStore, *, worktree: bool = False
 ) -> int:
@@ -214,9 +242,18 @@ def run_agent(
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    if args.json:
+        print(json.dumps(run_outcome_json(outcome), indent=2, ensure_ascii=False))
+        return outcome.exit_code
     for line in outcome.lines:
         print(line)
     return outcome.exit_code
+
+
+def run_outcome_json(outcome: RunOutcome) -> dict[str, Any]:
+    data: dict[str, Any] = dataclasses.asdict(outcome)
+    data["ok"] = data["exit_code"] == 0
+    return data
 
 
 def list_runs(store: RunStore, *, json_output: bool = False) -> int:
@@ -359,7 +396,7 @@ def waiting_run(
     return run
 
 
-def show_diff(store: RunStore, run_id: str) -> int:
+def show_worktree_run(store: RunStore, run_id: str) -> int:
     run = store.resolve_run(run_id)
     if run is None:
         if run_id == "latest":
@@ -379,6 +416,16 @@ def show_diff(store: RunStore, run_id: str) -> int:
         return 1
 
     diff = diff_path.read_text(encoding="utf-8", errors="replace")
+    print(f"ID:        {run.get('id', '')}")
+    print(f"Agent:     {run.get('agent', '')}")
+    print(f"Status:    {run.get('status', '')}")
+    if run.get("exit_code") is not None:
+        print(f"Exit code: {run.get('exit_code')}")
+    print(f"Run dir:   {run.get('run_dir', '')}")
+    print(f"Diff:      {diff_path_value}")
+    print()
+    print("--- Diff ---")
+    print()
     if diff:
         print(diff, end="")
     else:
@@ -434,8 +481,12 @@ def print_agents_snippet() -> int:
     return 0
 
 
-def env_doctor(cwd: Path) -> int:
-    print(format_doctor_report(build_doctor_report(cwd)))
+def env_doctor(cwd: Path, *, json_output: bool = False) -> int:
+    report = build_doctor_report(cwd)
+    if json_output:
+        print(json.dumps(dataclasses.asdict(report), indent=2, ensure_ascii=False))
+        return 0
+    print(format_doctor_report(report))
     return 0
 
 
@@ -477,7 +528,7 @@ def print_init_result(result: InitResult) -> None:
         for path in result.backups:
             print(f"Backup: {path}")
     else:
-        print("Rig already up to date.")
+        print("Rig already up to date. Run `rig env doctor` to inspect the harness.")
 
 
 def format_started_at(value: str) -> str:

@@ -277,6 +277,10 @@ uv run rig run codex --task "Review the current diff." --dry-run
 Dry-run runs use status `created` and write the command preview to
 `command.json`.
 
+Add `--json` to print the same outcome as structured data instead of the human
+summary. This is useful for scripts and for integrations that need the run ID,
+status, artifact paths, and captured messages without parsing text.
+
 ### `rig run <agent> --task-file task.md`
 
 Starts a new agent run using task text read from a file.
@@ -310,8 +314,7 @@ uv run rig worktree run codex --task "Make the requested change."
 Lists recent runs by reading `.rig/runs/*/status.json`.
 
 Unreadable run metadata is skipped. If there are no readable runs, Rig prints
-`No runs found.`. Add `--json` for machine-readable output. The grouped form is
-also available as `rig history list`.
+`No runs found.`. Add `--json` for machine-readable output.
 
 Example:
 
@@ -332,8 +335,7 @@ ID                         AGENT   STATUS     STARTED
 Shows metadata and the result for the most recent run.
 
 If no readable runs exist, Rig prints `No runs found.`. Add `--json` to print
-metadata only as JSON. The grouped form is also available as
-`rig history show latest`.
+metadata only as JSON.
 
 Example:
 
@@ -358,8 +360,8 @@ uv run rig show 20260502-203012-codex
 
 ### `rig worktree show <run-id>`
 
-Prints the captured patch for a worktree run. Use `latest` for the most recent
-run.
+Shows metadata and the captured patch for a worktree run. Use `latest` for the
+most recent run.
 
 Example:
 
@@ -390,7 +392,7 @@ Example:
 uv run rig worktree prune
 ```
 
-### `rig history complete <run-id>`
+### `rig manual complete <run-id>`
 
 Completes a waiting manual run by writing `result.md` and marking the run as
 `succeeded`. Use `latest` to complete the most recent run. Rig refuses to
@@ -400,11 +402,13 @@ overwrite finished exec runs by accident.
 Example:
 
 ```bash
-uv run rig history complete latest --result "Finished in Copilot Chat."
-uv run rig history complete 20260502-203012-external --result-file result.md
+uv run rig manual complete latest --result "Finished in Copilot Chat."
+uv run rig manual complete 20260502-203012-external --result-file result.md
 ```
 
-### `rig history fail <run-id>`
+The older `rig history complete` form remains available for compatibility.
+
+### `rig manual fail <run-id>`
 
 Fails a waiting manual run by writing `stderr.log` and marking the run as
 `failed`. Like `complete`, this command only operates on runs that are currently
@@ -413,9 +417,11 @@ Fails a waiting manual run by writing `stderr.log` and marking the run as
 Example:
 
 ```bash
-uv run rig history fail latest --error "Blocked in external review."
-uv run rig history fail 20260502-203012-external --error-file error.txt
+uv run rig manual fail latest --error "Blocked in external review."
+uv run rig manual fail 20260502-203012-external --error-file error.txt
 ```
+
+The older `rig history fail` form remains available for compatibility.
 
 ### `rig guide agents`
 
@@ -519,6 +525,9 @@ Example:
 ```bash
 uv run rig env doctor
 ```
+
+Add `--json` to print checks and suggestions as structured data for CI or other
+automation.
 
 ### `rig env plan`
 

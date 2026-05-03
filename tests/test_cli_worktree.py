@@ -141,6 +141,9 @@ agents:
 
     assert cli.main(["worktree", "show", "latest"]) == 0
     diff_output = capsys.readouterr().out
+    assert "ID:" in diff_output
+    assert "Status:    succeeded" in diff_output
+    assert "--- Diff ---" in diff_output
     assert "+after" in diff_output
 
     assert cli.main(["worktree", "apply", "latest"]) == 0

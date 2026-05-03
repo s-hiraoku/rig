@@ -17,8 +17,9 @@ def test_top_level_help_shows_command_shape(
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "{init,run,list,show,worktree,history,guide,env,mcp}" in output
+    assert "{init,run,list,show,worktree,manual,guide,env,mcp}" in output
     assert "worktree" in output
+    assert "history" not in output
     assert "diff" not in output
     assert "apply" not in output
 
@@ -179,6 +180,30 @@ def test_run_codex_writes_artifacts(
     status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
     assert status["status"] == "succeeded"
     assert status["exit_code"] == 0
+
+
+def test_run_supports_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
+    capsys.readouterr()
+
+    assert cli.main(["run", "codex", "--task", "hello", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["ok"] is True
+    assert data["exit_code"] == 0
+    assert data["status"] == "succeeded"
+    assert data["run_id"].endswith("-codex")
+    assert data["result_path"].startswith(".rig/runs/")
+    assert data["diff_path"] is None
+    assert data["lines"] == [
+        f"Run: {data['run_id']}",
+        "Status: succeeded",
+        f"Result: {data['result_path']}",
+    ]
 
 
 def test_run_uses_default_agent_when_agent_is_omitted(
@@ -590,6 +615,29 @@ agents:
     assert status["finished_at"] is not None
 
 
+def test_manual_group_completes_waiting_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  external:
+    runner: manual
+""",
+        encoding="utf-8",
+    )
+    cli.main(["run", "external", "--task", "finish this elsewhere"])
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+
+    assert cli.main(["manual", "complete", "latest", "--result", "done elsewhere"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: succeeded" in output
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == "done elsewhere\n"
+
+
 def test_complete_requires_one_result_source(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -915,6 +963,18 @@ def test_env_doctor_prints_report(
     assert "Rig environment" in output
     assert "Rig config" in output
     assert "Suggested next steps" in output
+
+
+def test_env_doctor_supports_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["env", "doctor", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["checks"][0]["label"] == "Git repository"
+    assert "suggestions" in data
 
 
 def test_env_plan_prints_read_only_plan(

@@ -23,15 +23,18 @@ rig worktree apply latest
 - `rig run [agent] --task "..."`: run an agent in the current working tree. If
   `[agent]` is omitted, Rig uses `default_agent`.
 - `rig run [agent] --task-file task.md`: run an agent with a task file.
+- `rig run [agent] --task "..." --json`: print the run outcome as structured JSON.
 - `rig list [--json]`: list recent runs.
 - `rig show <run-id|latest> [--json]`: show run metadata and result.
 - `rig worktree run [agent] --task "..."`: run an agent in an isolated worktree.
-- `rig worktree show <run-id|latest>`: show the captured worktree patch.
+- `rig worktree show <run-id|latest>`: show run metadata and the captured patch.
 - `rig worktree apply <run-id|latest>`: apply the captured worktree patch.
 - `rig worktree prune`: remove Rig-created worktrees.
+- `rig manual complete <run-id|latest>`: complete a waiting manual run.
+- `rig manual fail <run-id|latest>`: fail a waiting manual run.
 - `rig history complete <run-id|latest>`: complete a waiting manual run.
 - `rig history fail <run-id|latest>`: fail a waiting manual run.
-- `rig env doctor`: diagnose the local harness environment.
+- `rig env doctor [--json]`: diagnose the local harness environment.
 - `rig env plan`: show a read-only environment plan.
 - `rig env bootstrap`: create missing Rig-owned environment files.
 - `rig guide agents`: generate an `AGENTS.md` snippet.
