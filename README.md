@@ -15,10 +15,10 @@ fetching, locking, auditing, and deploying skills, hooks, prompts, and MCP
 server configuration. Rig focuses on running agents and preserving inspectable
 run artifacts.
 
-Rig can still help with the surrounding harness environment. The intended
-direction is to diagnose and explain what is missing from a preferred agent
-development setup, then point to the right external installer or package
-manager. Rig should not silently install or rewrite third-party agent assets.
+Rig can still help with the surrounding harness environment. Users can declare
+project-specific required files in `.rig/env.yaml`; Rig diagnoses whether those
+files exist and points to the right external installer, package manager, or team
+process. Rig should not silently install or rewrite third-party agent assets.
 
 ## Installation
 
@@ -107,6 +107,7 @@ It creates:
 ```txt
 .rig/
   config.yaml
+  env.yaml
   runs/
 ```
 
@@ -128,6 +129,31 @@ agents:
     command: codex
     args:
       - exec
+```
+
+The generated `.rig/env.yaml` declares the default harness environment checks.
+By default it lists APM, GitHub CLI `gh skill`, and Vercel `skills` via `npx`
+as optional agent asset managers, and declares `AGENTS.md` as a required file
+for the project harness:
+
+```yaml
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+  - id: gh-skill
+    label: GitHub skill manager
+    command: gh
+    args:
+      - skill
+      - --help
+  - id: vercel-skills
+    label: Vercel skills manager
+    command: npx
+
+required_files:
+  - path: AGENTS.md
+    label: Agent instructions
 ```
 
 ### `rig run codex --task "..."`
@@ -244,12 +270,28 @@ uv run rig agents snippet
 Runs read-only diagnostics for the local Rig and agent harness environment.
 
 It checks for the Git repository, `.rig/config.yaml`, `.rig/runs/`, Codex CLI,
-known optional agent asset managers, `AGENTS.md`, and known manifest files. Rig
-does not install tools or edit third-party agent asset files.
+known optional agent asset managers, `AGENTS.md`, and required files declared in
+`.rig/env.yaml`. Rig does not install tools or edit third-party agent asset
+files.
 
 Statuses are `ok`, `missing`, `optional`, and `warn`. Required Rig/Codex basics
 use `missing` when absent; external asset managers are usually `optional`;
 partial or inconsistent setup uses `warn`.
+
+Declare project-specific required files in `.rig/env.yaml`:
+
+```yaml
+version: 1
+
+required_files:
+  - AGENTS.md
+  - path: docs/agent-harness.md
+    label: Agent harness docs
+    hint: "Create docs/agent-harness.md with team setup notes."
+  - path: docs/harness.md
+    label: Harness docs
+    hint: "Create docs/harness.md with team setup notes."
+```
 
 Example:
 

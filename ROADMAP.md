@@ -12,6 +12,24 @@ Task -> Run -> AgentAdapter -> Artifacts
 Rig should avoid becoming an agent-to-agent protocol, a PTY automation tool, or
 a workflow engine.
 
+## Design Bias: Flexibility First
+
+The AI tooling ecosystem changes quickly. Rig should avoid hard-coding today's
+favorite package managers, agent names, file formats, or deployment paths as
+permanent assumptions.
+
+Design rules:
+
+- prefer declarative local configuration over baked-in vendor behavior
+- detect and report capabilities instead of forcing one provider
+- keep defaults useful but easy to replace
+- make external tool integration optional and adapter-like
+- let users declare project-specific harness requirements in `.rig/env.yaml`
+- avoid silently writing files owned by other agent tools
+- preserve plain local files so users can inspect and edit everything
+
+Rig may ship defaults, but defaults should be examples, not lock-in.
+
 ## Phase 1: CLI and Run Artifacts
 
 Goal: provide the smallest useful local harness.
@@ -45,6 +63,8 @@ Implemented:
 - `rig agents snippet`
 - `rig env doctor`
 - `rig env plan`
+- default `.rig/env.yaml` with configurable required files and optional agent
+  asset managers
 
 This prints an `AGENTS.md` snippet instead of editing user files automatically.
 User repositories own their own agent instructions.
@@ -78,8 +98,7 @@ Detected external managers:
 Rig's role is integration:
 
 - detect whether relevant managers are installed
-- detect whether files such as `apm.yml`, `apm.lock.yaml`, or agent instruction
-  files exist
+- detect whether files declared in `.rig/env.yaml` exist
 - point users to the right external command
 - keep Rig-specific execution policy and run artifacts under `.rig/`
 - avoid writing or updating third-party agent asset files unless a future
@@ -91,7 +110,7 @@ Potential `rig env doctor` checks:
 - Git repository present
 - Codex command available
 - APM installed
-- known manifests and lockfiles present when a manager is used
+- required files declared in `.rig/env.yaml` are present
 - `AGENTS.md` or equivalent instruction file present
 - Rig snippet appears to be included
 
@@ -109,6 +128,7 @@ Rig should act as a meta-harness manager:
 - report what is missing
 - suggest the external command that should fix it
 - create Rig-owned files such as `.rig/config.yaml`
+- read project-specific required files from `.rig/env.yaml`
 - avoid silently installing global tools or third-party agent assets
 
 Potential commands:
@@ -158,6 +178,15 @@ agent_assets:
     - gh-skill
     - vercel-skills
     - manual
+
+required_files:
+  - AGENTS.md
+  - path: docs/agent-harness.md
+    label: Agent harness docs
+    hint: "Create docs/agent-harness.md with team setup notes."
+  - path: docs/harness.md
+    label: Harness docs
+    hint: "Create docs/harness.md with team setup notes."
 
 instructions:
   agents_md:

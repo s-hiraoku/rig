@@ -4,6 +4,9 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
+
+import yaml
 
 
 @dataclass(frozen=True)
@@ -19,6 +22,28 @@ class DoctorReport:
     suggestions: list[str]
 
 
+@dataclass(frozen=True)
+class RequiredFile:
+    path: str
+    label: str
+    hint: str | None = None
+
+
+@dataclass(frozen=True)
+class AssetManager:
+    id: str
+    label: str
+    command: str
+    args: list[str]
+    hint: str | None = None
+
+
+@dataclass(frozen=True)
+class EnvConfig:
+    required_files: list[RequiredFile]
+    asset_managers: list[AssetManager]
+
+
 def build_doctor_report(cwd: Path) -> DoctorReport:
     root = cwd.resolve()
     checks: list[DoctorCheck] = []
@@ -26,8 +51,9 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
 
     add_git_checks(root, checks, suggestions)
     add_rig_checks(root, checks, suggestions)
-    add_tool_checks(checks, suggestions)
+    add_codex_check(checks, suggestions)
     add_agent_asset_checks(root, checks, suggestions)
+    add_env_config_checks(root, checks, suggestions)
 
     return DoctorReport(checks=checks, suggestions=dedupe(suggestions))
 
@@ -62,7 +88,7 @@ def add_rig_checks(
         suggestions.append("Run: rig init")
 
 
-def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
+def add_codex_check(checks: list[DoctorCheck], suggestions: list[str]) -> None:
     add_tool_check(
         checks,
         suggestions,
@@ -70,33 +96,6 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         command="codex",
         install_hint="Install Codex CLI and ensure `codex` is on PATH.",
         missing_status="missing",
-    )
-    add_tool_check(
-        checks,
-        suggestions,
-        label="APM asset manager",
-        command="apm",
-        install_hint="Choose an agent asset manager if this project needs shared skills, hooks, prompts, or MCP config.",
-        missing_status="optional",
-    )
-    gh_found = add_tool_check(
-        checks,
-        suggestions,
-        label="GitHub CLI",
-        command="gh",
-        install_hint="Install GitHub CLI if this project uses `gh skill` workflows.",
-        missing_status="optional",
-    )
-    if gh_found:
-        add_gh_skill_check(checks, suggestions)
-
-    add_tool_check(
-        checks,
-        suggestions,
-        label="npx",
-        command="npx",
-        install_hint="Install Node.js/npm if this project uses Vercel `skills` workflows.",
-        missing_status="optional",
     )
 
 
@@ -119,27 +118,6 @@ def add_tool_check(
     return False
 
 
-def add_gh_skill_check(checks: list[DoctorCheck], suggestions: list[str]) -> None:
-    try:
-        completed = subprocess.run(
-            ["gh", "skill", "--help"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        checks.append(DoctorCheck("gh skill", "warn", "could not check"))
-        suggestions.append("Run: gh skill --help")
-        return
-
-    if completed.returncode == 0:
-        checks.append(DoctorCheck("gh skill", "ok", "available"))
-    else:
-        checks.append(DoctorCheck("gh skill", "optional", "not available"))
-        suggestions.append("Update GitHub CLI or enable `gh skill` if needed.")
-
-
 def add_agent_asset_checks(
     root: Path, checks: list[DoctorCheck], suggestions: list[str]
 ) -> None:
@@ -156,17 +134,279 @@ def add_agent_asset_checks(
         checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
         suggestions.append("Run: rig agents snippet")
 
-    apm_path = root / "apm.yml"
-    apm_lock_path = root / "apm.lock.yaml"
-    if apm_path.is_file():
-        checks.append(DoctorCheck("APM manifest", "ok", "apm.yml"))
-        if apm_lock_path.is_file():
-            checks.append(DoctorCheck("APM lockfile", "ok", "apm.lock.yaml"))
+
+def add_env_config_checks(
+    root: Path, checks: list[DoctorCheck], suggestions: list[str]
+) -> None:
+    env_path = root / ".rig" / "env.yaml"
+    if not env_path.is_file():
+        checks.append(DoctorCheck("Rig env config", "optional", "not found"))
+        suggestions.append("Create .rig/env.yaml to declare project-specific harness requirements.")
+        return
+
+    checks.append(DoctorCheck("Rig env config", "ok", ".rig/env.yaml"))
+    env_config = load_env_config(env_path, checks)
+    for manager in env_config.asset_managers:
+        add_asset_manager_check(manager, checks, suggestions)
+
+    for required_file in env_config.required_files:
+        target = root / required_file.path
+        label = f"Required file: {required_file.label}"
+        if target.is_file():
+            checks.append(DoctorCheck(label, "ok", required_file.path))
         else:
-            checks.append(DoctorCheck("APM lockfile", "warn", "not found"))
-            suggestions.append("Run: apm install")
+            checks.append(DoctorCheck(label, "missing", required_file.path))
+            if required_file.hint:
+                suggestions.append(required_file.hint)
+
+
+def add_asset_manager_check(
+    manager: AssetManager, checks: list[DoctorCheck], suggestions: list[str]
+) -> None:
+    path = shutil.which(manager.command)
+    label = f"Agent asset manager: {manager.label}"
+    if path is None:
+        checks.append(
+            DoctorCheck(label, "optional", f"`{manager.command}` not found on PATH")
+        )
+        if manager.hint:
+            suggestions.append(manager.hint)
+        return
+
+    if not manager.args:
+        checks.append(DoctorCheck(label, "ok", path))
+        return
+
+    command = [manager.command, *manager.args]
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        checks.append(DoctorCheck(label, "warn", "could not check"))
+        if manager.hint:
+            suggestions.append(manager.hint)
+        return
+
+    if completed.returncode == 0:
+        checks.append(DoctorCheck(label, "ok", "available"))
     else:
-        checks.append(DoctorCheck("APM manifest", "optional", "not found"))
+        checks.append(DoctorCheck(label, "warn", "check command failed"))
+        if manager.hint:
+            suggestions.append(manager.hint)
+
+
+def load_env_config(env_path: Path, checks: list[DoctorCheck]) -> EnvConfig:
+    try:
+        raw = yaml.safe_load(env_path.read_text(encoding="utf-8"))
+    except OSError:
+        checks.append(DoctorCheck("Rig env config", "warn", "could not read .rig/env.yaml"))
+        return EnvConfig(required_files=[], asset_managers=[])
+    except yaml.YAMLError:
+        checks.append(DoctorCheck("Rig env config", "warn", "could not parse .rig/env.yaml"))
+        return EnvConfig(required_files=[], asset_managers=[])
+
+    if raw is None:
+        return EnvConfig(required_files=[], asset_managers=[])
+    if not isinstance(raw, dict):
+        checks.append(DoctorCheck("Rig env config", "warn", "must contain a mapping"))
+        return EnvConfig(required_files=[], asset_managers=[])
+
+    value = cast(dict[str, Any], raw)
+    return EnvConfig(
+        required_files=parse_required_files(value, checks),
+        asset_managers=parse_asset_managers(value, checks),
+    )
+
+
+def parse_required_files(
+    value: dict[str, Any], checks: list[DoctorCheck]
+) -> list[RequiredFile]:
+    raw_required_files = value.get("required_files", [])
+    if raw_required_files is None:
+        return []
+    if not isinstance(raw_required_files, list):
+        checks.append(
+            DoctorCheck("Rig env required files", "warn", "`required_files` must be a list")
+        )
+        return []
+
+    required_files: list[RequiredFile] = []
+    for index, item in enumerate(raw_required_files):
+        parsed = parse_required_file(item, index, checks)
+        if parsed is not None:
+            required_files.append(parsed)
+    return required_files
+
+
+def parse_asset_managers(
+    value: dict[str, Any], checks: list[DoctorCheck]
+) -> list[AssetManager]:
+    raw_managers = value.get("agent_asset_managers", [])
+    if raw_managers is None:
+        return []
+    if not isinstance(raw_managers, list):
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                "`agent_asset_managers` must be a list",
+            )
+        )
+        return []
+
+    managers: list[AssetManager] = []
+    for index, item in enumerate(raw_managers):
+        parsed = parse_asset_manager(item, index, checks)
+        if parsed is not None:
+            managers.append(parsed)
+    return managers
+
+
+def parse_asset_manager(
+    item: object, index: int, checks: list[DoctorCheck]
+) -> AssetManager | None:
+    if not isinstance(item, dict):
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}] must be a mapping",
+            )
+        )
+        return None
+
+    value = cast(dict[str, Any], item)
+    manager_id = value.get("id")
+    if not isinstance(manager_id, str) or not manager_id:
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}].id must be a non-empty string",
+            )
+        )
+        return None
+
+    command = value.get("command")
+    if not isinstance(command, str) or not command:
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}].command must be a non-empty string",
+            )
+        )
+        return None
+
+    label = value.get("label", manager_id)
+    if not isinstance(label, str) or not label:
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}].label must be a non-empty string",
+            )
+        )
+        return None
+
+    args = value.get("args", [])
+    if args is None:
+        args = []
+    if not isinstance(args, list) or not all(isinstance(arg, str) for arg in args):
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}].args must be a list of strings",
+            )
+        )
+        return None
+
+    hint = value.get("hint")
+    if hint is not None and not isinstance(hint, str):
+        checks.append(
+            DoctorCheck(
+                "Rig env asset managers",
+                "warn",
+                f"agent_asset_managers[{index}].hint must be a string",
+            )
+        )
+        return None
+
+    return AssetManager(
+        id=manager_id,
+        label=label,
+        command=command,
+        args=cast(list[str], args),
+        hint=hint,
+    )
+
+
+def parse_required_file(
+    item: object, index: int, checks: list[DoctorCheck]
+) -> RequiredFile | None:
+    if isinstance(item, str):
+        if not item:
+            checks.append(
+                DoctorCheck(
+                    "Rig env required files",
+                    "warn",
+                    f"required_files[{index}] must not be empty",
+                )
+            )
+            return None
+        return RequiredFile(path=item, label=item)
+
+    if not isinstance(item, dict):
+        checks.append(
+            DoctorCheck(
+                "Rig env required files",
+                "warn",
+                f"required_files[{index}] must be a string or mapping",
+            )
+        )
+        return None
+
+    value = cast(dict[str, Any], item)
+    path = value.get("path")
+    if not isinstance(path, str) or not path:
+        checks.append(
+            DoctorCheck(
+                "Rig env required files",
+                "warn",
+                f"required_files[{index}].path must be a non-empty string",
+            )
+        )
+        return None
+
+    label = value.get("label", path)
+    if not isinstance(label, str) or not label:
+        checks.append(
+            DoctorCheck(
+                "Rig env required files",
+                "warn",
+                f"required_files[{index}].label must be a non-empty string",
+            )
+        )
+        return None
+
+    hint = value.get("hint")
+    if hint is not None and not isinstance(hint, str):
+        checks.append(
+            DoctorCheck(
+                "Rig env required files",
+                "warn",
+                f"required_files[{index}].hint must be a string",
+            )
+        )
+        return None
+
+    return RequiredFile(path=path, label=label, hint=hint)
 
 
 def find_git_dir(start: Path) -> Path | None:
@@ -202,6 +442,7 @@ def format_env_plan(report: DoctorReport) -> str:
         "- Codex CLI available for `rig run codex`",
         "- Optional agent asset managers available as needed: APM, `gh skill`, Vercel `skills` via `npx`, or manual instructions",
         "- Optional agent instructions such as `AGENTS.md` include the Rig snippet",
+        "- Project-specific required files declared in `.rig/env.yaml` are present",
         "",
         "Current gaps",
     ]
@@ -225,7 +466,7 @@ def format_env_plan(report: DoctorReport) -> str:
     else:
         lines.append("- No action needed.")
 
-    if any(check.label.endswith("asset manager") for check in report.checks):
+    if any("asset manager" in check.label for check in report.checks):
         lines.append(
             "- Agent asset managers are optional. Pick one only if this project needs shared skills, hooks, prompts, or MCP config."
         )

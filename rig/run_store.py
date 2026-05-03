@@ -28,6 +28,31 @@ runs:
   directory: .rig/runs
 """
 
+DEFAULT_ENV_CONFIG = """version: 1
+
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+    hint: "Choose or install APM if this project uses APM-managed skills, hooks, prompts, or MCP config."
+  - id: gh-skill
+    label: GitHub skill manager
+    command: gh
+    args:
+      - skill
+      - --help
+    hint: "Install or update GitHub CLI if this project uses `gh skill` workflows."
+  - id: vercel-skills
+    label: Vercel skills manager
+    command: npx
+    hint: "Install Node.js/npm if this project uses Vercel `skills` workflows."
+
+required_files:
+  - path: AGENTS.md
+    label: Agent instructions
+    hint: "Run: rig agents snippet"
+"""
+
 
 class RigNotInitializedError(RuntimeError):
     pass
@@ -39,12 +64,15 @@ class RunStore:
         self.rig_dir = self.cwd / ".rig"
         self.runs_dir = self.rig_dir / "runs"
         self.config_path = self.rig_dir / "config.yaml"
+        self.env_config_path = self.rig_dir / "env.yaml"
 
     def init(self) -> bool:
         already_initialized = self.rig_dir.exists()
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         if not self.config_path.exists():
             self.config_path.write_text(DEFAULT_CONFIG, encoding="utf-8")
+        if not self.env_config_path.exists():
+            self.env_config_path.write_text(DEFAULT_ENV_CONFIG, encoding="utf-8")
         return not already_initialized
 
     def ensure_initialized(self) -> None:

@@ -16,6 +16,7 @@ def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert cli.main(["init"]) == 0
 
     assert (tmp_path / ".rig" / "config.yaml").is_file()
+    assert (tmp_path / ".rig" / "env.yaml").is_file()
     assert (tmp_path / ".rig" / "runs").is_dir()
 
 

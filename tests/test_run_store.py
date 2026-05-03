@@ -12,8 +12,12 @@ def test_init_creates_config_and_runs_dir(tmp_path: Path) -> None:
     assert store.init() is True
 
     assert (tmp_path / ".rig" / "config.yaml").is_file()
+    assert (tmp_path / ".rig" / "env.yaml").is_file()
     assert (tmp_path / ".rig" / "runs").is_dir()
     assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
         encoding="utf-8"
     )
 
@@ -49,4 +53,3 @@ def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:
     assert context.task_path.read_text(encoding="utf-8") == (
         "# Task\n\nReview the current diff.\n"
     )
-
