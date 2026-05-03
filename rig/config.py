@@ -65,9 +65,9 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
     runner = value.get("runner", "exec")
     if not isinstance(runner, str) or not runner:
         raise ConfigError(f"Config value `agents.{name}.runner` must be a string.")
-    if runner != "exec":
+    if runner not in {"exec", "manual"}:
         raise ConfigError(
-            f"Config value `agents.{name}.runner` must be `exec` in this version."
+            f"Config value `agents.{name}.runner` must be `exec` or `manual`."
         )
 
     command = value.get("command", name)

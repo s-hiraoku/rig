@@ -249,6 +249,42 @@ agents:
     assert command["args"][0] == "-p"
 
 
+def test_run_manual_agent_creates_waiting_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  external:
+    runner: manual
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "external", "--task", "finish this elsewhere"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: waiting" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert run_dir.name.endswith("-external")
+    assert (run_dir / "stdout.log").read_text(encoding="utf-8") == ""
+    assert (run_dir / "stderr.log").read_text(encoding="utf-8") == ""
+    assert "Manual run is waiting" in (run_dir / "result.md").read_text(
+        encoding="utf-8"
+    )
+
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["agent"] == "external"
+    assert command["runner"] == "manual"
+    assert command["command"] == "manual"
+
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["status"] == "waiting"
+    assert status["exit_code"] is None
+
+
 def test_run_codex_dry_run_writes_artifacts_without_executing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -49,6 +49,23 @@ agents:
         load_config(config_path)
 
 
+def test_load_config_accepts_manual_runner(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  external:
+    runner: manual
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.agent("external").runner == "manual"
+    assert config.agent("external").command == "external"
+
+
 def test_load_config_rejects_unsupported_runner(tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(

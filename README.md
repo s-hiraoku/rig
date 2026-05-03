@@ -170,6 +170,16 @@ agents:
 `prompt_style: rig` passes Rig's standard instruction prompt with a task file
 path. `prompt_style: task` passes the raw task file content.
 
+Rig also supports the `manual` runner for human-driven, GUI-driven, or external
+agent work. It creates a run with status `waiting` and writes the task/artifact
+files without executing a command:
+
+```yaml
+agents:
+  external:
+    runner: manual
+```
+
 The generated `.rig/env.yaml` declares the default harness environment checks.
 By default it lists APM, GitHub CLI `gh skills`, and Vercel `skills` via `npx`
 as optional agent asset managers, and declares `AGENTS.md` as a required file

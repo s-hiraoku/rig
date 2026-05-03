@@ -6,6 +6,7 @@ from pathlib import Path
 
 from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError, ExecAdapter
+from rig.adapters.manual import ManualAdapter
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
@@ -129,9 +130,26 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
     context = store.create_run(args.agent)
     store.write_task(context, task)
 
-    adapter = ExecAdapter(args.agent, agent_config)
     started_at = iso_now()
-    store.write_command(context, adapter.command_metadata(context, started_at))
+    if agent_config.runner == "manual":
+        manual_adapter = ManualAdapter(args.agent, agent_config)
+        store.write_command(
+            context, manual_adapter.command_metadata(context, started_at)
+        )
+        context.stdout_path.write_text("", encoding="utf-8")
+        context.stderr_path.write_text("", encoding="utf-8")
+        context.result_path.write_text(
+            manual_adapter.result_template(context), encoding="utf-8"
+        )
+        store.write_status(context, status="waiting", started_at=started_at)
+        print(f"Run: {context.id}")
+        print("Status: waiting")
+        print(f"Task: {context.task_path.relative_to(context.cwd)}")
+        print(f"Result: {context.result_path.relative_to(context.cwd)}")
+        return 0
+
+    exec_adapter = ExecAdapter(args.agent, agent_config)
+    store.write_command(context, exec_adapter.command_metadata(context, started_at))
 
     if args.dry_run:
         context.stdout_path.write_text("", encoding="utf-8")
@@ -149,7 +167,7 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
     store.write_status(context, status="running", started_at=started_at)
 
     try:
-        result = adapter.run(context)
+        result = exec_adapter.run(context)
     except AgentCommandNotFoundError:
         finished_at = iso_now()
         store.write_status(
