@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
-from conftest import install_fake_command, install_fake_script
+from conftest import init_git_repo, install_fake_command, install_fake_script
 
 from rig import cli
 
@@ -17,11 +17,79 @@ def test_top_level_help_shows_command_shape(
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "{init,run,list,show,worktree,manual,guide,env,mcp}" in output
+    assert "{init,run,list,show,worktree,manual,guide,env,mcp,suggest}" in output
     assert "worktree" in output
     assert "history" not in output
     assert "diff" not in output
     assert "apply" not in output
+
+
+def test_suggest_recommends_normal_run_for_clean_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    assert cli.main(["suggest", "Explain the project"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Recommendation: run" in output
+    assert "Command:        rig run codex --task 'Explain the project'" in output
+    assert "- Git repo: yes" in output
+    assert "- Rig initialized: yes" in output
+
+
+def test_suggest_recommends_worktree_for_dirty_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    (tmp_path / "tracked.txt").write_text("after\n", encoding="utf-8")
+    capsys.readouterr()
+
+    assert cli.main(["suggest", "Refactor the CLI command structure"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Recommendation: worktree" in output
+    assert "Command:        rig worktree run codex --task" in output
+    assert "Use an isolated worktree" in output
+    assert "- Changed files: 1" in output
+
+
+def test_suggest_supports_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    assert cli.main(["suggest", "hello", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["mode"] == "run"
+    assert data["agent"] == "codex"
+    assert data["command"] == ["rig", "run", "codex", "--task", "hello"]
+    assert data["observations"]["git_repo"] is True
+
+
+def test_suggest_prefers_task_file_for_long_task_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    task_file = tmp_path / "task.md"
+    task_file.write_text("Line one\nLine two\n", encoding="utf-8")
+    capsys.readouterr()
+
+    assert cli.main(["suggest", "--task-file", str(task_file)]) == 0
+
+    output = capsys.readouterr().out
+    assert f"Command:        rig run codex --task-file {task_file}" in output
 
 
 def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

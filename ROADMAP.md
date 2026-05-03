@@ -57,6 +57,7 @@ rig manual complete latest --result "..."
 rig manual fail latest --error "..."
 rig env doctor
 rig guide agents
+rig suggest "..."
 ```
 
 ## Phase 1: CLI and Run Artifacts
@@ -374,19 +375,20 @@ If MCP tools are not available, use the Rig CLI.
 
 Goal: help users decide how to run an agent task.
 
-Potential command:
+Implemented:
 
-```bash
-rig suggest "..."
-```
+- `rig suggest "..."`
+- `rig suggest --task-file task.md`
+- `rig suggest "..." --json`
 
-Possible inputs:
+Inputs:
 
 - current git diff size
 - changed files
 - test presence
 - directory spread
-- likely best adapter
+- configured default agent
+- task length and risk-oriented wording
 - whether worktree isolation is recommended
 
 This should remain advisory. Rig should not become a workflow engine.
