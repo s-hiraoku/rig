@@ -193,6 +193,49 @@ def format_doctor_report(report: DoctorReport) -> str:
     return "\n".join(lines)
 
 
+def format_env_plan(report: DoctorReport) -> str:
+    lines = [
+        "Rig environment plan",
+        "",
+        "Desired harness",
+        "- Git repository for trusted agent execution",
+        "- Rig initialized with `.rig/config.yaml` and `.rig/runs/`",
+        "- Codex CLI available for `rig run codex`",
+        "- Optional agent asset managers available as needed: APM, `gh skill`, Vercel `skills` via `npx`",
+        "- Optional agent instructions such as `AGENTS.md` include the Rig snippet",
+        "",
+        "Current gaps",
+    ]
+
+    gaps = [
+        check
+        for check in report.checks
+        if check.status in {"missing", "warn", "optional"}
+    ]
+    if gaps:
+        lines.extend(
+            f"- {format_status(check.status)} {check.label}: {check.detail}"
+            for check in gaps
+        )
+    else:
+        lines.append("- [ok] No gaps detected.")
+
+    lines.extend(["", "Planned actions"])
+    if report.suggestions:
+        lines.extend(f"- {suggestion}" for suggestion in report.suggestions)
+    else:
+        lines.append("- No action needed.")
+
+    lines.extend(
+        [
+            "",
+            "No files will be changed.",
+            "Rig will not install external tools or third-party agent assets from this plan.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def format_status(status: str) -> str:
     if status == "ok":
         return "[ok]"

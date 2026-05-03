@@ -303,3 +303,17 @@ def test_env_doctor_prints_report(
     assert "Rig environment" in output
     assert "Rig config" in output
     assert "Suggested next steps" in output
+
+
+def test_env_plan_prints_read_only_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["env", "plan"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig environment plan" in output
+    assert "Desired harness" in output
+    assert "Planned actions" in output
+    assert "No files will be changed." in output

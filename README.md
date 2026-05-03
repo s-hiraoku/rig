@@ -257,6 +257,20 @@ Example:
 uv run rig env doctor
 ```
 
+### `rig env plan`
+
+Shows a read-only plan for the desired Rig harness environment.
+
+It reuses the same checks as `rig env doctor`, then summarizes the desired setup,
+current gaps, and suggested external commands. It does not change files, install
+tools, or deploy third-party agent assets.
+
+Example:
+
+```bash
+uv run rig env plan
+```
+
 ## Run Artifacts
 
 Each run creates these files:

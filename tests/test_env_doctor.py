@@ -96,3 +96,35 @@ def test_build_doctor_report_warns_for_partial_agent_asset_setup(
     assert labels["Rig AGENTS.md snippet"].status == "warn"
     assert labels["APM manifest"].status == "ok"
     assert labels["APM lockfile"].status == "warn"
+
+
+def test_format_env_plan_lists_gaps_and_actions() -> None:
+    report = env_doctor.DoctorReport(
+        checks=[
+            env_doctor.DoctorCheck("Rig config", "missing", "missing .rig/config.yaml"),
+            env_doctor.DoctorCheck("APM", "optional", "`apm` not found on PATH"),
+        ],
+        suggestions=["Run: rig init", "Install APM if needed."],
+    )
+
+    output = env_doctor.format_env_plan(report)
+
+    assert "Rig environment plan" in output
+    assert "Desired harness" in output
+    assert "[missing] Rig config: missing .rig/config.yaml" in output
+    assert "[optional] APM: `apm` not found on PATH" in output
+    assert "Planned actions" in output
+    assert "- Run: rig init" in output
+    assert "No files will be changed." in output
+
+
+def test_format_env_plan_handles_no_gaps() -> None:
+    report = env_doctor.DoctorReport(
+        checks=[env_doctor.DoctorCheck("Rig config", "ok", ".rig/config.yaml")],
+        suggestions=[],
+    )
+
+    output = env_doctor.format_env_plan(report)
+
+    assert "- [ok] No gaps detected." in output
+    assert "- No action needed." in output
