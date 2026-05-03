@@ -338,6 +338,7 @@ Implemented:
 - `rig_run`
 - `rig_list_runs`
 - `rig_list_agents`
+- `rig_suggest`
 - `rig_get_run`
 - `rig_get_result`
 - `rig_get_diff`

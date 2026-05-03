@@ -11,6 +11,7 @@ from rig.config import ConfigError
 from rig.orchestrator import RunOrchestrator, RunRequest
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import RigNotInitializedError, RunStore
+from rig.suggest import build_suggestion
 from rig.worktree import WorktreeError, apply_patch
 
 
@@ -63,6 +64,20 @@ def create_mcp_server() -> FastMCP:
         runner, command, args, and whether it is the default.
         """
         return list_agents_tool(cwd=cwd)
+
+    @server.tool()
+    def rig_suggest(
+        task: str = "",
+        task_file: str | None = None,
+        cwd: str | None = None,
+    ) -> dict[str, Any]:
+        """Suggest whether to use rig_run with or without worktree isolation.
+
+        This is advisory only and never starts an agent run. Provide task text
+        directly, or provide task_file to evaluate a file relative to cwd.
+        Returns { ok, mode, agent, command, confidence, reasons, observations }.
+        """
+        return suggest_tool(task=task, task_file=task_file, cwd=cwd)
 
     @server.tool()
     def rig_get_run(run_id: str = "latest", cwd: str | None = None) -> dict[str, Any]:
@@ -202,6 +217,41 @@ def list_agents_tool(*, cwd: str | None = None) -> dict[str, Any]:
         "ok": True,
         "default_agent": config.default_agent,
         "agents": agents,
+    }
+
+
+def suggest_tool(
+    *,
+    task: str = "",
+    task_file: str | None = None,
+    cwd: str | None = None,
+) -> dict[str, Any]:
+    try:
+        store = store_for(cwd)
+        resolved_task_file = resolve_task_file(store, task_file)
+        task_text = task
+        if resolved_task_file is not None:
+            if task:
+                return error_response("Provide either task text or task_file, not both.")
+            task_text = Path(resolved_task_file).read_text(encoding="utf-8")
+        config = store.load_config()
+        suggestion = build_suggestion(
+            store.cwd,
+            task=task_text,
+            config=config,
+            task_file=resolved_task_file,
+        )
+    except (ConfigError, OSError, RigNotInitializedError, ValueError) as exc:
+        return error_response(str(exc))
+
+    return {
+        "ok": True,
+        "mode": suggestion.mode,
+        "agent": suggestion.agent,
+        "command": suggestion.command,
+        "confidence": suggestion.confidence,
+        "reasons": suggestion.reasons,
+        "observations": suggestion.observations,
     }
 
 

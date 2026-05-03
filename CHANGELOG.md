@@ -10,3 +10,4 @@
 - Add MCP cwd, task file, and patch-apply safety gates.
 - Add MCP policy prompt/resources and configured agent discovery.
 - Add `rig suggest` for advisory run/worktree recommendations.
+- Add MCP `rig_suggest` for structured run/worktree recommendations.

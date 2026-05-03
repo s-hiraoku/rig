@@ -17,6 +17,7 @@ from rig.mcp_server import (
     policy_prompt,
     project_agents_md,
     run_tool,
+    suggest_tool,
 )
 
 
@@ -32,6 +33,7 @@ async def test_mcp_server_registers_tools_prompts_and_resources() -> None:
         "rig_run",
         "rig_list_runs",
         "rig_list_agents",
+        "rig_suggest",
         "rig_get_run",
         "rig_get_result",
         "rig_get_diff",
@@ -156,6 +158,71 @@ def test_mcp_list_agents_reports_configured_agents(
             "default": True,
         }
     ]
+
+
+def test_mcp_suggest_reports_advisory_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+
+    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
+
+    assert result["ok"] is True
+    assert result["mode"] == "run"
+    assert result["agent"] == "codex"
+    assert result["command"] == [
+        "rig",
+        "run",
+        "codex",
+        "--task",
+        "Explain the project",
+    ]
+    assert result["observations"]["git_repo"] is True
+
+
+def test_mcp_suggest_uses_task_file_from_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    server_cwd = tmp_path / "server"
+    repo_cwd = tmp_path / "repo"
+    server_cwd.mkdir()
+    repo_cwd.mkdir()
+    monkeypatch.chdir(server_cwd)
+    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
+    init_git_repo(repo_cwd)
+    cli.RunStore(repo_cwd).init()
+    (repo_cwd / "task.md").write_text("Refactor the CLI\n", encoding="utf-8")
+
+    result = suggest_tool(task_file="task.md", cwd=str(repo_cwd))
+
+    assert result["ok"] is True
+    assert result["mode"] == "worktree"
+    assert result["command"] == [
+        "rig",
+        "worktree",
+        "run",
+        "codex",
+        "--task-file",
+        str(repo_cwd / "task.md"),
+    ]
+    assert result["observations"]["changed_files"] == []
+
+
+def test_mcp_suggest_rejects_task_and_task_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / "task.md").write_text("hello\n", encoding="utf-8")
+
+    result = suggest_tool(task="hello", task_file="task.md", cwd=str(tmp_path))
+
+    assert result == {
+        "ok": False,
+        "error": "Provide either task text or task_file, not both.",
+    }
 
 
 def test_mcp_policy_prompt_prefers_project_agents_md(
