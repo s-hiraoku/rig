@@ -899,6 +899,7 @@ def test_guide_agents_prints_agents_md_section(
     output = capsys.readouterr().out
     assert "## Rig" in output
     assert "Prefer Rig MCP tools when available" in output
+    assert "Use Rig when the user wants" in output
     assert "rig run codex --task-file" in output
     assert "rig show latest" in output
 

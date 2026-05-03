@@ -8,3 +8,4 @@
 - Add environment diagnostics for project-specific harness requirements.
 - Add an initial MCP stdio server with structured Rig run tools.
 - Add MCP cwd, task file, and patch-apply safety gates.
+- Add MCP policy prompt/resources and configured agent discovery.

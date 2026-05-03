@@ -333,11 +333,13 @@ Implemented:
 
 - `rig_run`
 - `rig_list_runs`
+- `rig_list_agents`
 - `rig_get_run`
 - `rig_get_result`
 - `rig_get_diff`
 - `rig_apply_patch`
 - `rig mcp serve` stdio server entrypoint
+- `rig_policy` prompt and `rig://policy` / `rig://agents-md` resources
 - `RIG_MCP_ROOT` bounds accepted `cwd` values
 - `RIG_MCP_ALLOW_APPLY=1` gates MCP patch application
 

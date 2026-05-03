@@ -10,6 +10,7 @@ from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
 from rig.orchestrator import RunOrchestrator, RunRequest
+from rig.policy import AGENTS_SNIPPET
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
 from rig.worktree import WorktreeError, apply_patch, prune_worktrees
 
@@ -488,35 +489,6 @@ def format_started_at(value: str) -> str:
 def first_line(value: str) -> str:
     stripped = value.strip()
     return stripped.splitlines()[0] if stripped else ""
-
-
-AGENTS_SNIPPET = """## Rig
-
-Prefer Rig MCP tools when available. If Rig MCP tools are not available, use the Rig CLI.
-
-Use Rig for inspectable AI coding tasks. Rig stores each run under `.rig/runs/<run-id>/`.
-
-Run a task:
-
-```bash
-rig run codex --task-file tasks/review.md
-```
-
-Inspect the result:
-
-```bash
-rig list
-rig show latest
-```
-
-Rules:
-
-- Do not assume Rig applies patches automatically.
-- Do not call `rig_apply_patch` unless the user explicitly asks to apply a reviewed diff.
-- Inspect `result.md` after each run.
-- Check `stderr.log` when a run fails.
-- Prefer `--task-file` for long or structured tasks.
-"""
 
 
 if __name__ == "__main__":

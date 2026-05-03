@@ -9,6 +9,7 @@ from mcp.server.fastmcp import FastMCP
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.orchestrator import RunOrchestrator, RunRequest
+from rig.policy import AGENTS_SNIPPET
 from rig.run_store import RigNotInitializedError, RunStore
 from rig.worktree import WorktreeError, apply_patch
 
@@ -55,6 +56,15 @@ def create_mcp_server() -> FastMCP:
         return list_runs_tool(cwd=cwd)
 
     @server.tool()
+    def rig_list_agents(cwd: str | None = None) -> dict[str, Any]:
+        """List configured agents available for rig_run.
+
+        Returns { ok, default_agent, agents } where each agent includes name,
+        runner, command, args, and whether it is the default.
+        """
+        return list_agents_tool(cwd=cwd)
+
+    @server.tool()
     def rig_get_run(run_id: str = "latest", cwd: str | None = None) -> dict[str, Any]:
         """Get one Rig run by ID, or latest.
 
@@ -92,6 +102,29 @@ def create_mcp_server() -> FastMCP:
         only after explicit user instruction to apply a reviewed diff.
         """
         return apply_patch_tool(run_id=run_id, cwd=cwd)
+
+    @server.prompt(name="rig_policy")
+    def rig_policy_prompt(cwd: str | None = None) -> str:
+        """Return Rig usage policy for MCP-capable agents."""
+        return policy_prompt(cwd=cwd)
+
+    @server.resource(
+        "rig://policy",
+        name="rig_policy",
+        description="Default Rig usage policy for agents.",
+        mime_type="text/markdown",
+    )
+    def rig_policy_resource() -> str:
+        return policy_prompt(cwd=None)
+
+    @server.resource(
+        "rig://agents-md",
+        name="rig_agents_md",
+        description="Project AGENTS.md when present, otherwise Rig's default policy.",
+        mime_type="text/markdown",
+    )
+    def rig_agents_md_resource() -> str:
+        return project_agents_md(cwd=None)
 
     return server
 
@@ -148,6 +181,28 @@ def list_runs_tool(*, cwd: str | None = None) -> dict[str, Any]:
         return {"ok": True, "runs": store_for(cwd).list_runs()}
     except (RigNotInitializedError, ValueError) as exc:
         return error_response(str(exc))
+
+
+def list_agents_tool(*, cwd: str | None = None) -> dict[str, Any]:
+    try:
+        config = store_for(cwd).load_config()
+    except (ConfigError, RigNotInitializedError, ValueError) as exc:
+        return error_response(str(exc))
+    agents = [
+        {
+            "name": name,
+            "runner": agent.runner,
+            "command": agent.command,
+            "args": agent.args,
+            "default": name == config.default_agent,
+        }
+        for name, agent in sorted(config.agents.items())
+    ]
+    return {
+        "ok": True,
+        "default_agent": config.default_agent,
+        "agents": agents,
+    }
 
 
 def get_run_tool(*, run_id: str = "latest", cwd: str | None = None) -> dict[str, Any]:
@@ -266,6 +321,23 @@ def resolve_task_file(store: RunStore, task_file: str | None) -> str | None:
     if not resolved.is_relative_to(store.cwd):
         raise ValueError(f"task_file is outside the project: {task_file}")
     return str(resolved)
+
+
+def policy_prompt(*, cwd: str | None = None) -> str:
+    agents_md = project_agents_md(cwd=cwd)
+    if agents_md != AGENTS_SNIPPET:
+        return agents_md
+    return AGENTS_SNIPPET
+
+
+def project_agents_md(*, cwd: str | None = None) -> str:
+    try:
+        agents_path = store_for(cwd).cwd / "AGENTS.md"
+    except ValueError:
+        return AGENTS_SNIPPET
+    if agents_path.is_file():
+        return agents_path.read_text(encoding="utf-8", errors="replace")
+    return AGENTS_SNIPPET
 
 
 def error_response(message: str) -> dict[str, Any]:

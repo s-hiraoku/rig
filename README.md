@@ -442,10 +442,15 @@ Initial MCP tools:
 
 - `rig_run`
 - `rig_list_runs`
+- `rig_list_agents`
 - `rig_get_run`
 - `rig_get_result`
 - `rig_get_diff`
 - `rig_apply_patch`
+
+The MCP server also exposes a `rig_policy` prompt and `rig://policy` /
+`rig://agents-md` resources so clients can fetch Rig usage policy and project
+agent instructions.
 
 For safety, MCP calls are limited to the server's launch directory by default.
 Set `RIG_MCP_ROOT=/path/to/root` when the server must operate on repositories

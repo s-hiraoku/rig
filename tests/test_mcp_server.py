@@ -8,12 +8,37 @@ from conftest import init_git_repo, install_fake_command, install_fake_script
 from rig import cli
 from rig.mcp_server import (
     apply_patch_tool,
+    create_mcp_server,
     get_artifact_tool,
     get_diff_tool,
     get_run_tool,
+    list_agents_tool,
     list_runs_tool,
+    policy_prompt,
+    project_agents_md,
     run_tool,
 )
+
+
+@pytest.mark.anyio
+async def test_mcp_server_registers_tools_prompts_and_resources() -> None:
+    server = create_mcp_server()
+
+    tools = {tool.name for tool in await server.list_tools()}
+    prompts = {prompt.name for prompt in await server.list_prompts()}
+    resources = {str(resource.uri) for resource in await server.list_resources()}
+
+    assert tools == {
+        "rig_run",
+        "rig_list_runs",
+        "rig_list_agents",
+        "rig_get_run",
+        "rig_get_result",
+        "rig_get_diff",
+        "rig_apply_patch",
+    }
+    assert prompts == {"rig_policy"}
+    assert resources == {"rig://policy", "rig://agents-md"}
 
 
 def test_mcp_run_and_read_result(
@@ -110,6 +135,50 @@ def test_mcp_get_run_handles_missing_history(
     result = get_run_tool(run_id="latest", cwd=str(tmp_path))
 
     assert result == {"ok": False, "error": "No runs found."}
+
+
+def test_mcp_list_agents_reports_configured_agents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    result = list_agents_tool(cwd=str(tmp_path))
+
+    assert result["ok"] is True
+    assert result["default_agent"] == "codex"
+    assert result["agents"] == [
+        {
+            "name": "codex",
+            "runner": "exec",
+            "command": "codex",
+            "args": ["exec"],
+            "default": True,
+        }
+    ]
+
+
+def test_mcp_policy_prompt_prefers_project_agents_md(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / "AGENTS.md").write_text("# Project Policy\n", encoding="utf-8")
+
+    assert project_agents_md(cwd=str(tmp_path)) == "# Project Policy\n"
+    assert policy_prompt(cwd=str(tmp_path)) == "# Project Policy\n"
+
+
+def test_mcp_policy_prompt_falls_back_to_rig_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    result = policy_prompt(cwd=str(tmp_path))
+
+    assert "## Rig" in result
+    assert "Use Rig when the user wants" in result
 
 
 def test_mcp_worktree_diff_and_apply(
