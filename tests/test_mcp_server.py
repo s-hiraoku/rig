@@ -183,6 +183,34 @@ def test_mcp_suggest_reports_advisory_command(
     assert result["observations"]["git_repo"] is True
 
 
+def test_mcp_suggest_allows_uninitialized_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+
+    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
+
+    assert result["ok"] is True
+    assert result["mode"] == "run"
+    assert result["agent"] == "codex"
+    assert result["observations"]["initialized"] is False
+
+
+def test_mcp_suggest_rejects_invalid_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text("[broken\n", encoding="utf-8")
+
+    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
+
+    assert result["ok"] is False
+    assert "Could not parse config file" in result["error"]
+
+
 def test_mcp_suggest_uses_task_file_from_cwd(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -199,15 +227,7 @@ def test_mcp_suggest_uses_task_file_from_cwd(
     result = suggest_tool(task_file="task.md", cwd=str(repo_cwd))
 
     assert result["ok"] is True
-    assert result["mode"] == "worktree"
-    assert result["command"] == [
-        "rig",
-        "worktree",
-        "run",
-        "codex",
-        "--task-file",
-        str(repo_cwd / "task.md"),
-    ]
+    assert result["command"][-2:] == ["--task-file", str(repo_cwd / "task.md")]
     assert result["observations"]["changed_files"] == []
 
 

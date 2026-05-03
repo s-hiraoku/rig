@@ -280,7 +280,7 @@ def suggest_run(args: argparse.Namespace, store: RunStore) -> int:
             return 1
     try:
         config = store.load_config()
-    except (ConfigError, RigNotInitializedError):
+    except RigNotInitializedError:
         config = None
     suggestion = build_suggestion(
         store.cwd,
