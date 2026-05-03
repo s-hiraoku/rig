@@ -113,6 +113,7 @@ Two distinct run IDs, two distinct diffs. If implementation step goes wrong,
 the green-tests commit still stands.
 
 ## Compare Two Child Agents On The Same Task
+{: #compare-two-child-agents-on-the-same-task }
 
 When you want a second opinion from a different model:
 

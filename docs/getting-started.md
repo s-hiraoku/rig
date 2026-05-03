@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install Rig and wire your parent AI agent to use it. Three steps; the CLI is mostly something you read about, not something you type.
+description: Install Rig and wire your parent AI agent to use it. Three steps plus a sanity check; the CLI is mostly something you read about, not something you type.
 ---
 
 # Getting Started
@@ -8,7 +8,7 @@ description: Install Rig and wire your parent AI agent to use it. Three steps; t
 The goal of this page is one-time setup so that **the next time you ask your
 AI to make a code change, it routes the work through Rig automatically**.
 
-Three steps:
+Three steps plus a sanity check:
 
 1. Install Rig.
 2. Run `rig init` in the project.
@@ -103,7 +103,7 @@ rig mcp serve
 Add an entry to your client's MCP config that runs `rig mcp serve` over
 stdio. Details: [MCP Server](mcp.md).
 
-## 4. Try It
+## Verify Setup
 
 Now stop typing Rig commands. Talk to your AI:
 
