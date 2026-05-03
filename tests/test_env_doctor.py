@@ -42,11 +42,15 @@ agent_asset_managers:
     label: APM
     command: apm
     hint: "Choose or install APM if needed."
-  - id: gh-skill
-    label: GitHub skill manager
+    required_files:
+      - path: apm.yml
+        label: APM manifest
+        hint: "Create apm.yml"
+  - id: gh-skills
+    label: GitHub skills manager
     command: gh
     args:
-      - skill
+      - skills
       - --help
     hint: "Install or update GitHub CLI if needed."
   - id: vercel-skills
@@ -91,12 +95,14 @@ required_files:
     assert labels["Rig runs directory"].status == "ok"
     assert labels["Codex CLI"].status == "ok"
     assert labels["Agent asset manager: APM"].status == "ok"
-    assert labels["Agent asset manager: GitHub skill manager"].status == "ok"
+    assert labels["Agent asset manager: GitHub skills manager"].status == "ok"
     assert labels["Agent asset manager: Vercel skills manager"].status == "ok"
     assert labels["Rig AGENTS.md snippet"].status == "ok"
     assert labels["Rig env config"].status == "ok"
+    assert labels["Agent asset manager file: APM / APM manifest"].status == "missing"
     assert labels["Required file: Agent instructions"].status == "ok"
     assert labels["Required file: Harness docs"].status == "missing"
+    assert "Create apm.yml" in report.suggestions
     assert "Create docs/harness.md" in report.suggestions
 
 
@@ -139,6 +145,28 @@ def test_build_doctor_report_warns_for_invalid_env_yaml(
     labels = {check.label: check for check in report.checks}
     assert labels["Rig env config"].status == "ok"
     assert labels["Rig env required files"].status == "warn"
+
+
+def test_build_doctor_report_warns_for_invalid_manager_required_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".rig").mkdir()
+    (tmp_path / ".rig" / "env.yaml").write_text(
+        """version: 1
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+    required_files: nope
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(env_doctor.shutil, "which", lambda command: None)
+
+    report = env_doctor.build_doctor_report(tmp_path)
+
+    labels = {check.label: check for check in report.checks}
+    assert labels["Rig env asset manager files"].status == "warn"
 
 
 def test_format_env_plan_lists_gaps_and_actions() -> None:

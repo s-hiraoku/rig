@@ -35,6 +35,7 @@ class AssetManager:
     label: str
     command: str
     args: list[str]
+    required_files: list[RequiredFile]
     hint: str | None = None
 
 
@@ -148,16 +149,49 @@ def add_env_config_checks(
     env_config = load_env_config(env_path, checks)
     for manager in env_config.asset_managers:
         add_asset_manager_check(manager, checks, suggestions)
+        add_manager_required_file_checks(root, manager, checks, suggestions)
 
     for required_file in env_config.required_files:
-        target = root / required_file.path
-        label = f"Required file: {required_file.label}"
-        if target.is_file():
-            checks.append(DoctorCheck(label, "ok", required_file.path))
-        else:
-            checks.append(DoctorCheck(label, "missing", required_file.path))
-            if required_file.hint:
-                suggestions.append(required_file.hint)
+        add_required_file_check(
+            root,
+            required_file,
+            label=f"Required file: {required_file.label}",
+            checks=checks,
+            suggestions=suggestions,
+        )
+
+
+def add_manager_required_file_checks(
+    root: Path,
+    manager: AssetManager,
+    checks: list[DoctorCheck],
+    suggestions: list[str],
+) -> None:
+    for required_file in manager.required_files:
+        add_required_file_check(
+            root,
+            required_file,
+            label=f"Agent asset manager file: {manager.label} / {required_file.label}",
+            checks=checks,
+            suggestions=suggestions,
+        )
+
+
+def add_required_file_check(
+    root: Path,
+    required_file: RequiredFile,
+    *,
+    label: str,
+    checks: list[DoctorCheck],
+    suggestions: list[str],
+) -> None:
+    target = root / required_file.path
+    if target.is_file():
+        checks.append(DoctorCheck(label, "ok", required_file.path))
+    else:
+        checks.append(DoctorCheck(label, "missing", required_file.path))
+        if required_file.hint:
+            suggestions.append(required_file.hint)
 
 
 def add_asset_manager_check(
@@ -224,20 +258,30 @@ def load_env_config(env_path: Path, checks: list[DoctorCheck]) -> EnvConfig:
 
 
 def parse_required_files(
-    value: dict[str, Any], checks: list[DoctorCheck]
+    value: dict[str, Any],
+    checks: list[DoctorCheck],
+    *,
+    field_path: str = "required_files",
+    check_label: str = "Rig env required files",
 ) -> list[RequiredFile]:
     raw_required_files = value.get("required_files", [])
     if raw_required_files is None:
         return []
     if not isinstance(raw_required_files, list):
         checks.append(
-            DoctorCheck("Rig env required files", "warn", "`required_files` must be a list")
+            DoctorCheck(check_label, "warn", f"`{field_path}` must be a list")
         )
         return []
 
     required_files: list[RequiredFile] = []
     for index, item in enumerate(raw_required_files):
-        parsed = parse_required_file(item, index, checks)
+        parsed = parse_required_file(
+            item,
+            index,
+            checks,
+            field_path=field_path,
+            check_label=check_label,
+        )
         if parsed is not None:
             required_files.append(parsed)
     return required_files
@@ -343,20 +387,32 @@ def parse_asset_manager(
         label=label,
         command=command,
         args=cast(list[str], args),
+        required_files=parse_required_files(
+            value,
+            checks,
+            field_path=f"agent_asset_managers[{index}].required_files",
+            check_label="Rig env asset manager files",
+        ),
         hint=hint,
     )
 
 
 def parse_required_file(
-    item: object, index: int, checks: list[DoctorCheck]
+    item: object,
+    index: int,
+    checks: list[DoctorCheck],
+    *,
+    field_path: str,
+    check_label: str,
 ) -> RequiredFile | None:
+    item_path = f"{field_path}[{index}]"
     if isinstance(item, str):
         if not item:
             checks.append(
                 DoctorCheck(
-                    "Rig env required files",
+                    check_label,
                     "warn",
-                    f"required_files[{index}] must not be empty",
+                    f"{item_path} must not be empty",
                 )
             )
             return None
@@ -365,9 +421,9 @@ def parse_required_file(
     if not isinstance(item, dict):
         checks.append(
             DoctorCheck(
-                "Rig env required files",
+                check_label,
                 "warn",
-                f"required_files[{index}] must be a string or mapping",
+                f"{item_path} must be a string or mapping",
             )
         )
         return None
@@ -377,9 +433,9 @@ def parse_required_file(
     if not isinstance(path, str) or not path:
         checks.append(
             DoctorCheck(
-                "Rig env required files",
+                check_label,
                 "warn",
-                f"required_files[{index}].path must be a non-empty string",
+                f"{item_path}.path must be a non-empty string",
             )
         )
         return None
@@ -388,9 +444,9 @@ def parse_required_file(
     if not isinstance(label, str) or not label:
         checks.append(
             DoctorCheck(
-                "Rig env required files",
+                check_label,
                 "warn",
-                f"required_files[{index}].label must be a non-empty string",
+                f"{item_path}.label must be a non-empty string",
             )
         )
         return None
@@ -399,9 +455,9 @@ def parse_required_file(
     if hint is not None and not isinstance(hint, str):
         checks.append(
             DoctorCheck(
-                "Rig env required files",
+                check_label,
                 "warn",
-                f"required_files[{index}].hint must be a string",
+                f"{item_path}.hint must be a string",
             )
         )
         return None
@@ -440,7 +496,7 @@ def format_env_plan(report: DoctorReport) -> str:
         "- Git repository for trusted agent execution",
         "- Rig initialized with `.rig/config.yaml` and `.rig/runs/`",
         "- Codex CLI available for `rig run codex`",
-        "- Optional agent asset managers available as needed: APM, `gh skill`, Vercel `skills` via `npx`, or manual instructions",
+        "- Optional agent asset managers available as needed: APM, `gh skills`, Vercel `skills` via `npx`, or manual instructions",
         "- Optional agent instructions such as `AGENTS.md` include the Rig snippet",
         "- Project-specific required files declared in `.rig/env.yaml` are present",
         "",

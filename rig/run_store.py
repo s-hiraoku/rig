@@ -35,13 +35,13 @@ agent_asset_managers:
     label: APM
     command: apm
     hint: "Choose or install APM if this project uses APM-managed skills, hooks, prompts, or MCP config."
-  - id: gh-skill
-    label: GitHub skill manager
+  - id: gh-skills
+    label: GitHub skills manager
     command: gh
     args:
-      - skill
+      - skills
       - --help
-    hint: "Install or update GitHub CLI if this project uses `gh skill` workflows."
+    hint: "Install or update GitHub CLI if this project uses `gh skills` workflows."
   - id: vercel-skills
     label: Vercel skills manager
     command: npx

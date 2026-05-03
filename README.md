@@ -132,7 +132,7 @@ agents:
 ```
 
 The generated `.rig/env.yaml` declares the default harness environment checks.
-By default it lists APM, GitHub CLI `gh skill`, and Vercel `skills` via `npx`
+By default it lists APM, GitHub CLI `gh skills`, and Vercel `skills` via `npx`
 as optional agent asset managers, and declares `AGENTS.md` as a required file
 for the project harness:
 
@@ -141,11 +141,11 @@ agent_asset_managers:
   - id: apm
     label: APM
     command: apm
-  - id: gh-skill
-    label: GitHub skill manager
+  - id: gh-skills
+    label: GitHub skills manager
     command: gh
     args:
-      - skill
+      - skills
       - --help
   - id: vercel-skills
     label: Vercel skills manager
@@ -291,6 +291,25 @@ required_files:
   - path: docs/harness.md
     label: Harness docs
     hint: "Create docs/harness.md with team setup notes."
+```
+
+You can also attach required config files to a specific asset manager. When the
+file is missing, `rig env doctor` and `rig env plan` show the manager name and
+the missing file. The `path` is intentionally free-form, so each project can use
+the filename its chosen manager expects, such as `apm.yml`, `apm.yaml`, or a
+vendor-specific config file:
+
+```yaml
+version: 1
+
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+    required_files:
+      - path: apm.yml
+        label: APM manifest
+        hint: "Create apm.yml or remove this manager from .rig/env.yaml."
 ```
 
 Example:

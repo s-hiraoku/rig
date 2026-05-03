@@ -172,12 +172,23 @@ tools:
       - vercel-skills
       - manual
 
-agent_assets:
-  managers:
-    - apm
-    - gh-skill
-    - vercel-skills
-    - manual
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: apm
+    required_files:
+      - path: apm.yml
+        label: APM manifest
+        hint: "Create apm.yml or remove this manager from .rig/env.yaml."
+  - id: gh-skills
+    label: GitHub skills manager
+    command: gh
+    args:
+      - skills
+      - --help
+  - id: vercel-skills
+    label: Vercel skills manager
+    command: npx
 
 required_files:
   - AGENTS.md
