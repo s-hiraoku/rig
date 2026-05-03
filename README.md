@@ -304,7 +304,9 @@ uv run rig runs show 20260502-203012-codex
 ### `rig runs complete <run-id>`
 
 Completes a waiting manual run by writing `result.md` and marking the run as
-`succeeded`. Use `latest` to complete the most recent run.
+`succeeded`. Use `latest` to complete the most recent run. Rig refuses to
+complete runs that are not currently `waiting`, so this command does not
+overwrite finished exec runs by accident.
 
 Example:
 

@@ -323,6 +323,22 @@ def test_runs_complete_requires_one_result_source(
     assert "Provide exactly one of --result or --result-file." in capsys.readouterr().err
 
 
+def test_runs_complete_refuses_non_waiting_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="already done\n")
+    cli.main(["run", "codex", "--task", "hello"])
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+
+    assert cli.main(["runs", "complete", "latest", "--result", "overwrite"]) == 1
+
+    captured = capsys.readouterr()
+    assert "Run is not waiting and cannot be completed" in captured.err
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == "already done\n"
+
+
 def test_run_codex_dry_run_writes_artifacts_without_executing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

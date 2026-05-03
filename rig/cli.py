@@ -279,6 +279,12 @@ def complete_run(args: argparse.Namespace, store: RunStore) -> int:
         else:
             print(f"Run not found or unreadable: {args.run_id}", file=sys.stderr)
         return 1
+    if run.get("status") != "waiting":
+        print(
+            f"Run is not waiting and cannot be completed: {run.get('id', args.run_id)}",
+            file=sys.stderr,
+        )
+        return 1
 
     result = args.result
     if args.result_file:
