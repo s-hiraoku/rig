@@ -62,11 +62,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "init":
-            initialized = store.init()
-            if initialized:
-                print("Initialized Rig in .rig/")
+            result = store.init()
+            if result.changed:
+                print("Rig init complete.")
+                for path in result.created:
+                    print(f"Created: {path}")
+                for path in result.updated:
+                    print(f"Updated: {path}")
             else:
-                print("Rig already initialized.")
+                print("Rig already up to date.")
             return 0
 
         if args.command == "run" and args.agent == "codex":

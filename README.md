@@ -111,8 +111,10 @@ It creates:
   runs/
 ```
 
-The command is safe to run more than once. If `.rig/` already exists, it prints
-`Rig already initialized.` and leaves existing files in place.
+The command is safe to run more than once. If `.rig/` already exists, Rig keeps
+existing files in place, recreates missing Rig-owned files, and adds newly
+introduced default entries to `.rig/env.yaml` without replacing your custom
+manager settings. If nothing changes, it prints `Rig already up to date.`
 
 Example:
 

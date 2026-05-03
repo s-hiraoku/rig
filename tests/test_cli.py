@@ -20,6 +20,25 @@ def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert (tmp_path / ".rig" / "runs").is_dir()
 
 
+def test_init_command_updates_existing_rig(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "env.yaml").write_text(
+        "version: 1\nagent_asset_managers: []\nrequired_files: []\n",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["init"]) == 0
+
+    captured = capsys.readouterr()
+    assert "Updated: .rig/env.yaml" in captured.out
+    assert "id: gh-skills" in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_run_requires_initialized_repo(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
