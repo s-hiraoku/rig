@@ -9,6 +9,7 @@ stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 generic execution runners, and MCP tools.
 See [docs/commands.md](docs/commands.md) for the compact command reference.
+The GitHub Pages user guide starts at [docs/index.md](docs/index.md).
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
