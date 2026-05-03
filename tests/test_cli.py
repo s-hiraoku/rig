@@ -20,7 +20,7 @@ def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert (tmp_path / ".rig" / "runs").is_dir()
 
 
-def test_init_command_updates_existing_rig(
+def test_init_command_does_not_update_existing_rig(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -33,8 +33,52 @@ def test_init_command_updates_existing_rig(
     assert cli.main(["init"]) == 0
 
     captured = capsys.readouterr()
+    assert "Rig already up to date." in captured.out
+    assert "id: gh-skills" not in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_init_command_force_resets_config_and_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text("custom: config\n", encoding="utf-8")
+    (tmp_path / ".rig" / "env.yaml").write_text("custom: env\n", encoding="utf-8")
+
+    assert cli.main(["init", "--force"]) == 0
+
+    captured = capsys.readouterr()
+    assert "Updated: .rig/config.yaml" in captured.out
     assert "Updated: .rig/env.yaml" in captured.out
-    assert "id: gh-skills" in (tmp_path / ".rig" / "env.yaml").read_text(
+    assert "Backup: .rig/config.yaml.bak-" in captured.out
+    assert "Backup: .rig/env.yaml.bak-" in captured.out
+    assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_init_command_reset_env_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    (tmp_path / ".rig" / "config.yaml").write_text("custom: config\n", encoding="utf-8")
+    (tmp_path / ".rig" / "env.yaml").write_text("custom: env\n", encoding="utf-8")
+
+    assert cli.main(["init", "--reset", "env"]) == 0
+
+    captured = capsys.readouterr()
+    assert "Updated: .rig/config.yaml" not in captured.out
+    assert "Updated: .rig/env.yaml" in captured.out
+    assert "custom: config" in (tmp_path / ".rig" / "config.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
         encoding="utf-8"
     )
 

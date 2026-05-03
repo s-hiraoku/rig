@@ -14,7 +14,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rig")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("init", help="Initialize Rig in the current repository")
+    init_parser = subparsers.add_parser(
+        "init", help="Initialize Rig in the current repository"
+    )
+    init_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Reset both .rig/config.yaml and .rig/env.yaml after backing them up",
+    )
+    init_parser.add_argument(
+        "--reset",
+        choices=["config", "env", "all"],
+        help="Reset selected Rig-owned config after backing up existing files",
+    )
 
     run_parser = subparsers.add_parser("run", help="Run an agent")
     run_subparsers = run_parser.add_subparsers(dest="agent", required=True)
@@ -62,13 +74,16 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "init":
-            result = store.init()
+            reset = "all" if args.force else args.reset
+            result = store.init(reset=reset)
             if result.changed:
                 print("Rig init complete.")
                 for path in result.created:
                     print(f"Created: {path}")
                 for path in result.updated:
                     print(f"Updated: {path}")
+                for path in result.backups:
+                    print(f"Backup: {path}")
             else:
                 print("Rig already up to date.")
             return 0

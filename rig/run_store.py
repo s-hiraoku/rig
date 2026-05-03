@@ -6,8 +6,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
-import yaml
-
 from rig.config import RigConfig, load_config
 from rig.run_context import RunContext
 
@@ -57,101 +55,6 @@ required_files:
 """
 
 
-def merge_env_defaults(current: dict[str, Any], default: dict[str, Any]) -> bool:
-    changed = False
-
-    for key, value in default.items():
-        if key in {"agent_asset_managers", "required_files"}:
-            continue
-        if key not in current:
-            current[key] = value
-            changed = True
-
-    if merge_asset_managers(current, default):
-        changed = True
-    if merge_required_files(current, default):
-        changed = True
-
-    return changed
-
-
-def merge_asset_managers(current: dict[str, Any], default: dict[str, Any]) -> bool:
-    current_managers = current.get("agent_asset_managers")
-    default_managers = default.get("agent_asset_managers")
-    if not isinstance(default_managers, list):
-        return False
-    if current_managers is None:
-        current["agent_asset_managers"] = default_managers
-        return True
-    if not isinstance(current_managers, list):
-        return False
-
-    changed = False
-    current_by_id = {
-        item.get("id"): item
-        for item in current_managers
-        if isinstance(item, dict) and isinstance(item.get("id"), str)
-    }
-    for default_item in default_managers:
-        if not isinstance(default_item, dict):
-            continue
-        manager_id = default_item.get("id")
-        if not isinstance(manager_id, str):
-            continue
-
-        current_item = current_by_id.get(manager_id)
-        if current_item is None:
-            current_managers.append(default_item)
-            changed = True
-            continue
-
-        for key, value in default_item.items():
-            if key == "required_files":
-                if merge_required_files(current_item, default_item):
-                    changed = True
-            elif key not in current_item:
-                current_item[key] = value
-                changed = True
-
-    return changed
-
-
-def merge_required_files(current: dict[str, Any], default: dict[str, Any]) -> bool:
-    current_files = current.get("required_files")
-    default_files = default.get("required_files")
-    if not isinstance(default_files, list):
-        return False
-    if current_files is None:
-        current["required_files"] = default_files
-        return True
-    if not isinstance(current_files, list):
-        return False
-
-    changed = False
-    current_paths = {
-        required_file_path(item)
-        for item in current_files
-        if required_file_path(item) is not None
-    }
-    for default_item in default_files:
-        path = required_file_path(default_item)
-        if path is not None and path not in current_paths:
-            current_files.append(default_item)
-            current_paths.add(path)
-            changed = True
-    return changed
-
-
-def required_file_path(item: object) -> str | None:
-    if isinstance(item, str) and item:
-        return item
-    if isinstance(item, dict):
-        path = item.get("path")
-        if isinstance(path, str) and path:
-            return path
-    return None
-
-
 class RigNotInitializedError(RuntimeError):
     pass
 
@@ -160,6 +63,7 @@ class RigNotInitializedError(RuntimeError):
 class InitResult:
     created: list[str]
     updated: list[str]
+    backups: list[str]
     unchanged: list[str]
 
     @property
@@ -175,55 +79,94 @@ class RunStore:
         self.config_path = self.rig_dir / "config.yaml"
         self.env_config_path = self.rig_dir / "env.yaml"
 
-    def init(self) -> InitResult:
+    def init(
+        self, *, reset: str | None = None, now: datetime | None = None
+    ) -> InitResult:
         created: list[str] = []
         updated: list[str] = []
+        backups: list[str] = []
         unchanged: list[str] = []
 
         rig_dir_exists = self.rig_dir.exists()
-        self.runs_dir.mkdir(parents=True, exist_ok=True)
+        runs_dir_exists = self.runs_dir.exists()
         if not rig_dir_exists:
             created.append(".rig/")
-        if self.runs_dir.exists():
+        self.runs_dir.mkdir(parents=True, exist_ok=True)
+        if runs_dir_exists:
             unchanged.append(".rig/runs/")
+        else:
+            created.append(".rig/runs/")
 
-        if not self.config_path.exists():
+        reset_config = reset in {"config", "all"}
+        reset_env = reset in {"env", "all"}
+
+        if reset_config:
+            self.reset_file(
+                self.config_path,
+                DEFAULT_CONFIG,
+                ".rig/config.yaml",
+                created=created,
+                updated=updated,
+                backups=backups,
+                now=now,
+            )
+        elif not self.config_path.exists():
             self.config_path.write_text(DEFAULT_CONFIG, encoding="utf-8")
             created.append(".rig/config.yaml")
         else:
             unchanged.append(".rig/config.yaml")
 
-        if not self.env_config_path.exists():
+        if reset_env:
+            self.reset_file(
+                self.env_config_path,
+                DEFAULT_ENV_CONFIG,
+                ".rig/env.yaml",
+                created=created,
+                updated=updated,
+                backups=backups,
+                now=now,
+            )
+        elif not self.env_config_path.exists():
             self.env_config_path.write_text(DEFAULT_ENV_CONFIG, encoding="utf-8")
             created.append(".rig/env.yaml")
-        elif self.update_env_config_defaults():
-            updated.append(".rig/env.yaml")
         else:
             unchanged.append(".rig/env.yaml")
 
-        return InitResult(created=created, updated=updated, unchanged=unchanged)
-
-    def update_env_config_defaults(self) -> bool:
-        try:
-            current = yaml.safe_load(self.env_config_path.read_text(encoding="utf-8"))
-            default = yaml.safe_load(DEFAULT_ENV_CONFIG)
-        except (OSError, yaml.YAMLError):
-            return False
-
-        if not isinstance(current, dict) or not isinstance(default, dict):
-            return False
-
-        current_config = cast(dict[str, Any], current)
-        default_config = cast(dict[str, Any], default)
-        changed = merge_env_defaults(current_config, default_config)
-        if not changed:
-            return False
-
-        self.env_config_path.write_text(
-            yaml.safe_dump(current_config, sort_keys=False),
-            encoding="utf-8",
+        return InitResult(
+            created=created,
+            updated=updated,
+            backups=backups,
+            unchanged=unchanged,
         )
-        return True
+
+    def reset_file(
+        self,
+        path: Path,
+        content: str,
+        display_path: str,
+        *,
+        created: list[str],
+        updated: list[str],
+        backups: list[str],
+        now: datetime | None,
+    ) -> None:
+        if path.exists():
+            backup_path = self.backup_path(path, now=now)
+            path.replace(backup_path)
+            backups.append(self._display_path(backup_path))
+            updated.append(display_path)
+        else:
+            created.append(display_path)
+        path.write_text(content, encoding="utf-8")
+
+    def backup_path(self, path: Path, *, now: datetime | None = None) -> Path:
+        timestamp = (now or datetime.now().astimezone()).strftime("%Y%m%d-%H%M%S")
+        backup_path = path.with_name(f"{path.name}.bak-{timestamp}")
+        suffix = 2
+        while backup_path.exists():
+            backup_path = path.with_name(f"{path.name}.bak-{timestamp}-{suffix}")
+            suffix += 1
+        return backup_path
 
     def ensure_initialized(self) -> None:
         if not self.rig_dir.is_dir():

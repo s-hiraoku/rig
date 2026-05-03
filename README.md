@@ -112,9 +112,21 @@ It creates:
 ```
 
 The command is safe to run more than once. If `.rig/` already exists, Rig keeps
-existing files in place, recreates missing Rig-owned files, and adds newly
-introduced default entries to `.rig/env.yaml` without replacing your custom
-manager settings. If nothing changes, it prints `Rig already up to date.`
+existing files in place and recreates missing Rig-owned files. It does not edit
+existing `.rig/config.yaml` or `.rig/env.yaml`. If nothing changes, it prints
+`Rig already up to date.`
+
+Use an explicit reset when you want to return generated config to the current
+Rig defaults. Existing files are backed up before they are replaced:
+
+```bash
+uv run rig init --reset config
+uv run rig init --reset env
+uv run rig init --reset all
+uv run rig init --force
+```
+
+`--force` is equivalent to `--reset all`.
 
 Example:
 

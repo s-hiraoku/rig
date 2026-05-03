@@ -11,6 +11,8 @@ def test_init_creates_config_and_runs_dir(tmp_path: Path) -> None:
     result = store.init()
 
     assert result.changed is True
+    assert ".rig/" in result.created
+    assert ".rig/runs/" in result.created
     assert ".rig/config.yaml" in result.created
     assert ".rig/env.yaml" in result.created
 
@@ -32,7 +34,7 @@ def test_init_is_idempotent(tmp_path: Path) -> None:
     assert store.init().changed is False
 
 
-def test_init_updates_env_yaml_with_missing_defaults(tmp_path: Path) -> None:
+def test_init_does_not_update_existing_env_yaml(tmp_path: Path) -> None:
     store = RunStore(tmp_path)
     store.init()
     (tmp_path / ".rig" / "env.yaml").write_text(
@@ -48,13 +50,51 @@ required_files: []
 
     result = store.init()
 
-    assert result.updated == [".rig/env.yaml"]
+    assert result.changed is False
     content = (tmp_path / ".rig" / "env.yaml").read_text(encoding="utf-8")
     assert "label: Custom APM" in content
     assert "command: custom-apm" in content
-    assert "id: gh-skills" in content
-    assert "id: vercel-skills" in content
-    assert "path: AGENTS.md" in content
+    assert "id: gh-skills" not in content
+
+
+def test_init_reset_config_backs_up_and_recreates_config(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    (tmp_path / ".rig" / "config.yaml").write_text("custom: true\n", encoding="utf-8")
+    now = datetime(2026, 5, 3, 12, 34, 56)
+
+    result = store.init(reset="config", now=now)
+
+    assert result.updated == [".rig/config.yaml"]
+    assert result.backups == [".rig/config.yaml.bak-20260503-123456"]
+    assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert (tmp_path / ".rig" / "config.yaml.bak-20260503-123456").read_text(
+        encoding="utf-8"
+    ) == "custom: true\n"
+
+
+def test_init_reset_all_backs_up_config_and_env(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    (tmp_path / ".rig" / "config.yaml").write_text("custom: config\n", encoding="utf-8")
+    (tmp_path / ".rig" / "env.yaml").write_text("custom: env\n", encoding="utf-8")
+    now = datetime(2026, 5, 3, 12, 34, 56)
+
+    result = store.init(reset="all", now=now)
+
+    assert result.updated == [".rig/config.yaml", ".rig/env.yaml"]
+    assert result.backups == [
+        ".rig/config.yaml.bak-20260503-123456",
+        ".rig/env.yaml.bak-20260503-123456",
+    ]
+    assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_create_run_uses_suffix_for_same_second(tmp_path: Path) -> None:
