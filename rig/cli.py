@@ -14,6 +14,7 @@ from rig.env_doctor import build_doctor_report, format_doctor_report, format_env
 from rig.orchestrator import RunOrchestrator, RunOutcome, RunRequest
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
+from rig.suggest import Suggestion, build_suggestion
 from rig.worktree import WorktreeError, apply_patch, prune_worktrees
 
 
@@ -22,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(
         dest="command",
         required=True,
-        metavar="{init,run,list,show,worktree,manual,guide,env,mcp}",
+        metavar="{init,run,list,show,worktree,manual,guide,env,mcp,suggest}",
     )
 
     init_parser = subparsers.add_parser(
@@ -100,6 +101,18 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_parser = subparsers.add_parser("mcp", help="Expose Rig as MCP tools")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
     mcp_subparsers.add_parser("serve", help="Run the Rig MCP server over stdio")
+
+    suggest_parser = subparsers.add_parser(
+        "suggest", help="Suggest how to run an agent task"
+    )
+    suggest_parser.add_argument(
+        "task",
+        nargs="?",
+        default="",
+        help="Task text to evaluate. Omit to inspect only the current repository state.",
+    )
+    suggest_parser.add_argument("--task-file", help="Path to a task file to evaluate")
+    suggest_parser.add_argument("--json", action="store_true", help="Print JSON output")
 
     return parser
 
@@ -196,6 +209,8 @@ def main(argv: list[str] | None = None) -> int:
 
             serve_mcp()
             return 0
+        if args.command == "suggest":
+            return suggest_run(args, store)
 
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
@@ -254,6 +269,72 @@ def run_outcome_json(outcome: RunOutcome) -> dict[str, Any]:
     data: dict[str, Any] = dataclasses.asdict(outcome)
     data["ok"] = data["exit_code"] == 0
     return data
+
+
+def suggest_run(args: argparse.Namespace, store: RunStore) -> int:
+    if args.task and args.task_file is not None:
+        print("Provide either task text or --task-file, not both.", file=sys.stderr)
+        return 2
+    task = args.task
+    if args.task_file is not None:
+        if not args.task_file:
+            print("--task-file requires a non-empty path.", file=sys.stderr)
+            return 2
+        try:
+            task = Path(args.task_file).read_text(encoding="utf-8")
+        except OSError as exc:
+            print(f"Could not read task file: {exc}", file=sys.stderr)
+            return 1
+    try:
+        config = store.load_config()
+    except (ConfigError, RigNotInitializedError):
+        config = None
+    suggestion = build_suggestion(
+        store.cwd,
+        task=task,
+        config=config,
+        task_file=args.task_file,
+    )
+    if args.json:
+        print(json.dumps(suggestion_json(suggestion), indent=2, ensure_ascii=False))
+    else:
+        print_suggestion(suggestion)
+    return 0
+
+
+def suggestion_json(suggestion: Suggestion) -> dict[str, Any]:
+    return dataclasses.asdict(suggestion)
+
+
+def print_suggestion(suggestion: Suggestion) -> None:
+    print(f"Recommendation: {suggestion.mode}")
+    print(f"Agent:          {suggestion.agent}")
+    print(f"Confidence:     {suggestion.confidence}")
+    print(f"Command:        {format_command(suggestion.command)}")
+    print()
+    print("Why:")
+    for reason in suggestion.reasons:
+        print(f"- {reason}")
+    print()
+    print("Context:")
+    print(f"- Git repo: {yes_no(bool(suggestion.observations['git_repo']))}")
+    print(f"- Changed files: {suggestion.observations['changed_file_count']}")
+    print(f"- Tests present: {yes_no(bool(suggestion.observations['tests_present']))}")
+    print(f"- Rig initialized: {yes_no(bool(suggestion.observations['initialized']))}")
+
+
+def format_command(parts: list[str]) -> str:
+    return " ".join(shell_quote(part) for part in parts)
+
+
+def shell_quote(value: str) -> str:
+    if value and all(char.isalnum() or char in "-_./:" for char in value):
+        return value
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+def yes_no(value: bool) -> str:
+    return "yes" if value else "no"
 
 
 def list_runs(store: RunStore, *, json_output: bool = False) -> int:

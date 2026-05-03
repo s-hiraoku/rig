@@ -12,6 +12,7 @@ _rig() {
     'guide:generate setup guidance'
     'env:inspect the agent environment'
     'mcp:expose Rig as MCP tools'
+    'suggest:suggest how to run an agent task'
   )
 
   if (( CURRENT == 2 )); then
@@ -65,6 +66,11 @@ _rig() {
       local -a mcp_commands
       mcp_commands=('serve:run the Rig MCP server over stdio')
       _describe 'mcp command' mcp_commands
+      ;;
+    suggest)
+      _arguments \
+        '--task-file[task file path]:filename:_files' \
+        '--json[print JSON output]'
       ;;
   esac
 }

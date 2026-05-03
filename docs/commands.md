@@ -8,6 +8,7 @@ title: Command Reference
 
 ```bash
 rig init
+rig suggest "Review the current diff."
 rig run --task "Review the current diff."
 rig list
 rig show latest
@@ -28,6 +29,8 @@ rig worktree apply latest
   `[agent]` is omitted, Rig uses `default_agent`.
 - `rig run [agent] --task-file task.md`: run an agent with a task file.
 - `rig run [agent] --task "..." --json`: print the run outcome as structured JSON.
+- `rig suggest "..." [--json]`: suggest whether to use `rig run` or
+  `rig worktree run` without executing an agent.
 - `rig list [--json]`: list recent runs.
 - `rig show <run-id|latest> [--json]`: show run metadata and result.
 - `rig worktree run [agent] --task "..."`: run an agent in an isolated worktree.

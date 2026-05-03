@@ -87,6 +87,7 @@ From a project where you want to use Rig:
 
 ```bash
 rig init
+rig suggest "Review the current diff and identify risky changes."
 rig run codex --task "Review the current diff and identify risky changes."
 rig list
 rig show latest
@@ -96,6 +97,7 @@ From this repository checkout, prefix commands with `uv run`:
 
 ```bash
 uv run rig init
+uv run rig suggest "Review the current diff and identify risky changes."
 uv run rig run codex --task "Review the current diff and identify risky changes."
 uv run rig list
 uv run rig show latest
@@ -297,6 +299,24 @@ uv run rig run codex --task-file task.md
 
 Provide exactly one of `--task` or `--task-file`. Passing both, or passing
 neither, is an error.
+
+### `rig suggest "..."`
+
+Suggests how to run an agent task without starting a run.
+
+Rig inspects the current Git repository state, changed file count, task length,
+and whether tests are present. It then recommends either a normal `rig run` or
+an isolated `rig worktree run`. The command is advisory only; it never executes
+an agent or applies patches.
+
+Example:
+
+```bash
+uv run rig suggest "Refactor the CLI command structure."
+```
+
+Add `--json` to print the recommendation, command parts, reasons, and
+observations as structured data.
 
 ### `rig worktree run <agent> --task "..."`
 
