@@ -180,6 +180,21 @@ agents:
     runner: manual
 ```
 
+The `pty` runner is experimental. Use it only for CLIs that require a TTY. Rig
+captures the terminal transcript into `stdout.log` and `result.md`; stderr is
+merged into that transcript by the terminal:
+
+```yaml
+agents:
+  interactive:
+    runner: pty
+    command: interactive-agent
+    args:
+      - --prompt
+    timeout_seconds: 300
+    prompt_style: task
+```
+
 The generated `.rig/env.yaml` declares the default harness environment checks.
 By default it lists APM, GitHub CLI `gh skills`, and Vercel `skills` via `npx`
 as optional agent asset managers, and declares `AGENTS.md` as a required file

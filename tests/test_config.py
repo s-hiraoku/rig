@@ -31,6 +31,7 @@ agents:
     assert config.agent("codex").command == "custom-codex"
     assert config.agent("codex").args == ["exec", "--sandbox"]
     assert config.agent("codex").prompt_style == "task"
+    assert config.agent("codex").timeout_seconds == 300
 
 
 def test_load_config_rejects_invalid_agent_args(tmp_path: Path) -> None:
@@ -66,13 +67,48 @@ agents:
     assert config.agent("external").command == "external"
 
 
+def test_load_config_accepts_pty_runner_with_timeout(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  interactive:
+    runner: pty
+    command: interactive
+    timeout_seconds: 5
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.agent("interactive").runner == "pty"
+    assert config.agent("interactive").timeout_seconds == 5
+
+
+def test_load_config_rejects_invalid_timeout(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """version: 1
+agents:
+  interactive:
+    runner: pty
+    timeout_seconds: 0
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="agents.interactive.timeout_seconds"):
+        load_config(config_path)
+
+
 def test_load_config_rejects_unsupported_runner(tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         """version: 1
 agents:
   copilot:
-    runner: pty
+    runner: docker
     command: copilot
 """,
         encoding="utf-8",

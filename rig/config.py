@@ -13,6 +13,7 @@ class AgentConfig:
     command: str
     args: list[str]
     prompt_style: str
+    timeout_seconds: int
 
 
 @dataclass(frozen=True)
@@ -65,9 +66,9 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
     runner = value.get("runner", "exec")
     if not isinstance(runner, str) or not runner:
         raise ConfigError(f"Config value `agents.{name}.runner` must be a string.")
-    if runner not in {"exec", "manual"}:
+    if runner not in {"exec", "manual", "pty"}:
         raise ConfigError(
-            f"Config value `agents.{name}.runner` must be `exec` or `manual`."
+            f"Config value `agents.{name}.runner` must be `exec`, `manual`, or `pty`."
         )
 
     command = value.get("command", name)
@@ -90,9 +91,20 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
             f"Config value `agents.{name}.prompt_style` must be `rig` or `task`."
         )
 
+    timeout_seconds = value.get("timeout_seconds", 300)
+    if (
+        not isinstance(timeout_seconds, int)
+        or isinstance(timeout_seconds, bool)
+        or timeout_seconds <= 0
+    ):
+        raise ConfigError(
+            f"Config value `agents.{name}.timeout_seconds` must be a positive integer."
+        )
+
     return AgentConfig(
         runner=runner,
         command=command,
         args=cast(list[str], args),
         prompt_style=prompt_style,
+        timeout_seconds=timeout_seconds,
     )

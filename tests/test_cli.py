@@ -42,6 +42,22 @@ def install_fake_command(
     return command_path
 
 
+def install_fake_script(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    name: str,
+    body: str,
+) -> Path:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    command_path = bin_dir / name
+    command_path.write_text(f"#!{sys.executable}\n{body}", encoding="utf-8")
+    command_path.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    return command_path
+
+
 def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -283,6 +299,82 @@ agents:
     status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
     assert status["status"] == "waiting"
     assert status["exit_code"] is None
+
+
+def test_run_pty_agent_creates_transcript(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="interactive",
+        body=(
+            "import os\n"
+            "import sys\n"
+            "print(f'tty={os.isatty(0)}')\n"
+            "print(sys.argv[1])\n"
+        ),
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  interactive:
+    runner: pty
+    command: interactive
+    timeout_seconds: 5
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "interactive", "--task", "hello pty"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: succeeded" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    result = (run_dir / "result.md").read_text(encoding="utf-8")
+    assert "tty=True" in result
+    assert "# Task" in result
+    assert "hello pty" in result
+
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["agent"] == "interactive"
+    assert command["runner"] == "pty"
+
+
+def test_run_pty_agent_times_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="slow-interactive",
+        body="import time\nprint('started')\ntime.sleep(5)\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  slow:
+    runner: pty
+    command: slow-interactive
+    timeout_seconds: 1
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "slow", "--task", "hello"]) == 1
+
+    output = capsys.readouterr().out
+    assert "Status: failed" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    result = (run_dir / "result.md").read_text(encoding="utf-8")
+    assert "Rig PTY runner timed out after 1 seconds." in result
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["exit_code"] == 124
 
 
 def test_runs_complete_manual_run_with_result_text(

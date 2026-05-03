@@ -246,6 +246,13 @@ Runner types:
   It should be explicit opt-in, timeout-bound, transcript-backed, and never the
   default architecture.
 
+Implemented:
+
+- `runner: exec`
+- `runner: manual`
+- `runner: pty` with timeout-backed transcript capture
+- `rig runs complete` and `rig runs fail` for manual run lifecycle management
+
 Vendor tools should usually be presets over runner types:
 
 ```yaml
