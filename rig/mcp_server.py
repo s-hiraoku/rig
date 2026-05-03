@@ -75,6 +75,7 @@ def create_mcp_server() -> FastMCP:
 
         This is advisory only and never starts an agent run. Provide task text
         directly, or provide task_file to evaluate a file relative to cwd.
+        Pass task="" with no task_file to evaluate repository state only.
         Returns { ok, mode, agent, command, confidence, reasons, observations }.
         """
         return suggest_tool(task=task, task_file=task_file, cwd=cwd)
@@ -224,15 +225,21 @@ def suggest_tool(
         if resolved_task_file is not None:
             if task:
                 return error_response("Provide either task text or task_file, not both.")
-            task_text = Path(resolved_task_file).read_text(encoding="utf-8")
-        config = store.load_config()
+            try:
+                task_text = Path(resolved_task_file).read_text(encoding="utf-8")
+            except OSError as exc:
+                return error_response(f"Could not read task file: {exc}")
+        try:
+            config = store.load_config()
+        except RigNotInitializedError:
+            config = None
         suggestion = build_suggestion(
             store.cwd,
             task=task_text,
             config=config,
             task_file=resolved_task_file,
         )
-    except (ConfigError, OSError, RigNotInitializedError, ValueError) as exc:
+    except (ConfigError, ValueError) as exc:
         return error_response(str(exc))
 
     return {

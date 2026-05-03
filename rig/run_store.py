@@ -87,6 +87,7 @@ class RunArtifacts:
         return run_dir
 
     def path(self, filename: str) -> Path | None:
+        """Return an artifact path, raising ValueError if filename escapes run_dir."""
         run_dir = self.run_dir
         if run_dir is None:
             return None

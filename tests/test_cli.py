@@ -76,6 +76,35 @@ def test_suggest_supports_json_output(
     assert data["observations"]["git_repo"] is True
 
 
+def test_suggest_allows_uninitialized_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+
+    assert cli.main(["suggest", "hello", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["mode"] == "run"
+    assert data["observations"]["initialized"] is False
+
+
+def test_suggest_rejects_invalid_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+    (tmp_path / ".rig" / "config.yaml").write_text("[broken\n", encoding="utf-8")
+
+    assert cli.main(["suggest", "hello"]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Could not parse config file" in captured.err
+
+
 def test_suggest_prefers_task_file_for_long_task_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
