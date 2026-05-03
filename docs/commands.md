@@ -56,8 +56,8 @@ rig worktree apply latest
 - `prompt_style: template` enables `prompt_template` with `{agent}`,
   `{task_path}`, `{task}`, and `{task_md}` placeholders.
 - MCP tools expose the same run store and orchestrator as the CLI. The initial
-  tool set is `rig_run`, `rig_list_runs`, `rig_list_agents`, `rig_get_run`,
-  `rig_get_result`, `rig_get_diff`, and `rig_apply_patch`.
+  tool set is `rig_run`, `rig_list_runs`, `rig_list_agents`, `rig_suggest`,
+  `rig_get_run`, `rig_get_result`, `rig_get_diff`, and `rig_apply_patch`.
 - MCP also exposes the `rig_policy` prompt and `rig://policy` /
   `rig://agents-md` resources for agent policy and project instructions.
 - MCP `cwd` values must stay under the server launch directory, or under
