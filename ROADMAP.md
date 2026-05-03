@@ -329,7 +329,7 @@ configuration, not Rig defaults.
 
 Goal: expose Rig as structured tools for MCP-capable agents.
 
-Potential tools:
+Implemented:
 
 - `rig_run`
 - `rig_list_runs`
@@ -337,6 +337,7 @@ Potential tools:
 - `rig_get_result`
 - `rig_get_diff`
 - `rig_apply_patch`
+- `rig mcp serve` stdio server entrypoint
 
 Why MCP:
 

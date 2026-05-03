@@ -17,7 +17,7 @@ def test_top_level_help_shows_command_shape(
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "{init,run,list,show,worktree,history,guide,env}" in output
+    assert "{init,run,list,show,worktree,history,guide,env,mcp}" in output
     assert "worktree" in output
     assert "diff" not in output
     assert "apply" not in output

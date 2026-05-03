@@ -108,6 +108,12 @@ rig worktree show latest
 rig worktree apply latest
 ```
 
+For MCP-capable agents:
+
+```bash
+rig mcp serve
+```
+
 ## Commands
 
 ### `rig init`
@@ -424,6 +430,27 @@ Example:
 
 ```bash
 uv run rig guide agents
+```
+
+### `rig mcp serve`
+
+Runs Rig's MCP server over stdio. MCP-capable agents can use the server to
+start runs, list and inspect run history, read results, read captured worktree
+diffs, and apply reviewed worktree patches without parsing CLI text.
+
+Initial MCP tools:
+
+- `rig_run`
+- `rig_list_runs`
+- `rig_get_run`
+- `rig_get_result`
+- `rig_get_diff`
+- `rig_apply_patch`
+
+Example:
+
+```bash
+uv run rig mcp serve
 ```
 
 ### `rig env doctor`

@@ -6,3 +6,4 @@
 - Add exec, manual, and pty runners.
 - Add isolated worktree runs with captured patch review and apply commands.
 - Add environment diagnostics for project-specific harness requirements.
+- Add an initial MCP stdio server with structured Rig run tools.

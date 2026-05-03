@@ -25,6 +25,7 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
+  "mcp>=1.0",
   "pyyaml>=6.0",
 ]
 

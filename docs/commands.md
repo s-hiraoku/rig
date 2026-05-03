@@ -35,6 +35,7 @@ rig worktree apply latest
 - `rig env plan`: show a read-only environment plan.
 - `rig env bootstrap`: create missing Rig-owned environment files.
 - `rig guide agents`: generate an `AGENTS.md` snippet.
+- `rig mcp serve`: run Rig's MCP server over stdio.
 
 ## Notes
 
@@ -44,3 +45,6 @@ rig worktree apply latest
   marker in `result.md` while preserving full stdout in `stdout.log`.
 - `prompt_style: template` enables `prompt_template` with `{agent}`,
   `{task_path}`, `{task}`, and `{task_md}` placeholders.
+- MCP tools expose the same run store and orchestrator as the CLI. The initial
+  tool set is `rig_run`, `rig_list_runs`, `rig_get_run`, `rig_get_result`,
+  `rig_get_diff`, and `rig_apply_patch`.

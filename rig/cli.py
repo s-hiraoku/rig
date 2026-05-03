@@ -105,6 +105,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Create missing Rig-owned environment files and print next steps",
     )
 
+    mcp_parser = subparsers.add_parser("mcp", help="Expose Rig as MCP tools")
+    mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
+    mcp_subparsers.add_parser("serve", help="Run the Rig MCP server over stdio")
+
     return parser
 
 
@@ -171,6 +175,11 @@ def main(argv: list[str] | None = None) -> int:
             return env_plan(Path.cwd())
         if args.command == "env" and args.env_command == "bootstrap":
             return env_bootstrap(store)
+        if args.command == "mcp" and args.mcp_command == "serve":
+            from rig.mcp_server import serve_mcp
+
+            serve_mcp()
+            return 0
 
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
