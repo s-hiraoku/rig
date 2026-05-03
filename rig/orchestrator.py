@@ -10,7 +10,7 @@ from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.adapters.manual import ManualAdapter
 from rig.run_store import RunStore
-from rig.worktree import capture_diff, create_worktree
+from rig.worktree import WorktreeError, capture_diff, create_worktree
 
 
 @dataclass(frozen=True)
@@ -166,10 +166,26 @@ class RunOrchestrator:
         context.stderr_path.write_text(result.stderr, encoding="utf-8")
         context.result_path.write_text(build_result_document(result.stdout), encoding="utf-8")
         if context.worktree_path is not None:
-            context.diff_path.write_text(
-                capture_diff(context.worktree_path),
-                encoding="utf-8",
-            )
+            try:
+                context.diff_path.write_text(
+                    capture_diff(context.worktree_path),
+                    encoding="utf-8",
+                )
+            except WorktreeError as exc:
+                finished_at = iso_now()
+                diff_error = f"Rig worktree diff capture failed: {exc}\n"
+                stderr = result.stderr
+                if stderr and not stderr.endswith("\n"):
+                    stderr += "\n"
+                context.stderr_path.write_text(stderr + diff_error, encoding="utf-8")
+                self.store.write_status(
+                    context,
+                    status="failed",
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    exit_code=1,
+                )
+                raise
 
         finished_at = iso_now()
         status = "succeeded" if result.exit_code == 0 else "failed"
