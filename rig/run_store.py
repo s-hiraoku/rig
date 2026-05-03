@@ -264,14 +264,17 @@ class RunStore:
             return None
 
     def read_result(self, run: dict[str, Any]) -> str:
+        return self.read_artifact(run, "result.md")
+
+    def read_artifact(self, run: dict[str, Any], filename: str) -> str:
         run_dir_value = run.get("run_dir")
         if not isinstance(run_dir_value, str) or not run_dir_value:
             return ""
         run_dir = self.cwd / run_dir_value
-        result_path = run_dir / "result.md"
-        if not result_path.is_file():
+        artifact_path = run_dir / filename
+        if not artifact_path.is_file():
             return ""
-        return result_path.read_text(encoding="utf-8")
+        return artifact_path.read_text(encoding="utf-8", errors="replace")
 
     def _display_path(self, path: Path) -> str:
         try:

@@ -214,12 +214,17 @@ def show_run(store: RunStore, run_id: str) -> int:
 
     run_dir = str(run.get("run_dir", ""))
     result_path = f"{run_dir}/result.md" if run_dir else "result.md"
+    stderr_path = f"{run_dir}/stderr.log" if run_dir else "stderr.log"
     result = store.read_result(run)
+    stderr = store.read_artifact(run, "stderr.log")
     print(f"ID:        {run.get('id', '')}")
     print(f"Agent:     {run.get('agent', '')}")
     print(f"Status:    {run.get('status', '')}")
+    if run.get("exit_code") is not None:
+        print(f"Exit code: {run.get('exit_code')}")
     print(f"Run dir:   {run_dir}")
     print(f"Result:    {result_path}")
+    print(f"Stderr:    {stderr_path}")
     print()
     print("--- Result ---")
     print()
@@ -227,6 +232,15 @@ def show_run(store: RunStore, run_id: str) -> int:
         print(result, end="")
     else:
         print("(result.md is missing or empty)")
+
+    if str(run.get("status", "")) == "failed":
+        print()
+        print("--- Error ---")
+        print()
+        if stderr.strip():
+            print(stderr, end="" if stderr.endswith("\n") else "\n")
+        else:
+            print("(stderr.log is missing or empty)")
     return 0
 
 

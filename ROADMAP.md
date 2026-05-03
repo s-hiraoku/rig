@@ -47,9 +47,6 @@ Implemented:
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
 - friendlier handling of empty, damaged, or incomplete run history
 - `rig run codex --dry-run` command preview mode
-
-Still in scope for Phase 1 polish:
-
 - clearer failed-run inspection output
 
 ## Phase 1.5: Agent Environment Integration

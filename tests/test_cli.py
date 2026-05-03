@@ -339,7 +339,43 @@ def test_runs_show_handles_missing_result(
 
     output = capsys.readouterr().out
     assert "ID:        missing-result" in output
+    assert "Exit code: 0" in output
     assert "(result.md is missing or empty)" in output
+
+
+def test_runs_show_failed_run_includes_stderr(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    run_dir = tmp_path / ".rig" / "runs" / "failed-run"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "id": "failed-run",
+                "agent": "codex",
+                "status": "failed",
+                "started_at": "2026-05-02T20:30:12+09:00",
+                "finished_at": "2026-05-02T20:31:04+09:00",
+                "exit_code": 2,
+                "run_dir": ".rig/runs/failed-run",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "result.md").write_text("", encoding="utf-8")
+    (run_dir / "stderr.log").write_text("first error\nsecond error\n", encoding="utf-8")
+
+    assert cli.main(["runs", "show", "failed-run"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status:    failed" in output
+    assert "Exit code: 2" in output
+    assert "Stderr:    .rig/runs/failed-run/stderr.log" in output
+    assert "--- Error ---" in output
+    assert "first error" in output
+    assert "second error" in output
 
 
 def test_agents_snippet_prints_agents_md_section(

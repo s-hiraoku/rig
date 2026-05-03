@@ -257,6 +257,8 @@ Shows metadata and the result for a specific run.
 
 If the run metadata is missing or unreadable, Rig reports that the run was not
 found or unreadable. If `result.md` is missing, Rig still shows the run metadata.
+Failed runs also show the exit code and an `--- Error ---` section sourced from
+`stderr.log`, so a failed run remains inspectable even when `result.md` is empty.
 
 Example:
 
