@@ -1,13 +1,45 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
 from rig import cli
-from rig.adapters.codex import AgentResult
-from rig.run_context import RunContext
+
+
+def install_fake_command(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    name: str = "codex",
+    stdout: str = "done\n",
+    stderr: str = "",
+    exit_code: int = 0,
+) -> Path:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    command_path = bin_dir / name
+    command_path.write_text(
+        "\n".join(
+            [
+                f"#!{sys.executable}",
+                "import json",
+                "import pathlib",
+                "import sys",
+                "pathlib.Path('fake-command-argv.json').write_text(json.dumps(sys.argv), encoding='utf-8')",
+                f"sys.stdout.write({stdout!r})",
+                f"sys.stderr.write({stderr!r})",
+                f"raise SystemExit({exit_code})",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    command_path.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    return command_path
 
 
 def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -114,12 +146,7 @@ def test_run_codex_writes_artifacts(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
-
-    def fake_run(self: object, context: RunContext) -> AgentResult:
-        assert context.task_path.read_text(encoding="utf-8") == "# Task\n\nhello\n"
-        return AgentResult(exit_code=0, stdout="done\n", stderr="")
-
-    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
 
     assert cli.main(["run", "codex", "--task", "hello"]) == 0
 
@@ -133,6 +160,9 @@ def test_run_codex_writes_artifacts(
     assert (run_dir / "stdout.log").read_text(encoding="utf-8") == "done\n"
     assert (run_dir / "stderr.log").read_text(encoding="utf-8") == ""
     assert (run_dir / "result.md").read_text(encoding="utf-8") == "done\n"
+    fake_argv = json.loads((tmp_path / "fake-command-argv.json").read_text())
+    assert fake_argv[1] == "exec"
+    assert "Read the task file" in fake_argv[2]
 
     command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
     assert command["agent"] == "codex"
@@ -149,6 +179,7 @@ def test_run_codex_uses_configured_command(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, name="custom-codex", stdout="done\n")
     (tmp_path / ".rig" / "config.yaml").write_text(
         """version: 1
 default_agent: codex
@@ -162,11 +193,6 @@ agents:
 """,
         encoding="utf-8",
     )
-
-    def fake_run(self: object, context: RunContext) -> AgentResult:
-        return AgentResult(exit_code=0, stdout="done\n", stderr="")
-
-    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
 
     assert cli.main(["run", "codex", "--task", "hello"]) == 0
 
@@ -182,11 +208,6 @@ def test_run_codex_dry_run_writes_artifacts_without_executing(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
-
-    def fake_run(self: object, context: RunContext) -> AgentResult:
-        raise AssertionError("dry run should not execute the adapter")
-
-    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
 
     assert cli.main(["run", "codex", "--task", "hello", "--dry-run"]) == 0
 
@@ -205,6 +226,7 @@ def test_run_codex_dry_run_writes_artifacts_without_executing(
     command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
     assert command["command"] == "codex"
     assert command["args"][0] == "exec"
+    assert not (tmp_path / "fake-command-argv.json").exists()
 
     status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
     assert status["status"] == "created"
@@ -238,11 +260,13 @@ def test_failed_run_prints_stderr_summary(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
-
-    def fake_run(self: object, context: RunContext) -> AgentResult:
-        return AgentResult(exit_code=1, stdout="", stderr="first error\nsecond error\n")
-
-    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
+    install_fake_command(
+        tmp_path,
+        monkeypatch,
+        stdout="",
+        stderr="first error\nsecond error\n",
+        exit_code=1,
+    )
 
     assert cli.main(["run", "codex", "--task", "hello"]) == 1
 
@@ -256,11 +280,7 @@ def test_runs_list_and_show_latest(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
-
-    def fake_run(self: object, context: RunContext) -> AgentResult:
-        return AgentResult(exit_code=0, stdout="latest result\n", stderr="")
-
-    monkeypatch.setattr(cli.CodexAdapter, "run", fake_run)
+    install_fake_command(tmp_path, monkeypatch, stdout="latest result\n")
     cli.main(["run", "codex", "--task", "hello"])
 
     assert cli.main(["runs", "list"]) == 0
