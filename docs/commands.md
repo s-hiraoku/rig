@@ -4,6 +4,9 @@ title: Command Reference
 
 # Command Reference
 
+This page is a compact reference. For scenario-based guidance, start with
+[Workflows](workflows.md).
+
 ## Common Flow
 
 ```bash
