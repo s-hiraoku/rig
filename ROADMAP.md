@@ -56,7 +56,7 @@ Possible additions:
 - `rig agents snippet --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
 - `rig env bootstrap`
-- `rig env apm status`
+- `rig env manager status`
 
 Skills and instruction files are not a replacement for MCP. They tell agents
 how to use Rig and what policies to follow. MCP gives agents structured tools.
@@ -65,14 +65,15 @@ Rig should not become a package manager for agent assets. Existing package
 managers should own fetching, locking, auditing, and deploying skills, hooks,
 prompts, and MCP server configuration.
 
-Recommended external managers:
+Detected external managers:
 
-- APM for manifest-driven, reproducible agent environment setup with lockfiles
-  and policy support.
+- APM for manifest-driven, reproducible agent environment setup with lockfiles.
 - `gh skill` / `gh skills` for GitHub-hosted agent skill search, preview,
   install, update, and publish workflows.
 - Vercel `skills` / skills.sh for discovering and installing open Agent Skills
   packages.
+- Manual or team-specific conventions for repositories that do not want a
+  package manager.
 
 Rig's role is integration:
 
@@ -90,7 +91,7 @@ Potential `rig env doctor` checks:
 - Git repository present
 - Codex command available
 - APM installed
-- `apm.yml` and `apm.lock.yaml` present when APM is used
+- known manifests and lockfiles present when a manager is used
 - `AGENTS.md` or equivalent instruction file present
 - Rig snippet appears to be included
 
@@ -143,16 +144,20 @@ tools:
     required: true
     check: gh --version
     install_hint: brew install gh
-  apm:
+  agent_asset_manager:
     required: false
-    check: apm --version
-    install_hint: Install APM from the upstream installer.
+    options:
+      - apm
+      - gh-skill
+      - vercel-skills
+      - manual
 
 agent_assets:
   managers:
     - apm
     - gh-skill
     - vercel-skills
+    - manual
 
 instructions:
   agents_md:

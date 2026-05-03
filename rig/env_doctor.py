@@ -74,9 +74,9 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
     add_tool_check(
         checks,
         suggestions,
-        label="APM",
+        label="APM asset manager",
         command="apm",
-        install_hint="Install APM if this project uses APM-managed agent assets.",
+        install_hint="Choose an agent asset manager if this project needs shared skills, hooks, prompts, or MCP config.",
         missing_status="optional",
     )
     gh_found = add_tool_check(
@@ -84,7 +84,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         suggestions,
         label="GitHub CLI",
         command="gh",
-        install_hint="Install GitHub CLI if you use `gh skill` workflows.",
+        install_hint="Install GitHub CLI if this project uses `gh skill` workflows.",
         missing_status="optional",
     )
     if gh_found:
@@ -95,7 +95,7 @@ def add_tool_checks(checks: list[DoctorCheck], suggestions: list[str]) -> None:
         suggestions,
         label="npx",
         command="npx",
-        install_hint="Install Node.js/npm if you use Vercel `skills` workflows.",
+        install_hint="Install Node.js/npm if this project uses Vercel `skills` workflows.",
         missing_status="optional",
     )
 
@@ -167,7 +167,6 @@ def add_agent_asset_checks(
             suggestions.append("Run: apm install")
     else:
         checks.append(DoctorCheck("APM manifest", "optional", "not found"))
-        suggestions.append("Create apm.yml if this project uses APM.")
 
 
 def find_git_dir(start: Path) -> Path | None:
@@ -201,7 +200,7 @@ def format_env_plan(report: DoctorReport) -> str:
         "- Git repository for trusted agent execution",
         "- Rig initialized with `.rig/config.yaml` and `.rig/runs/`",
         "- Codex CLI available for `rig run codex`",
-        "- Optional agent asset managers available as needed: APM, `gh skill`, Vercel `skills` via `npx`",
+        "- Optional agent asset managers available as needed: APM, `gh skill`, Vercel `skills` via `npx`, or manual instructions",
         "- Optional agent instructions such as `AGENTS.md` include the Rig snippet",
         "",
         "Current gaps",
@@ -225,6 +224,11 @@ def format_env_plan(report: DoctorReport) -> str:
         lines.extend(f"- {suggestion}" for suggestion in report.suggestions)
     else:
         lines.append("- No action needed.")
+
+    if any(check.label.endswith("asset manager") for check in report.checks):
+        lines.append(
+            "- Agent asset managers are optional. Pick one only if this project needs shared skills, hooks, prompts, or MCP config."
+        )
 
     lines.extend(
         [

@@ -19,7 +19,7 @@ def test_build_doctor_report_reports_missing_basics(
     assert labels["Git repository"].status == "missing"
     assert labels["Rig config"].status == "missing"
     assert labels["Codex CLI"].status == "missing"
-    assert labels["APM"].status == "optional"
+    assert labels["APM asset manager"].status == "optional"
     assert labels["GitHub CLI"].status == "optional"
     assert labels["npx"].status == "optional"
     assert "Run: git init" in report.suggestions
@@ -102,9 +102,14 @@ def test_format_env_plan_lists_gaps_and_actions() -> None:
     report = env_doctor.DoctorReport(
         checks=[
             env_doctor.DoctorCheck("Rig config", "missing", "missing .rig/config.yaml"),
-            env_doctor.DoctorCheck("APM", "optional", "`apm` not found on PATH"),
+            env_doctor.DoctorCheck(
+                "APM asset manager", "optional", "`apm` not found on PATH"
+            ),
         ],
-        suggestions=["Run: rig init", "Install APM if needed."],
+        suggestions=[
+            "Run: rig init",
+            "Choose an agent asset manager if this project needs shared skills, hooks, prompts, or MCP config.",
+        ],
     )
 
     output = env_doctor.format_env_plan(report)
@@ -112,9 +117,10 @@ def test_format_env_plan_lists_gaps_and_actions() -> None:
     assert "Rig environment plan" in output
     assert "Desired harness" in output
     assert "[missing] Rig config: missing .rig/config.yaml" in output
-    assert "[optional] APM: `apm` not found on PATH" in output
+    assert "[optional] APM asset manager: `apm` not found on PATH" in output
     assert "Planned actions" in output
     assert "- Run: rig init" in output
+    assert "Agent asset managers are optional" in output
     assert "No files will be changed." in output
 
 

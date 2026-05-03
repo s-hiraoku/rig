@@ -10,10 +10,10 @@ See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
 additional adapters, and MCP tools.
 
 Rig does not try to replace package managers for agent assets. Tools such as
-APM, GitHub CLI `gh skill`, and Vercel `skills` are better suited for fetching,
-locking, auditing, and deploying skills, hooks, prompts, and MCP server
-configuration. Rig focuses on running agents and preserving inspectable run
-artifacts.
+APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
+fetching, locking, auditing, and deploying skills, hooks, prompts, and MCP
+server configuration. Rig focuses on running agents and preserving inspectable
+run artifacts.
 
 Rig can still help with the surrounding harness environment. The intended
 direction is to diagnose and explain what is missing from a preferred agent
@@ -244,7 +244,7 @@ uv run rig agents snippet
 Runs read-only diagnostics for the local Rig and agent harness environment.
 
 It checks for the Git repository, `.rig/config.yaml`, `.rig/runs/`, Codex CLI,
-APM, GitHub CLI, `gh skill`, `npx`, `AGENTS.md`, and APM manifest files. Rig
+known optional agent asset managers, `AGENTS.md`, and known manifest files. Rig
 does not install tools or edit third-party agent asset files.
 
 Statuses are `ok`, `missing`, `optional`, and `warn`. Required Rig/Codex basics
