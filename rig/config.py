@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import yaml
 
+from rig.prompt import empty_prompt_template_values
 from rig.runners import SUPPORTED_RUNNERS
 
 
@@ -132,7 +133,7 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
 
 def validate_prompt_template(name: str, prompt_template: str) -> None:
     try:
-        prompt_template.format(agent="", task_path="", task="", task_md="")
+        prompt_template.format(**empty_prompt_template_values())
     except KeyError as exc:
         raise ConfigError(
             f"Config value `agents.{name}.prompt_template` uses unknown placeholder: {exc.args[0]}"

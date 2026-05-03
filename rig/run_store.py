@@ -206,7 +206,7 @@ class RunStore:
         return load_config(self.config_path)
 
     def create_run(
-        self, agent: str, raw_task: str = "", now: datetime | None = None
+        self, agent: str, raw_task: str, now: datetime | None = None
     ) -> RunContext:
         self.ensure_initialized()
         timestamp = (now or datetime.now().astimezone()).strftime("%Y%m%d-%H%M%S")

@@ -1,3 +1,5 @@
+"""Unit tests for the lower-level rig.worktree helpers."""
+
 from __future__ import annotations
 
 import subprocess

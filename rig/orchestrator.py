@@ -169,8 +169,7 @@ def read_task(request: RunRequest) -> TaskInput:
         if not request.task_file:
             raise ValueError("--task-file requires a non-empty path.")
         return TaskInput(Path(request.task_file).read_text(encoding="utf-8"), False)
-    if request.task is None:
-        raise ValueError("Provide exactly one of --task or --task-file.")
+    assert request.task is not None
     return TaskInput(request.task, True)
 
 

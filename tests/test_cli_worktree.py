@@ -1,3 +1,5 @@
+"""CLI integration tests for `rig worktree ...` commands."""
+
 from __future__ import annotations
 
 import json

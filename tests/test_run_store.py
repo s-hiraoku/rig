@@ -102,8 +102,8 @@ def test_create_run_uses_suffix_for_same_second(tmp_path: Path) -> None:
     store.init()
     now = datetime(2026, 5, 2, 20, 30, 12)
 
-    first = store.create_run("codex", now=now)
-    second = store.create_run("codex", now=now)
+    first = store.create_run("codex", raw_task="first", now=now)
+    second = store.create_run("codex", raw_task="second", now=now)
 
     assert first.id == "20260502-203012-codex"
     assert second.id == "20260502-203012-codex-2"
@@ -114,7 +114,7 @@ def test_create_run_uses_suffix_for_same_second(tmp_path: Path) -> None:
 def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:
     store = RunStore(tmp_path)
     store.init()
-    context = store.create_run("codex")
+    context = store.create_run("codex", raw_task="Review the current diff.")
 
     store.write_task(context, "Review the current diff.")
 
@@ -126,7 +126,7 @@ def test_write_task_uses_markdown_heading(tmp_path: Path) -> None:
 def test_write_task_can_preserve_task_file_content(tmp_path: Path) -> None:
     store = RunStore(tmp_path)
     store.init()
-    context = store.create_run("codex")
+    context = store.create_run("codex", raw_task="# Existing\n\nDo it.\n")
 
     store.write_task(context, "# Existing\n\nDo it.\n", wrap=False)
 

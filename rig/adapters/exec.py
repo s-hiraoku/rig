@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from os.path import relpath
 
 from rig.config import AgentConfig
+from rig.prompt import prompt_template_values
 from rig.run_context import RunContext
 
 
@@ -37,10 +38,12 @@ class ExecAdapter:
         task_path = relpath(context.task_path, context.execution_cwd)
         if self.config.prompt_template is not None:
             return self.config.prompt_template.format(
-                agent=self.name,
-                task_path=task_path,
-                task=context.raw_task,
-                task_md=context.task_path.read_text(encoding="utf-8"),
+                **prompt_template_values(
+                    agent=self.name,
+                    task_path=task_path,
+                    task=context.raw_task,
+                    task_md=context.task_path.read_text(encoding="utf-8"),
+                )
             )
         if self.config.prompt_style == "task":
             return context.task_path.read_text(encoding="utf-8")
