@@ -642,6 +642,37 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
 
 
+def test_apply_empty_worktree_diff_is_noop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="noop",
+        body="print('noop')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  noop:
+    runner: exec
+    command: noop
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+    cli.main(["run", "noop", "--task", "do nothing", "--worktree"])
+
+    assert cli.main(["apply", "latest"]) == 0
+
+    output = capsys.readouterr().out
+    assert "No changes to apply: .rig/runs/" in output
+    assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
+
+
 def test_runs_list_and_show_latest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -431,6 +431,10 @@ def apply_diff(store: RunStore, run_id: str) -> int:
         return 1
 
     diff_path = store.cwd / diff_path_value
+    if diff_path.is_file() and not diff_path.read_text(encoding="utf-8").strip():
+        print(f"No changes to apply: {diff_path_value}")
+        return 0
+
     apply_patch(store.cwd, diff_path)
     print(f"Applied: {diff_path_value}")
     return 0
