@@ -4,7 +4,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from rig.adapters.codex import CodexAdapter, CodexNotFoundError, iso_now
+from rig.adapters.codex import iso_now
+from rig.adapters.exec import AgentCommandNotFoundError, ExecAdapter
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
@@ -29,14 +30,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     run_parser = subparsers.add_parser("run", help="Run an agent")
-    run_subparsers = run_parser.add_subparsers(dest="agent", required=True)
-    codex_parser = run_subparsers.add_parser("codex", help="Run Codex through Rig")
-    codex_parser.add_argument("--task", help="Task text to pass to the agent")
-    codex_parser.add_argument("--task-file", help="Path to a file containing the task")
-    codex_parser.add_argument(
+    run_parser.add_argument("agent", help="Configured agent name, such as codex")
+    run_parser.add_argument("--task", help="Task text to pass to the agent")
+    run_parser.add_argument("--task-file", help="Path to a file containing the task")
+    run_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Create run artifacts and command metadata without executing Codex",
+        help="Create run artifacts and command metadata without executing the agent",
     )
 
     runs_parser = subparsers.add_parser("runs", help="Inspect run history")
@@ -83,8 +83,8 @@ def main(argv: list[str] | None = None) -> int:
             print_init_result(result)
             return 0
 
-        if args.command == "run" and args.agent == "codex":
-            return run_codex(args, store)
+        if args.command == "run":
+            return run_agent(args, store)
 
         if args.command == "runs":
             if args.runs_command == "list":
@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    except CodexNotFoundError as exc:
+    except AgentCommandNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1
     except ConfigError as exc:
@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
-def run_codex(args: argparse.Namespace, store: RunStore) -> int:
+def run_agent(args: argparse.Namespace, store: RunStore) -> int:
     if bool(args.task) == bool(args.task_file):
         print("Provide exactly one of --task or --task-file.", file=sys.stderr)
         return 2
@@ -125,11 +125,11 @@ def run_codex(args: argparse.Namespace, store: RunStore) -> int:
     if args.task_file:
         task = Path(args.task_file).read_text(encoding="utf-8")
 
-    agent_config = store.load_config().agent("codex")
-    context = store.create_run("codex")
+    agent_config = store.load_config().agent(args.agent)
+    context = store.create_run(args.agent)
     store.write_task(context, task)
 
-    adapter = CodexAdapter(command=agent_config.command, args=agent_config.args)
+    adapter = ExecAdapter(args.agent, agent_config)
     started_at = iso_now()
     store.write_command(context, adapter.command_metadata(context, started_at))
 
@@ -150,7 +150,7 @@ def run_codex(args: argparse.Namespace, store: RunStore) -> int:
 
     try:
         result = adapter.run(context)
-    except CodexNotFoundError:
+    except AgentCommandNotFoundError:
         finished_at = iso_now()
         store.write_status(
             context,

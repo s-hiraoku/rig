@@ -9,8 +9,10 @@ import yaml
 
 @dataclass(frozen=True)
 class AgentConfig:
+    runner: str
     command: str
     args: list[str]
+    prompt_style: str
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,14 @@ def load_config(path: Path) -> RigConfig:
 
 
 def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
+    runner = value.get("runner", "exec")
+    if not isinstance(runner, str) or not runner:
+        raise ConfigError(f"Config value `agents.{name}.runner` must be a string.")
+    if runner != "exec":
+        raise ConfigError(
+            f"Config value `agents.{name}.runner` must be `exec` in this version."
+        )
+
     command = value.get("command", name)
     if not isinstance(command, str) or not command:
         raise ConfigError(f"Config value `agents.{name}.command` must be a string.")
@@ -70,5 +80,19 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
     if not isinstance(args, list) or not all(isinstance(item, str) for item in args):
         raise ConfigError(f"Config value `agents.{name}.args` must be a list of strings.")
 
-    return AgentConfig(command=command, args=cast(list[str], args))
+    prompt_style = value.get("prompt_style", "rig")
+    if not isinstance(prompt_style, str) or not prompt_style:
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_style` must be a string."
+        )
+    if prompt_style not in {"rig", "task"}:
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_style` must be `rig` or `task`."
+        )
 
+    return AgentConfig(
+        runner=runner,
+        command=command,
+        args=cast(list[str], args),
+        prompt_style=prompt_style,
+    )

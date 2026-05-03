@@ -7,7 +7,7 @@ Rig's main unit is a run. A run records the task, the command Rig executed,
 stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
-additional adapters, and MCP tools.
+generic execution runners, and MCP tools.
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
@@ -60,8 +60,9 @@ with `uv tool install`, use `rig ...`.
 
 ## Requirements
 
-`rig run codex` calls `codex exec`, so the Codex CLI must be installed and
-available on `PATH` before running Codex through Rig.
+`rig run <agent>` executes the configured agent command from `.rig/config.yaml`.
+The default `codex` agent calls `codex exec`, so the Codex CLI must be installed
+and available on `PATH` before running Codex through Rig.
 
 Codex may also require the current directory to be a trusted Git repository.
 If a run fails with this error:
@@ -140,10 +141,34 @@ For Codex, Rig reads `agents.codex.command` and `agents.codex.args`:
 ```yaml
 agents:
   codex:
+    runner: exec
     command: codex
     args:
       - exec
 ```
+
+Rig currently supports the `exec` runner: non-interactive command execution with
+the task prompt appended as the final argument. Other CLIs can be configured the
+same way when they expose a stable non-interactive prompt mode:
+
+```yaml
+agents:
+  copilot:
+    runner: exec
+    command: copilot
+    args:
+      - -p
+    prompt_style: task
+  gemini:
+    runner: exec
+    command: gemini
+    args:
+      - --prompt
+    prompt_style: task
+```
+
+`prompt_style: rig` passes Rig's standard instruction prompt with a task file
+path. `prompt_style: task` passes the raw task file content.
 
 The generated `.rig/env.yaml` declares the default harness environment checks.
 By default it lists APM, GitHub CLI `gh skills`, and Vercel `skills` via `npx`
@@ -170,12 +195,12 @@ required_files:
     label: Agent instructions
 ```
 
-### `rig run codex --task "..."`
+### `rig run <agent> --task "..."`
 
-Starts a new Codex run using task text passed directly on the command line.
+Starts a new agent run using task text passed directly on the command line.
 
 Rig creates a unique run directory, writes the task to `task.md`, executes
-the configured Codex command, captures stdout and stderr, writes `result.md`,
+the configured agent command, captures stdout and stderr, writes `result.md`,
 and records the final status in `status.json`.
 
 Example:
@@ -193,7 +218,7 @@ Result: .rig/runs/20260502-203012-codex/result.md
 ```
 
 Use `--dry-run` to create the run directory, task file, command metadata, and
-status file without executing Codex:
+status file without executing the agent:
 
 ```bash
 uv run rig run codex --task "Review the current diff." --dry-run
@@ -202,9 +227,9 @@ uv run rig run codex --task "Review the current diff." --dry-run
 Dry-run runs use status `created` and write the command preview to
 `command.json`.
 
-### `rig run codex --task-file task.md`
+### `rig run <agent> --task-file task.md`
 
-Starts a new Codex run using task text read from a file.
+Starts a new agent run using task text read from a file.
 
 Use this when the task is too long or structured to pass comfortably as a shell
 argument.

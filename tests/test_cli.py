@@ -201,6 +201,52 @@ agents:
     command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
     assert command["command"] == "custom-codex"
     assert command["args"][:3] == ["exec", "--profile", "review"]
+    assert command["runner"] == "exec"
+
+
+def test_run_configured_exec_agent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, name="copilot", stdout="copilot done\n")
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+default_agent: codex
+agents:
+  codex:
+    runner: exec
+    command: codex
+    args:
+      - exec
+  copilot:
+    runner: exec
+    command: copilot
+    args:
+      - -p
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "copilot", "--task", "hello"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Status: succeeded" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert run_dir.name.endswith("-copilot")
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == "copilot done\n"
+
+    fake_argv = json.loads((tmp_path / "fake-command-argv.json").read_text())
+    assert fake_argv[0].endswith("/copilot")
+    assert fake_argv[1] == "-p"
+    assert fake_argv[2] == "# Task\n\nhello\n"
+
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["agent"] == "copilot"
+    assert command["runner"] == "exec"
+    assert command["command"] == "copilot"
+    assert command["args"][0] == "-p"
 
 
 def test_run_codex_dry_run_writes_artifacts_without_executing(

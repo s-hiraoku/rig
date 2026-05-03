@@ -227,20 +227,50 @@ Concepts:
 
 Rig should still avoid automatic patch application by default.
 
-## Phase 3: More Adapters
+## Phase 3: Generic Execution Runners
 
-Goal: support more execution backends behind the same Run model.
+Goal: support Codex, GitHub Copilot CLI, Gemini CLI, Claude CLI, and future
+agent CLIs without hard-coding each vendor as a first-class adapter.
 
-Potential adapters:
+Rig should model execution style first and vendor presets second.
 
-- `ClaudeAdapter`
-- `GeminiAdapter`
-- `CustomCommandAdapter`
-- `ManualAdapter`
-- `PtyAdapter`
+Runner types:
 
-PTY support should remain experimental and should not become the default
-architecture.
+- `exec`: non-interactive command execution. This is the default and should
+  cover tools with programmatic prompt flags such as Codex CLI, GitHub Copilot
+  CLI `copilot -p`, and Gemini CLI prompt modes.
+- `manual`: create and track a Run for human-driven, GUI-driven, or
+  externally executed work. Rig creates artifacts; a human or external agent
+  completes them later.
+- `pty`: experimental interactive terminal runner for CLIs that require a TTY.
+  It should be explicit opt-in, timeout-bound, transcript-backed, and never the
+  default architecture.
+
+Vendor tools should usually be presets over runner types:
+
+```yaml
+agents:
+  codex:
+    runner: exec
+    command: codex
+    args:
+      - exec
+  copilot:
+    runner: exec
+    command: copilot
+    args:
+      - -p
+  gemini:
+    runner: exec
+    command: gemini
+    args:
+      - --prompt
+```
+
+GitHub Copilot CLI and Gemini CLI should not require dedicated adapters unless
+their stable non-interactive contracts need special handling. Risky permission
+flags such as Copilot's broad tool approval options should remain explicit user
+configuration, not Rig defaults.
 
 ## Phase 4: MCP Server
 
