@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+{%- assign page_lang = page.lang | default: "en" -%}
+<html lang="{{ page_lang }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='32' y='42' font-family='ui-sans-serif,system-ui' font-size='32' font-weight='800' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}">
     <script>
       (function () {
@@ -20,16 +21,32 @@
       })();
     </script>
   </head>
-  <body>
+  <body data-lang="{{ page_lang }}">
+    {%- if page_lang == "ja" -%}
+      {%- assign nav_data = "Start|/ja/|概要;;Start|/ja/getting-started.html|はじめに;;Start|/ja/concepts.html|コアコンセプト;;Use|/ja/workflows.html|ワークフロー;;Use|/ja/recipes.html|レシピ;;Use|/ja/commands.html|コマンドリファレンス;;Use|/ja/artifacts.html|実行アーティファクト;;Use|/ja/worktrees.html|Worktree 実行;;Operate|/ja/configuration.html|設定;;Operate|/ja/agents.html|エージェント;;Operate|/ja/prompts.html|プロンプトスタイル;;Operate|/ja/mcp.html|MCP サーバ;;Operate|/ja/troubleshooting.html|トラブルシューティング;;Operate|/ja/faq.html|FAQ;;Operate|/ja/github-pages.html|GitHub Pages" -%}
+      {%- assign nav_group_labels = "Start=スタート,Use=使う,Operate=運用" -%}
+      {%- assign tagline = "ローカルで動く検査可能な AI コーディングハーネス" -%}
+      {%- assign label_prev = "前へ" -%}
+      {%- assign label_next = "次へ" -%}
+      {%- assign label_lang_alt = "English" -%}
+      {%- assign url_lang_alt = "/" -%}
+    {%- else -%}
+      {%- assign nav_data = "Start|/|Overview;;Start|/getting-started.html|Getting Started;;Start|/concepts.html|Core Concepts;;Use|/workflows.html|Workflows;;Use|/recipes.html|Recipes;;Use|/commands.html|Command Reference;;Use|/artifacts.html|Run Artifacts;;Use|/worktrees.html|Worktree Runs;;Operate|/configuration.html|Configuration;;Operate|/agents.html|Agents;;Operate|/prompts.html|Prompt Styles;;Operate|/mcp.html|MCP Server;;Operate|/troubleshooting.html|Troubleshooting;;Operate|/faq.html|FAQ;;Operate|/github-pages.html|GitHub Pages" -%}
+      {%- assign nav_group_labels = "Start=Start,Use=Use,Operate=Operate" -%}
+      {%- assign tagline = "Inspectable local AI coding runs" -%}
+      {%- assign label_prev = "Previous" -%}
+      {%- assign label_next = "Next" -%}
+      {%- assign label_lang_alt = "日本語" -%}
+      {%- assign url_lang_alt = "/ja/" -%}
+    {%- endif -%}
+
     {%- assign nav_groups = "Start,Use,Operate" | split: "," -%}
-
-    {%- comment -%} Ordered nav: each entry is "Group|/url|Title", separated by `;;`. {%- endcomment -%}
-    {%- assign nav_data = "Start|/|Overview;;Start|/getting-started.html|Getting Started;;Start|/concepts.html|Core Concepts;;Use|/workflows.html|Workflows;;Use|/recipes.html|Recipes;;Use|/commands.html|Command Reference;;Use|/artifacts.html|Run Artifacts;;Use|/worktrees.html|Worktree Runs;;Operate|/configuration.html|Configuration;;Operate|/agents.html|Agents;;Operate|/prompts.html|Prompt Styles;;Operate|/mcp.html|MCP Server;;Operate|/troubleshooting.html|Troubleshooting;;Operate|/faq.html|FAQ;;Operate|/github-pages.html|GitHub Pages" -%}
     {%- assign nav_lines = nav_data | split: ";;" -%}
+    {%- assign nav_label_pairs = nav_group_labels | split: "," -%}
 
-    {%- comment -%} Build flat ordered list for prev/next. {%- endcomment -%}
     {%- assign current_url = page.url -%}
     {%- if current_url == "/index.html" -%}{%- assign current_url = "/" -%}{%- endif -%}
+    {%- if current_url == "/ja/index.html" -%}{%- assign current_url = "/ja/" -%}{%- endif -%}
     {%- assign current_index = -1 -%}
     {%- for line in nav_lines -%}
       {%- assign parts = line | split: "|" -%}
@@ -44,10 +61,14 @@
         <span class="brand-mark">R</span>
         <span>Rig</span>
       </a>
-      <span class="tagline">Inspectable local AI coding runs</span>
+      <span class="tagline">{{ tagline }}</span>
       <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
+      <a class="lang-toggle" href="{{ url_lang_alt | relative_url }}" aria-label="Switch language">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        <span>{{ label_lang_alt }}</span>
+      </a>
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme">
         <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -62,7 +83,12 @@
       <aside class="site-nav" id="site-nav" aria-label="Documentation navigation">
         <nav>
           {%- for group in nav_groups -%}
-            <p class="nav-section">{{ group }}</p>
+            {%- assign group_label = group -%}
+            {%- for pair in nav_label_pairs -%}
+              {%- assign kv = pair | split: "=" -%}
+              {%- if kv[0] == group -%}{%- assign group_label = kv[1] -%}{%- endif -%}
+            {%- endfor -%}
+            <p class="nav-section">{{ group_label }}</p>
             {%- for line in nav_lines -%}
               {%- assign parts = line | split: "|" -%}
               {%- assign g = parts[0] -%}
@@ -98,7 +124,7 @@
             {%- if prev_line != "" -%}
               {%- assign pp = prev_line | split: "|" -%}
               <a href="{{ pp[1] | relative_url }}">
-                <span class="pf-label">← Previous</span>
+                <span class="pf-label">← {{ label_prev }}</span>
                 <span class="pf-title">{{ pp[2] }}</span>
               </a>
             {%- else -%}
@@ -107,7 +133,7 @@
             {%- if next_line != "" -%}
               {%- assign nn = next_line | split: "|" -%}
               <a class="pf-next" href="{{ nn[1] | relative_url }}">
-                <span class="pf-label">Next →</span>
+                <span class="pf-label">{{ label_next }} →</span>
                 <span class="pf-title">{{ nn[2] }}</span>
               </a>
             {%- else -%}
@@ -120,9 +146,14 @@
     </div>
 
     <footer class="site-footer">
-      Rig is open source under the
-      <a href="https://github.com/s-hiraoku/rig/blob/main/LICENSE">MIT license</a>.
-      Built with Jekyll and hosted on GitHub Pages.
+      {%- if page_lang == "ja" -%}
+        Rig は <a href="https://github.com/s-hiraoku/rig/blob/main/LICENSE">MIT ライセンス</a> のオープンソースです。
+        Jekyll で構築し GitHub Pages でホスティングしています。
+      {%- else -%}
+        Rig is open source under the
+        <a href="https://github.com/s-hiraoku/rig/blob/main/LICENSE">MIT license</a>.
+        Built with Jekyll and hosted on GitHub Pages.
+      {%- endif -%}
     </footer>
 
     <script>
