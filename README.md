@@ -37,7 +37,7 @@ rig --help
 To reinstall the latest version from GitHub:
 
 ```bash
-uv tool install --force "rig @ git+https://github.com/s-hiraoku/rig.git"
+uv tool install --force --refresh "rig @ git+https://github.com/s-hiraoku/rig.git"
 ```
 
 For local development, clone the repository and install the development
