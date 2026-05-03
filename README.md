@@ -252,6 +252,14 @@ uv run rig run codex --task "Review the current diff." --dry-run
 Dry-run runs use status `created` and write the command preview to
 `command.json`.
 
+Use `--worktree` to run the agent in an isolated Git worktree under
+`.rig/worktrees/<run-id>/`. Rig captures the resulting patch as
+`.rig/runs/<run-id>/diff.patch` and leaves the main working tree unchanged:
+
+```bash
+uv run rig run codex --worktree --task "Make the requested change."
+```
+
 ### `rig run <agent> --task-file task.md`
 
 Starts a new agent run using task text read from a file.
@@ -314,6 +322,28 @@ Example:
 
 ```bash
 uv run rig runs show 20260502-203012-codex
+```
+
+### `rig diff <run-id>`
+
+Prints the captured `diff.patch` for a worktree run. Use `latest` for the most
+recent run.
+
+Example:
+
+```bash
+uv run rig diff latest
+```
+
+### `rig apply <run-id>`
+
+Applies a captured worktree diff to the current repository using `git apply`.
+Use this only after inspecting the diff.
+
+Example:
+
+```bash
+uv run rig apply latest
 ```
 
 ### `rig runs complete <run-id>`

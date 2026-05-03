@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from os.path import relpath
+
 from rig.config import AgentConfig
 from rig.run_context import RunContext
 
@@ -15,12 +17,12 @@ class ManualAdapter:
             "runner": self.config.runner,
             "command": "manual",
             "args": [],
-            "cwd": str(context.cwd),
+            "cwd": str(context.execution_cwd),
             "started_at": started_at,
         }
 
     def result_template(self, context: RunContext) -> str:
-        task_path = context.task_path.relative_to(context.cwd)
+        task_path = relpath(context.task_path, context.execution_cwd)
         return "\n".join(
             [
                 "Manual run is waiting for external work.",

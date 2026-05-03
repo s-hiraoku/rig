@@ -76,6 +76,7 @@ class RunStore:
         self.cwd = cwd.resolve()
         self.rig_dir = self.cwd / ".rig"
         self.runs_dir = self.rig_dir / "runs"
+        self.worktrees_dir = self.rig_dir / "worktrees"
         self.config_path = self.rig_dir / "config.yaml"
         self.env_config_path = self.rig_dir / "env.yaml"
 
@@ -201,7 +202,10 @@ class RunStore:
             stderr_path=run_dir / "stderr.log",
             result_path=run_dir / "result.md",
             status_path=run_dir / "status.json",
+            diff_path=run_dir / "diff.patch",
+            worktree_path=None,
             cwd=self.cwd,
+            execution_cwd=self.cwd,
         )
 
     def write_task(self, context: RunContext, task: str) -> None:
@@ -230,7 +234,11 @@ class RunStore:
             "finished_at": finished_at,
             "exit_code": exit_code,
             "run_dir": self._display_path(context.run_dir),
+            "execution_cwd": self._display_path(context.execution_cwd),
         }
+        if context.worktree_path is not None:
+            data["worktree_dir"] = self._display_path(context.worktree_path)
+            data["diff_path"] = self._display_path(context.diff_path)
         context.status_path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",

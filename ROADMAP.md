@@ -227,6 +227,14 @@ Concepts:
 
 Rig should still avoid automatic patch application by default.
 
+Implemented:
+
+- `rig run <agent> --worktree`
+- `.rig/worktrees/<run-id>/`
+- `.rig/runs/<run-id>/diff.patch`
+- `rig diff latest`
+- `rig apply latest`
+
 ## Phase 3: Generic Execution Runners
 
 Goal: support Codex, GitHub Copilot CLI, Gemini CLI, Claude CLI, and future

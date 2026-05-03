@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from dataclasses import dataclass
+from os.path import relpath
 
 from rig.config import AgentConfig
 from rig.run_context import RunContext
@@ -33,7 +34,7 @@ class ExecAdapter:
         return self.config.args
 
     def build_prompt(self, context: RunContext) -> str:
-        task_path = context.task_path.relative_to(context.cwd)
+        task_path = relpath(context.task_path, context.execution_cwd)
         if self.config.prompt_style == "task":
             return context.task_path.read_text(encoding="utf-8")
         return "\n".join(
@@ -61,7 +62,7 @@ class ExecAdapter:
             "runner": self.config.runner,
             "command": command[0],
             "args": command[1:],
-            "cwd": str(context.cwd),
+            "cwd": str(context.execution_cwd),
             "started_at": started_at,
         }
 
@@ -75,7 +76,7 @@ class ExecAdapter:
 
         completed = subprocess.run(
             command,
-            cwd=context.cwd,
+            cwd=context.execution_cwd,
             capture_output=True,
             text=True,
             check=False,

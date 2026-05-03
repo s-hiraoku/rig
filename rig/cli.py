@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from rig.adapters.codex import iso_now
@@ -11,6 +12,7 @@ from rig.adapters.pty import PtyAdapter
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report, format_env_plan
 from rig.run_store import InitResult, RigNotInitializedError, RunStore
+from rig.worktree import WorktreeError, apply_patch, capture_diff, create_worktree
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Create run artifacts and command metadata without executing the agent",
     )
+    run_parser.add_argument(
+        "--worktree",
+        action="store_true",
+        help="Run the agent in an isolated git worktree and capture diff.patch",
+    )
 
     runs_parser = subparsers.add_parser("runs", help="Inspect run history")
     runs_subparsers = runs_parser.add_subparsers(dest="runs_command", required=True)
@@ -56,6 +63,12 @@ def build_parser() -> argparse.ArgumentParser:
     fail_parser.add_argument("run_id", help="Run ID, or 'latest'")
     fail_parser.add_argument("--error", help="Error text to write")
     fail_parser.add_argument("--error-file", help="Path to an error file")
+
+    diff_parser = subparsers.add_parser("diff", help="Show a captured run diff")
+    diff_parser.add_argument("run_id", help="Run ID, or 'latest'")
+
+    apply_parser = subparsers.add_parser("apply", help="Apply a captured run diff")
+    apply_parser.add_argument("run_id", help="Run ID, or 'latest'")
 
     agents_parser = subparsers.add_parser(
         "agents", help="Print instructions for AI coding agents"
@@ -108,6 +121,11 @@ def main(argv: list[str] | None = None) -> int:
             if args.runs_command == "fail":
                 return fail_run(args, store)
 
+        if args.command == "diff":
+            return show_diff(store, args.run_id)
+        if args.command == "apply":
+            return apply_diff(store, args.run_id)
+
         if args.command == "agents" and args.agents_command == "snippet":
             return print_agents_snippet()
 
@@ -127,6 +145,9 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    except WorktreeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     parser.error("unsupported command")
     return 2
@@ -143,6 +164,14 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
 
     agent_config = store.load_config().agent(args.agent)
     context = store.create_run(args.agent)
+    if args.worktree:
+        worktree_path = store.worktrees_dir / context.id
+        create_worktree(store.cwd, worktree_path)
+        context = replace(
+            context,
+            worktree_path=worktree_path,
+            execution_cwd=worktree_path,
+        )
     store.write_task(context, task)
 
     started_at = iso_now()
@@ -201,6 +230,11 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
     context.stdout_path.write_text(result.stdout, encoding="utf-8")
     context.stderr_path.write_text(result.stderr, encoding="utf-8")
     context.result_path.write_text(result.stdout, encoding="utf-8")
+    if context.worktree_path is not None:
+        context.diff_path.write_text(
+            capture_diff(context.worktree_path),
+            encoding="utf-8",
+        )
 
     finished_at = iso_now()
     status = "succeeded" if result.exit_code == 0 else "failed"
@@ -215,6 +249,8 @@ def run_agent(args: argparse.Namespace, store: RunStore) -> int:
     print(f"Run: {context.id}")
     print(f"Status: {status}")
     print(f"Result: {context.result_path.relative_to(context.cwd)}")
+    if context.worktree_path is not None:
+        print(f"Diff: {context.diff_path.relative_to(context.cwd)}")
     if status == "failed" and result.stderr.strip():
         print(f"Error: {first_line(result.stderr)}")
     return 0 if result.exit_code == 0 else 1
@@ -249,6 +285,7 @@ def show_run(store: RunStore, run_id: str) -> int:
     run_dir = str(run.get("run_dir", ""))
     result_path = f"{run_dir}/result.md" if run_dir else "result.md"
     stderr_path = f"{run_dir}/stderr.log" if run_dir else "stderr.log"
+    diff_path = run.get("diff_path")
     result = store.read_result(run)
     stderr = store.read_artifact(run, "stderr.log")
     print(f"ID:        {run.get('id', '')}")
@@ -259,6 +296,8 @@ def show_run(store: RunStore, run_id: str) -> int:
     print(f"Run dir:   {run_dir}")
     print(f"Result:    {result_path}")
     print(f"Stderr:    {stderr_path}")
+    if isinstance(diff_path, str) and diff_path:
+        print(f"Diff:      {diff_path}")
     print()
     print("--- Result ---")
     print()
@@ -348,6 +387,53 @@ def waiting_run(
         )
         return None
     return run
+
+
+def show_diff(store: RunStore, run_id: str) -> int:
+    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+    if run is None:
+        if run_id == "latest":
+            print("No runs found.", file=sys.stderr)
+        else:
+            print(f"Run not found or unreadable: {run_id}", file=sys.stderr)
+        return 1
+
+    diff_path_value = run.get("diff_path")
+    if not isinstance(diff_path_value, str) or not diff_path_value:
+        print(f"Run has no captured diff: {run.get('id', run_id)}", file=sys.stderr)
+        return 1
+
+    diff_path = store.cwd / diff_path_value
+    if not diff_path.is_file():
+        print(f"Diff file is missing: {diff_path_value}", file=sys.stderr)
+        return 1
+
+    diff = diff_path.read_text(encoding="utf-8", errors="replace")
+    if diff:
+        print(diff, end="")
+    else:
+        print("(diff.patch is empty)")
+    return 0
+
+
+def apply_diff(store: RunStore, run_id: str) -> int:
+    run = store.latest_run() if run_id == "latest" else store.find_run(run_id)
+    if run is None:
+        if run_id == "latest":
+            print("No runs found.", file=sys.stderr)
+        else:
+            print(f"Run not found or unreadable: {run_id}", file=sys.stderr)
+        return 1
+
+    diff_path_value = run.get("diff_path")
+    if not isinstance(diff_path_value, str) or not diff_path_value:
+        print(f"Run has no captured diff: {run.get('id', run_id)}", file=sys.stderr)
+        return 1
+
+    diff_path = store.cwd / diff_path_value
+    apply_patch(store.cwd, diff_path)
+    print(f"Applied: {diff_path_value}")
+    return 0
 
 
 def print_agents_snippet() -> int:

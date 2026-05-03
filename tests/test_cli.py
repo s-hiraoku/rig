@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,7 +40,7 @@ def install_fake_command(
         encoding="utf-8",
     )
     command_path.chmod(0o755)
-    monkeypatch.setenv("PATH", str(bin_dir))
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ.get('PATH', '')}")
     return command_path
 
 
@@ -54,8 +56,29 @@ def install_fake_script(
     command_path = bin_dir / name
     command_path.write_text(f"#!{sys.executable}\n{body}", encoding="utf-8")
     command_path.chmod(0o755)
-    monkeypatch.setenv("PATH", str(bin_dir))
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ.get('PATH', '')}")
     return command_path
+
+
+def init_git_repo(path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "rig@example.com"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Rig Tests"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    (path / "tracked.txt").write_text("before\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True
+    )
 
 
 def test_init_command_creates_rig(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -545,6 +568,78 @@ def test_failed_run_prints_stderr_summary(
     output = capsys.readouterr().out
     assert "Status: failed" in output
     assert "Error: first error" in output
+
+
+def test_run_worktree_captures_diff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="edit-file",
+        body="from pathlib import Path\nPath('tracked.txt').write_text('after\\n', encoding='utf-8')\nprint('edited')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  edit:
+    runner: exec
+    command: edit-file
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "edit", "--task", "edit tracked", "--worktree"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Diff: .rig/runs/" in output
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    diff = (run_dir / "diff.patch").read_text(encoding="utf-8")
+    assert "-before" in diff
+    assert "+after" in diff
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["worktree_dir"].startswith(".rig/worktrees/")
+    assert status["diff_path"].endswith("/diff.patch")
+    assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
+
+
+def test_diff_and_apply_worktree_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="edit-file",
+        body="from pathlib import Path\nPath('tracked.txt').write_text('after\\n', encoding='utf-8')\nprint('edited')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  edit:
+    runner: exec
+    command: edit-file
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+    cli.main(["run", "edit", "--task", "edit tracked", "--worktree"])
+
+    assert cli.main(["diff", "latest"]) == 0
+    diff_output = capsys.readouterr().out
+    assert "+after" in diff_output
+
+    assert cli.main(["apply", "latest"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Applied: .rig/runs/" in output
+    assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
 
 
 def test_runs_list_and_show_latest(

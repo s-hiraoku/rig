@@ -15,5 +15,7 @@ class RunContext:
     stderr_path: Path
     result_path: Path
     status_path: Path
+    diff_path: Path
+    worktree_path: Path | None
     cwd: Path
-
+    execution_cwd: Path
