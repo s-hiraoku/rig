@@ -43,6 +43,7 @@ server configuration.
 Implemented:
 
 - `rig agents snippet`
+- `rig env doctor`
 
 This prints an `AGENTS.md` snippet instead of editing user files automatically.
 User repositories own their own agent instructions.
@@ -53,7 +54,6 @@ Possible additions:
 - `rig agents snippet --target claude`
 - `rig agents snippet --format markdown`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
-- `rig env doctor`
 - `rig env plan`
 - `rig env bootstrap`
 - `rig env apm status`

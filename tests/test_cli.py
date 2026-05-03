@@ -290,3 +290,16 @@ def test_agents_snippet_prints_agents_md_section(
     assert "Prefer Rig MCP tools when available" in output
     assert "rig run codex --task-file" in output
     assert "rig runs show latest" in output
+
+
+def test_env_doctor_prints_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["env", "doctor"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig environment" in output
+    assert "Rig config" in output
+    assert "Suggested next steps" in output

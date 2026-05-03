@@ -6,6 +6,7 @@ from pathlib import Path
 
 from rig.adapters.codex import CodexAdapter, CodexNotFoundError, iso_now
 from rig.config import ConfigError
+from rig.env_doctor import build_doctor_report, format_doctor_report
 from rig.run_store import RigNotInitializedError, RunStore
 
 
@@ -42,6 +43,12 @@ def build_parser() -> argparse.ArgumentParser:
         "snippet", help="Print an AGENTS.md snippet for using Rig"
     )
 
+    env_parser = subparsers.add_parser("env", help="Inspect the agent environment")
+    env_subparsers = env_parser.add_subparsers(dest="env_command", required=True)
+    env_subparsers.add_parser(
+        "doctor", help="Diagnose the local Rig and agent harness environment"
+    )
+
     return parser
 
 
@@ -70,6 +77,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "agents" and args.agents_command == "snippet":
             return print_agents_snippet()
+
+        if args.command == "env" and args.env_command == "doctor":
+            return env_doctor(Path.cwd())
 
     except RigNotInitializedError as exc:
         print(str(exc), file=sys.stderr)
@@ -198,6 +208,11 @@ def show_run(store: RunStore, run_id: str) -> int:
 
 def print_agents_snippet() -> int:
     print(AGENTS_SNIPPET)
+    return 0
+
+
+def env_doctor(cwd: Path) -> int:
+    print(format_doctor_report(build_doctor_report(cwd)))
     return 0
 
 

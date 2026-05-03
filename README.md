@@ -239,6 +239,20 @@ Example:
 uv run rig agents snippet
 ```
 
+### `rig env doctor`
+
+Runs read-only diagnostics for the local Rig and agent harness environment.
+
+It checks for the Git repository, `.rig/config.yaml`, `.rig/runs/`, Codex CLI,
+APM, GitHub CLI, `gh skill`, `npx`, `AGENTS.md`, and APM manifest files. Rig
+does not install tools or edit third-party agent asset files.
+
+Example:
+
+```bash
+uv run rig env doctor
+```
+
 ## Run Artifacts
 
 Each run creates these files:
