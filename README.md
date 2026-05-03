@@ -181,8 +181,13 @@ agents:
 
 `prompt_style: rig` passes Rig's standard instruction prompt with a task file
 path. `prompt_style: task` passes the raw task file content. `timeout_seconds`
-applies to both `exec` and `pty` runners. `prompt_template` can replace Rig's
-generated prompt and may use `{agent}`, `{task_path}`, and `{task}` placeholders.
+applies to both `exec` and `pty` runners. `prompt_style: template` plus
+`prompt_template` can replace Rig's generated prompt and may use `{agent}`,
+`{task_path}`, `{task}` for the raw user task, and `{task_md}` for the saved
+task file content.
+
+If an agent prints `--- RIG RESULT ---`, Rig stores only the text after that
+marker in `result.md` while preserving full stdout in `stdout.log`.
 
 Rig also supports the `manual` runner for human-driven, GUI-driven, or external
 agent work. It creates a run with status `waiting` and writes the task/artifact
@@ -359,7 +364,9 @@ uv run rig worktree show latest
 ### `rig worktree apply <run-id>`
 
 Applies a captured worktree patch to the current repository using `git apply`.
-Use this only after inspecting the patch.
+Use this only after inspecting the patch. Worktree patches include untracked
+files that are not ignored by Git; keep large generated directories in
+`.gitignore` before applying.
 
 Example:
 

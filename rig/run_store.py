@@ -333,6 +333,9 @@ class RunStore:
         return RunArtifacts(self.cwd, run).read(filename)
 
     def _display_path(self, path: Path) -> str:
+        return self.display_path(path)
+
+    def display_path(self, path: Path) -> str:
         try:
             return str(path.relative_to(self.cwd))
         except ValueError:

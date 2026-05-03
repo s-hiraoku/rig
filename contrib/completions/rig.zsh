@@ -18,6 +18,14 @@ _rig() {
     return
   fi
 
+  if [[ "$words[2]" == "run" ]] || [[ "$words[2]" == "worktree" && "$words[3]" == "run" ]]; then
+    _arguments \
+      '--task[task text]:task:' \
+      '--task-file[task file path]:filename:_files' \
+      '--dry-run[create artifacts without executing]'
+    return
+  fi
+
   case "$words[2]" in
     worktree)
       local -a worktree_commands

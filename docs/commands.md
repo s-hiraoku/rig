@@ -35,3 +35,12 @@ rig worktree apply latest
 - `rig env plan`: show a read-only environment plan.
 - `rig env bootstrap`: create missing Rig-owned environment files.
 - `rig guide agents`: generate an `AGENTS.md` snippet.
+
+## Notes
+
+- Worktree patches include untracked files that are not ignored by Git. Keep
+  large generated directories in `.gitignore` before applying a patch.
+- Agents can print `--- RIG RESULT ---`; Rig will keep only the text after that
+  marker in `result.md` while preserving full stdout in `stdout.log`.
+- `prompt_style: template` enables `prompt_template` with `{agent}`,
+  `{task_path}`, `{task}`, and `{task_md}` placeholders.

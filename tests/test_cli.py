@@ -284,6 +284,7 @@ agents:
   templated:
     runner: exec
     command: codex
+    prompt_style: template
     prompt_template: "Agent={agent}; Path={task_path}; Body={task}"
 """,
         encoding="utf-8",
@@ -297,7 +298,8 @@ agents:
     prompt = command["args"][-1]
     assert "Agent=templated" in prompt
     assert "Path=.rig/runs/" in prompt
-    assert "Body=# Task" in prompt
+    assert "Body=hello" in prompt
+    assert "Body=# Task" not in prompt
 
 
 def test_exec_runner_times_out(
@@ -362,6 +364,36 @@ agents:
     result = (run_dir / "result.md").read_text(encoding="utf-8")
     assert result.startswith("Result truncated from stdout.log.")
     assert len(result) < 41000
+
+
+def test_result_marker_keeps_only_final_result_in_result_md(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="marked-result",
+        body="print('logs')\nprint('--- RIG RESULT ---')\nprint('final answer')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  marked:
+    runner: exec
+    command: marked-result
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    assert cli.main(["run", "marked", "--task", "hello"]) == 0
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert (run_dir / "stdout.log").read_text(encoding="utf-8").startswith("logs")
+    assert (run_dir / "result.md").read_text(encoding="utf-8") == "final answer\n"
 
 
 def test_run_codex_uses_configured_command(
@@ -546,7 +578,9 @@ agents:
     assert "Status: failed" in output
     run_dir = next((tmp_path / ".rig" / "runs").iterdir())
     result = (run_dir / "result.md").read_text(encoding="utf-8")
-    assert "Rig PTY runner timed out after 1 seconds." in result
+    stderr = (run_dir / "stderr.log").read_text(encoding="utf-8")
+    assert "Rig PTY runner timed out after 1 seconds." not in result
+    assert "Rig PTY runner timed out after 1 seconds." in stderr
     status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
     assert status["exit_code"] == 124
 
@@ -976,6 +1010,20 @@ agents:
     output = capsys.readouterr().out
     assert "Removed: .rig/worktrees/" in output
     assert list((tmp_path / ".rig" / "worktrees").iterdir()) == []
+
+
+def test_worktree_prune_reports_partial_failures(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    worktrees_dir = tmp_path / ".rig" / "worktrees"
+    (worktrees_dir / "bad-worktree").mkdir(parents=True)
+
+    assert cli.main(["worktree", "prune"]) == 1
+
+    assert "Failed: .rig/worktrees/bad-worktree:" in capsys.readouterr().err
 
 
 def test_list_and_show_latest(

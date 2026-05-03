@@ -407,21 +407,25 @@ def apply_diff(store: RunStore, run_id: str) -> int:
         print(f"No changes to apply: {diff_path_value}")
         return 0
 
-    applied_to_index = apply_patch(store.cwd, diff_path)
+    apply_result = apply_patch(store.cwd, diff_path)
     print(f"Applied: {diff_path_value}")
-    if not applied_to_index:
+    if not apply_result.applied_to_index:
+        if apply_result.index_error:
+            print(f"Note: git apply --index failed: {apply_result.index_error}")
         print("Note: patch was applied to the working tree but not staged.")
     return 0
 
 
 def prune_worktree_runs(store: RunStore) -> int:
-    removed = prune_worktrees(store.cwd, store.worktrees_dir)
-    if not removed:
+    result = prune_worktrees(store.cwd, store.worktrees_dir)
+    if not result.removed and not result.failed:
         print("No Rig worktrees found.")
         return 0
-    for path in removed:
-        print(f"Removed: {store._display_path(path)}")
-    return 0
+    for path in result.removed:
+        print(f"Removed: {store.display_path(path)}")
+    for path, error in result.failed:
+        print(f"Failed: {store.display_path(path)}: {error}", file=sys.stderr)
+    return 1 if result.failed else 0
 
 
 def print_agents_snippet() -> int:

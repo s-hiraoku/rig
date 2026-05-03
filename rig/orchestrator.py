@@ -48,7 +48,7 @@ class RunOrchestrator:
         self.store.write_task(context, task, wrap=wrap_task)
 
         started_at = iso_now()
-        command_adapter = create_adapter(agent_name, agent_config)
+        command_adapter = create_adapter(agent_name, agent_config, task=task)
         if isinstance(command_adapter, ManualAdapter):
             self.store.write_command(
                 context, command_adapter.command_metadata(context, started_at)
@@ -155,7 +155,9 @@ class RunOrchestrator:
 
 
 def read_task(request: RunRequest) -> tuple[str, bool]:
-    if bool(request.task) == bool(request.task_file):
+    has_task = request.task is not None
+    has_task_file = request.task_file is not None
+    if has_task == has_task_file:
         raise ValueError("Provide exactly one of --task or --task-file.")
     if request.task_file:
         return Path(request.task_file).read_text(encoding="utf-8"), False

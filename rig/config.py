@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import yaml
 
-SUPPORTED_RUNNERS = {"exec", "manual", "pty"}
+from rig.runners import SUPPORTED_RUNNERS
 
 
 @dataclass(frozen=True)
@@ -89,15 +89,23 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
         raise ConfigError(
             f"Config value `agents.{name}.prompt_style` must be a string."
         )
-    if prompt_style not in {"rig", "task"}:
+    if prompt_style not in {"rig", "task", "template"}:
         raise ConfigError(
-            f"Config value `agents.{name}.prompt_style` must be `rig` or `task`."
+            f"Config value `agents.{name}.prompt_style` must be `rig`, `task`, or `template`."
         )
 
     prompt_template = value.get("prompt_template")
     if prompt_template is not None and not isinstance(prompt_template, str):
         raise ConfigError(
             f"Config value `agents.{name}.prompt_template` must be a string."
+        )
+    if prompt_template is not None and prompt_style != "template":
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_style` must be `template` when prompt_template is set."
+        )
+    if prompt_template is None and prompt_style == "template":
+        raise ConfigError(
+            f"Config value `agents.{name}.prompt_template` is required when prompt_style is `template`."
         )
 
     timeout_seconds = value.get("timeout_seconds", 300)

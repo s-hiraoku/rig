@@ -58,12 +58,10 @@ class PtyAdapter(ExecAdapter):
 
             transcript = output.decode("utf-8", errors="replace")
             if timed_out:
-                if transcript and not transcript.endswith("\n"):
-                    transcript += "\n"
-                transcript += (
+                stderr = (
                     f"Rig PTY runner timed out after {self.config.timeout_seconds} seconds.\n"
                 )
-                return AgentResult(exit_code=124, stdout=transcript, stderr="")
+                return AgentResult(exit_code=124, stdout=transcript, stderr=stderr)
 
             return AgentResult(
                 exit_code=process.returncode if process.returncode is not None else 1,

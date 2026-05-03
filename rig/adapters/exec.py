@@ -24,6 +24,7 @@ class ExecAdapter:
     def __init__(self, name: str, config: AgentConfig) -> None:
         self.name = name
         self.config = config
+        self.task: str | None = None
 
     @property
     def command(self) -> str:
@@ -39,7 +40,8 @@ class ExecAdapter:
             return self.config.prompt_template.format(
                 agent=self.name,
                 task_path=task_path,
-                task=context.task_path.read_text(encoding="utf-8"),
+                task=self.task or "",
+                task_md=context.task_path.read_text(encoding="utf-8"),
             )
         if self.config.prompt_style == "task":
             return context.task_path.read_text(encoding="utf-8")
