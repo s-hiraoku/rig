@@ -47,6 +47,16 @@ Then retry the Rig command.
 rig run codex --task "Review the current diff."
 ```
 
+## Run Is Waiting
+
+A `manual` runner creates a run with status `waiting`. Complete or fail it
+explicitly:
+
+```bash
+rig manual complete latest --result "Finished externally."
+rig manual fail latest --error "Blocked externally."
+```
+
 ## Environment Check Failures
 
 Use:
@@ -58,3 +68,10 @@ rig env plan
 
 These commands report missing Rig files, required project files, configured
 agent commands, and optional agent asset managers.
+
+## GitHub Pages Does Not Update
+
+The Pages site is built from `docs/` by `.github/workflows/pages.yml`. Confirm
+that GitHub Pages is configured to deploy from GitHub Actions, then rerun the
+Pages workflow from the Actions tab. Changes outside `docs/**` do not trigger
+that workflow unless `.github/workflows/pages.yml` also changes.

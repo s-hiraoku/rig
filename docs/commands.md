@@ -9,7 +9,7 @@ title: Command Reference
 ```bash
 rig init
 rig suggest "Review the current diff."
-rig run --task "Review the current diff."
+rig run codex --task "Review the current diff."
 rig list
 rig show latest
 ```
@@ -28,6 +28,8 @@ rig worktree apply latest
 - `rig run [agent] --task "..."`: run an agent in the current working tree. If
   `[agent]` is omitted, Rig uses `default_agent`.
 - `rig run [agent] --task-file task.md`: run an agent with a task file.
+- `rig run [agent] --task "..." --dry-run`: create run artifacts and command
+  metadata without executing the agent.
 - `rig run [agent] --task "..." --json`: print the run outcome as structured JSON.
 - `rig suggest "..." [--json]`: suggest whether to use `rig run` or
   `rig worktree run` without executing an agent.
@@ -51,6 +53,17 @@ rig worktree apply latest
   print a short reference snippet.
 - `rig mcp serve`: run Rig's MCP server over stdio.
 
+## Run Options
+
+Provide exactly one of `--task` or `--task-file`.
+
+`--dry-run` writes the task, command preview, and status metadata without
+starting the configured agent. Dry runs are useful for checking the command Rig
+would execute.
+
+`--json` is available on `run`, `list`, `show`, `suggest`, and `env doctor` for
+scripts and MCP-style integrations that should not parse human text.
+
 ## Notes
 
 - Worktree patches include untracked files that are not ignored by Git. Keep
@@ -69,3 +82,6 @@ rig worktree apply latest
   and must stay inside that project.
 - MCP `rig_apply_patch` is disabled unless the server is started with
   `RIG_MCP_ALLOW_APPLY=1`.
+- The legacy `rig history list`, `rig history show`, `rig history complete`,
+  and `rig history fail` forms are normalized to the current `list`, `show`,
+  and `manual` commands for compatibility.

@@ -38,6 +38,9 @@ MCP calls are limited to the server's launch directory by default. Set
 `RIG_MCP_ROOT=/path/to/root` when the server must operate on repositories under
 a broader root.
 
+Relative `task_file` values are resolved from the selected `cwd`, and must stay
+inside that project.
+
 `rig_apply_patch` is disabled unless the server starts with:
 
 ```bash
