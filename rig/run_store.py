@@ -87,7 +87,7 @@ class RunArtifacts:
         return run_dir
 
     def path(self, filename: str) -> Path | None:
-        """Return an artifact path, raising ValueError if filename escapes run_dir."""
+        """Return None without run_dir, or raise if filename escapes run_dir."""
         run_dir = self.run_dir
         if run_dir is None:
             return None
@@ -387,7 +387,14 @@ def resolve_run_lookup_path(run_id: str, *, runs_dir: Path) -> Path | None:
     if not run_id:
         return None
     path = Path(run_id)
-    if path.is_absolute() or path.name != run_id or run_id in {".", ".."}:
+    if (
+        path.is_absolute()
+        or "/" in run_id
+        or "\\" in run_id
+        or ".." in path.parts
+        or path.name != run_id
+        or run_id in {".", ".."}
+    ):
         return None
     resolved = (runs_dir / run_id).resolve()
     runs_root = runs_dir.resolve()

@@ -1060,6 +1060,32 @@ def test_guide_agents_supports_targets_and_markdown_format(
     assert "Suggested for CLAUDE.md" in output
     assert "## Rig" in output
     assert ".rig/instructions/rig.md" in output
+    assert "rig guide agents --write" in output
+
+
+def test_guide_agents_help_notes_target_independent_write(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["guide", "agents", "--help"])
+
+    assert exc_info.value.code == 0
+    assert "target-independent" in capsys.readouterr().out
+
+
+def test_guide_agents_target_omits_write_note_when_instruction_file_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    instruction_path = tmp_path / ".rig" / "instructions" / "rig.md"
+    instruction_path.parent.mkdir(parents=True)
+    instruction_path.write_text("# Existing\n", encoding="utf-8")
+
+    assert cli.main(["guide", "agents", "--target", "codex"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Suggested for AGENTS.md" in output
+    assert "rig guide agents --write" not in output
 
 
 def test_guide_agents_write_creates_rig_instruction_file(

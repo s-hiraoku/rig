@@ -466,8 +466,11 @@ uv run rig guide agents --target claude --write --force
 ```
 
 `--write` does not overwrite `.rig/instructions/rig.md` unless `--force` is
-also provided. Rig still does not edit `AGENTS.md`, `CLAUDE.md`, or skill files
-automatically.
+also provided. The written file is target-independent, so `--target codex` and
+`--target claude` write the same Rig policy file and only change the printed
+reference snippet. Rig still does not edit `AGENTS.md`, `CLAUDE.md`, or skill
+files automatically. `--write` only creates `.rig/instructions/rig.md`; run
+`rig init` for full setup with `.rig/config.yaml` and `.rig/runs/`.
 
 Minimal examples:
 

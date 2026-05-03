@@ -33,7 +33,7 @@ _rig() {
     _arguments \
       '--target[agent instruction target]:target:(generic codex claude)' \
       '--format[output format]:format:(markdown)' \
-      '--write[write .rig/instructions/rig.md]' \
+      '--write[write target-independent .rig/instructions/rig.md]' \
       '--force[overwrite .rig/instructions/rig.md with --write]'
     return
   fi
