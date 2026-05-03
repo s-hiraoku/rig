@@ -8,7 +8,7 @@ from mcp.server.fastmcp import FastMCP
 
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
-from rig.orchestrator import RunOrchestrator, RunRequest
+from rig.orchestrator import RunOrchestrator, RunRequest, run_outcome_payload
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import RigNotInitializedError, RunStore
 from rig.worktree import WorktreeError, apply_patch
@@ -162,18 +162,9 @@ def run_tool(
     ) as exc:
         return error_response(str(exc))
 
-    return {
-        "ok": outcome.exit_code == 0,
-        "exit_code": outcome.exit_code,
-        "run_id": outcome.run_id,
-        "status": outcome.status,
-        "task_path": outcome.task_path,
-        "command_path": outcome.command_path,
-        "result_path": outcome.result_path,
-        "diff_path": outcome.diff_path,
-        "error_summary": outcome.error_summary,
-        "messages": outcome.lines,
-    }
+    data = run_outcome_payload(outcome)
+    data["messages"] = data.pop("lines")
+    return data
 
 
 def list_runs_tool(*, cwd: str | None = None) -> dict[str, Any]:
@@ -222,15 +213,16 @@ def get_artifact_tool(
     try:
         store = store_for(cwd)
         run = store.resolve_run(run_id)
+        if run is None:
+            return error_response(run_not_found_message(run_id))
+        content = store.read_artifact(run, filename)
     except (RigNotInitializedError, ValueError) as exc:
         return error_response(str(exc))
-    if run is None:
-        return error_response(run_not_found_message(run_id))
     return {
         "ok": True,
         "run_id": run.get("id", run_id),
         "filename": filename,
-        "content": store.read_artifact(run, filename),
+        "content": content,
     }
 
 
@@ -247,8 +239,11 @@ def get_diff_tool(*, run_id: str = "latest", cwd: str | None = None) -> dict[str
     if not isinstance(diff_path_value, str) or not diff_path_value:
         return error_response(f"Run has no captured diff: {run.get('id', run_id)}")
 
-    diff_path = store.cwd / diff_path_value
-    if not diff_path.is_file():
+    try:
+        diff_path = store.resolve_diff_path(run)
+    except (RigNotInitializedError, ValueError) as exc:
+        return error_response(str(exc))
+    if diff_path is None or not diff_path.is_file():
         return error_response(f"Diff file is missing: {diff_path_value}")
     return {
         "ok": True,
@@ -277,8 +272,11 @@ def apply_patch_tool(
     if not isinstance(diff_path_value, str) or not diff_path_value:
         return error_response(f"Run has no captured diff: {run.get('id', run_id)}")
 
-    diff_path = store.cwd / diff_path_value
-    if not diff_path.is_file():
+    try:
+        diff_path = store.resolve_diff_path(run)
+    except (RigNotInitializedError, ValueError) as exc:
+        return error_response(str(exc))
+    if diff_path is None or not diff_path.is_file():
         return error_response(f"Diff file is missing: {diff_path_value}")
     if not diff_path.read_text(encoding="utf-8").strip():
         return {
@@ -324,10 +322,7 @@ def resolve_task_file(store: RunStore, task_file: str | None) -> str | None:
 
 
 def policy_prompt(*, cwd: str | None = None) -> str:
-    agents_md = project_agents_md(cwd=cwd)
-    if agents_md != AGENTS_SNIPPET:
-        return agents_md
-    return AGENTS_SNIPPET
+    return project_agents_md(cwd=cwd)
 
 
 def project_agents_md(*, cwd: str | None = None) -> str:

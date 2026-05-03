@@ -70,6 +70,7 @@ class InitResult:
 @dataclass(frozen=True)
 class RunArtifacts:
     cwd: Path
+    runs_dir: Path
     run: dict[str, Any]
 
     @property
@@ -77,11 +78,22 @@ class RunArtifacts:
         run_dir_value = self.run.get("run_dir")
         if not isinstance(run_dir_value, str) or not run_dir_value:
             return None
-        return self.cwd / run_dir_value
+        run_dir = resolve_metadata_path(
+            run_dir_value,
+            base=self.cwd,
+            root=self.runs_dir,
+            field="run_dir",
+        )
+        return run_dir
 
     def path(self, filename: str) -> Path | None:
         run_dir = self.run_dir
-        return None if run_dir is None else run_dir / filename
+        if run_dir is None:
+            return None
+        artifact_path = (run_dir / filename).resolve()
+        if not artifact_path.is_relative_to(run_dir):
+            raise ValueError(f"artifact path is outside the run directory: {filename}")
+        return artifact_path
 
     def read(self, filename: str) -> str:
         artifact_path = self.path(filename)
@@ -281,7 +293,7 @@ class RunStore:
         finished_at: str | None = None,
         exit_code: int | None = None,
     ) -> None:
-        run_dir = RunArtifacts(self.cwd, run).run_dir
+        run_dir = self.artifacts(run).run_dir
         if run_dir is None:
             raise RigNotInitializedError("Run metadata does not contain a run directory.")
         status_path = run_dir / "status.json"
@@ -297,7 +309,7 @@ class RunStore:
     def write_run_artifact(
         self, run: dict[str, Any], filename: str, content: str
     ) -> None:
-        RunArtifacts(self.cwd, run).write(filename, content)
+        self.artifacts(run).write(filename, content)
 
     def list_runs(self) -> list[dict[str, Any]]:
         self.ensure_initialized()
@@ -333,13 +345,38 @@ class RunStore:
         return self.read_artifact(run, "result.md")
 
     def read_artifact(self, run: dict[str, Any], filename: str) -> str:
-        return RunArtifacts(self.cwd, run).read(filename)
+        return self.artifacts(run).read(filename)
+
+    def artifacts(self, run: dict[str, Any]) -> RunArtifacts:
+        return RunArtifacts(self.cwd, self.runs_dir, run)
+
+    def resolve_diff_path(self, run: dict[str, Any]) -> Path | None:
+        diff_path_value = run.get("diff_path")
+        if not isinstance(diff_path_value, str) or not diff_path_value:
+            return None
+        run_dir = self.artifacts(run).run_dir
+        if run_dir is None:
+            raise RigNotInitializedError("Run metadata does not contain a run directory.")
+        return resolve_metadata_path(
+            diff_path_value,
+            base=self.cwd,
+            root=run_dir,
+            field="diff_path",
+        )
 
     def display_path(self, path: Path) -> str:
         try:
             return str(path.relative_to(self.cwd))
         except ValueError:
             return str(path)
+
+
+def resolve_metadata_path(value: str, *, base: Path, root: Path, field: str) -> Path:
+    path = Path(value).expanduser()
+    resolved = path.resolve() if path.is_absolute() else (base / path).resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"{field} is outside the expected Rig directory: {value}")
+    return resolved
 
 
 def ensure_trailing_newline(value: str) -> str:
