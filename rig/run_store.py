@@ -226,12 +226,15 @@ class RunStore:
         base_id = f"{timestamp}-{agent}"
         run_id = base_id
         suffix = 2
-        while (self.runs_dir / run_id).exists():
-            run_id = f"{base_id}-{suffix}"
-            suffix += 1
 
-        run_dir = self.runs_dir / run_id
-        run_dir.mkdir(parents=True)
+        while True:
+            run_dir = self.runs_dir / run_id
+            try:
+                run_dir.mkdir(parents=True)
+                break
+            except FileExistsError:
+                run_id = f"{base_id}-{suffix}"
+                suffix += 1
         return RunContext(
             id=run_id,
             agent=agent,
@@ -321,7 +324,14 @@ class RunStore:
             except (OSError, json.JSONDecodeError):
                 continue
             runs.append(data)
-        return sorted(runs, key=lambda item: str(item.get("started_at", "")), reverse=True)
+        return sorted(
+            runs,
+            key=lambda item: (
+                str(item.get("started_at", "")),
+                run_id_sort_key(str(item.get("id", ""))),
+            ),
+            reverse=True,
+        )
 
     def latest_run(self) -> dict[str, Any] | None:
         runs = self.list_runs()
@@ -401,6 +411,11 @@ def resolve_run_lookup_path(run_id: str, *, runs_dir: Path) -> Path | None:
     if resolved.parent != runs_root or not resolved.is_relative_to(runs_root):
         return None
     return resolved
+
+
+def run_id_sort_key(run_id: str) -> int:
+    suffix = run_id.rsplit("-", maxsplit=1)[-1]
+    return int(suffix) if suffix.isdecimal() else 0
 
 
 def ensure_trailing_newline(value: str) -> str:

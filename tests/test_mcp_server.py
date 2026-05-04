@@ -63,6 +63,47 @@ def test_mcp_run_and_read_result(
     )["content"] == "done\n"
 
 
+def test_mcp_run_supports_parallel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
+
+    result = run_tool(task="hello", parallel=2, cwd=str(tmp_path))
+
+    assert result["ok"] is True
+    assert result["exit_code"] == 0
+    assert len(result["runs"]) == 2
+    assert len({run["run_id"] for run in result["runs"]}) == 2
+    assert [run["messages"][1] for run in result["runs"]] == [
+        "Status: succeeded",
+        "Status: succeeded",
+    ]
+
+
+def test_mcp_run_rejects_invalid_parallel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    result = run_tool(task="hello", parallel=0, cwd=str(tmp_path))
+
+    assert result == {"ok": False, "error": "--parallel must be 1 or greater."}
+
+
+def test_mcp_run_rejects_parallel_worktree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    result = run_tool(task="hello", worktree=True, parallel=2, cwd=str(tmp_path))
+
+    assert result == {"ok": False, "error": "Parallel worktree runs are not supported."}
+
+
 def test_mcp_run_returns_structured_error_for_bad_input(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

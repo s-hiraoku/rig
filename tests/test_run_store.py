@@ -112,6 +112,45 @@ def test_create_run_uses_suffix_for_same_second(tmp_path: Path) -> None:
     assert second.run_dir.is_dir()
 
 
+def test_list_runs_breaks_started_at_ties_by_id(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    now = datetime(2026, 5, 2, 20, 30, 12)
+    first = store.create_run("codex", raw_task="first", now=now)
+    second = store.create_run("codex", raw_task="second", now=now)
+    started_at = "2026-05-02T20:30:12+09:00"
+    store.write_status(first, status="succeeded", started_at=started_at, exit_code=0)
+    store.write_status(second, status="succeeded", started_at=started_at, exit_code=0)
+
+    latest = store.latest_run()
+    assert [run["id"] for run in store.list_runs()] == [second.id, first.id]
+    assert latest is not None
+    assert latest["id"] == second.id
+
+
+def test_latest_run_uses_numeric_suffix_for_started_at_ties(tmp_path: Path) -> None:
+    store = RunStore(tmp_path)
+    store.init()
+    now = datetime(2026, 5, 2, 20, 30, 12)
+    contexts = [
+        store.create_run("codex", raw_task=f"run {index}", now=now)
+        for index in range(10)
+    ]
+    started_at = "2026-05-02T20:30:12+09:00"
+    for context in contexts:
+        store.write_status(
+            context,
+            status="succeeded",
+            started_at=started_at,
+            exit_code=0,
+        )
+
+    latest = store.latest_run()
+    assert contexts[-1].id == "20260502-203012-codex-10"
+    assert latest is not None
+    assert latest["id"] == contexts[-1].id
+
+
 def test_find_run_rejects_paths_outside_runs_dir(tmp_path: Path) -> None:
     store = RunStore(tmp_path)
     store.init()

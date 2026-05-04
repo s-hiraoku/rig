@@ -8,7 +8,12 @@ from mcp.server.fastmcp import FastMCP
 
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
-from rig.orchestrator import RunOrchestrator, RunRequest, run_outcome_payload
+from rig.orchestrator import (
+    RunOrchestrator,
+    RunRequest,
+    run_outcome_payload,
+    run_outcomes_payload,
+)
 from rig.policy import AGENTS_SNIPPET
 from rig.run_store import RigNotInitializedError, RunStore
 from rig.suggest import build_suggestion
@@ -31,6 +36,7 @@ def create_mcp_server() -> FastMCP:
         task_file: str | None = None,
         worktree: bool = False,
         dry_run: bool = False,
+        parallel: int = 1,
         cwd: str | None = None,
     ) -> dict[str, Any]:
         """Start a Rig run and return structured run metadata.
@@ -38,6 +44,7 @@ def create_mcp_server() -> FastMCP:
         Provide exactly one of task or task_file. Relative task_file paths are
         resolved from cwd, not from the MCP server process directory. Returns
         { ok, exit_code, run_id, status, result_path, diff_path, messages }.
+        With parallel > 1, returns { ok, exit_code, runs }.
         """
         return run_tool(
             task=task,
@@ -45,6 +52,7 @@ def create_mcp_server() -> FastMCP:
             task_file=task_file,
             worktree=worktree,
             dry_run=dry_run,
+            parallel=parallel,
             cwd=cwd,
         )
 
@@ -156,6 +164,7 @@ def run_tool(
     task_file: str | None = None,
     worktree: bool = False,
     dry_run: bool = False,
+    parallel: int = 1,
     cwd: str | None = None,
 ) -> dict[str, Any]:
     try:
@@ -168,7 +177,7 @@ def run_tool(
             dry_run=dry_run,
             worktree=worktree,
         )
-        outcome = RunOrchestrator(store).run(request)
+        outcomes = RunOrchestrator(store).run_many(request, count=parallel)
     except (
         AgentCommandNotFoundError,
         ConfigError,
@@ -178,8 +187,13 @@ def run_tool(
     ) as exc:
         return error_response(str(exc))
 
-    data = run_outcome_payload(outcome)
-    data["messages"] = data.pop("lines")
+    if parallel == 1:
+        data = run_outcome_payload(outcomes[0])
+        data["messages"] = data.pop("lines")
+        return data
+    data = run_outcomes_payload(outcomes)
+    for run in data["runs"]:
+        run["messages"] = run.pop("lines")
     return data
 
 

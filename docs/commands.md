@@ -54,6 +54,7 @@ rig worktree apply latest
 | `rig run [agent] --task-file task.md` | Run with a task read from a file. |
 | `rig run [agent] --task "..." --dry-run` | Write run artifacts and command preview without executing the child agent. |
 | `rig run [agent] --task "..." --json` | Print the run outcome as JSON. |
+| `rig run [agent] --task "..." --parallel N` | Run the same task N times concurrently. |
 | `rig suggest "..." [--json]` | Recommend `rig run` vs `rig worktree run` without executing. |
 
 ### Inspect
@@ -107,6 +108,17 @@ starting the child agent. Dry runs use status `created`.
 
 `--json` is available on `run`, `list`, `show`, `suggest`, and `env doctor`
 for scripts and MCP-style integrations that should not parse human text.
+
+`--parallel N` starts the same run request N times concurrently. Each run gets
+its own `.rig/runs/<run-id>/` directory. With `--json`, parallel runs return a
+top-level `runs` list instead of a single run object.
+
+When the parent agent has native subagents or parallel delegated agents,
+prefer those native capabilities for parallel attempts and use `--parallel`
+as a fallback or when Rig-managed artifacts are explicitly useful.
+
+Parallel worktree runs are not supported; start separate `rig worktree run`
+commands and apply captured patches by explicit run ID.
 
 ## Run IDs
 

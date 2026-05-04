@@ -17,7 +17,12 @@ from rig.env_doctor import (
     format_env_plan,
     format_manager_status_report,
 )
-from rig.orchestrator import RunOrchestrator, RunRequest, run_outcome_payload
+from rig.orchestrator import (
+    RunOrchestrator,
+    RunRequest,
+    run_outcome_payload,
+    run_outcomes_payload,
+)
 from rig.policy import (
     RIG_INSTRUCTION_PATH,
     agents_snippet,
@@ -185,7 +190,23 @@ def add_run_options(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Create run artifacts and command metadata without executing the agent",
     )
+    parser.add_argument(
+        "--parallel",
+        type=positive_int,
+        default=1,
+        help="Run this task N times concurrently",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON output")
+
+
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be an integer") from None
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be 1 or greater")
+    return parsed
 
 
 def add_manual_lifecycle_commands(
@@ -305,16 +326,32 @@ def run_agent(
         worktree=worktree,
     )
     try:
-        outcome = RunOrchestrator(store).run(request)
+        outcomes = RunOrchestrator(store).run_many(request, count=args.parallel)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    if args.json:
-        print(json.dumps(run_outcome_payload(outcome), indent=2, ensure_ascii=False))
+    if args.parallel == 1:
+        outcome = outcomes[0]
+        if args.json:
+            print(json.dumps(run_outcome_payload(outcome), indent=2, ensure_ascii=False))
+            return outcome.exit_code
+        for line in outcome.lines:
+            print(line)
         return outcome.exit_code
-    for line in outcome.lines:
-        print(line)
-    return outcome.exit_code
+    if args.json:
+        payload = run_outcomes_payload(outcomes)
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return int(payload["exit_code"])
+    for index, outcome in enumerate(outcomes, start=1):
+        if index > 1:
+            print()
+        print(f"Run {index}/{len(outcomes)}:")
+        for line in outcome.lines:
+            print(line)
+    succeeded = sum(1 for outcome in outcomes if outcome.ok)
+    print()
+    print(f"Summary: {succeeded}/{len(outcomes)} runs succeeded.")
+    return 0 if succeeded == len(outcomes) else 1
 
 
 def suggest_run(args: argparse.Namespace, store: RunStore) -> int:

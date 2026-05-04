@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,15 @@ def run_outcome_payload(outcome: RunOutcome) -> dict[str, Any]:
     return {"ok": outcome.ok, **dataclasses.asdict(outcome)}
 
 
+def run_outcomes_payload(outcomes: list[RunOutcome]) -> dict[str, Any]:
+    ok = all(outcome.ok for outcome in outcomes)
+    return {
+        "ok": ok,
+        "exit_code": 0 if ok else 1,
+        "runs": [run_outcome_payload(outcome) for outcome in outcomes],
+    }
+
+
 @dataclass(frozen=True)
 class TaskInput:
     text: str
@@ -52,6 +62,17 @@ class TaskInput:
 class RunOrchestrator:
     def __init__(self, store: RunStore) -> None:
         self.store = store
+
+    def run_many(self, request: RunRequest, *, count: int) -> list[RunOutcome]:
+        if count < 1:
+            raise ValueError("--parallel must be 1 or greater.")
+        if request.worktree and count > 1:
+            raise ValueError("Parallel worktree runs are not supported.")
+        if count == 1:
+            return [self.run(request)]
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            futures = [executor.submit(self.run, request) for _ in range(count)]
+            return [future.result() for future in futures]
 
     def run(self, request: RunRequest) -> RunOutcome:
         task_input = read_task(request)

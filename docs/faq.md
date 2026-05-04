@@ -101,6 +101,15 @@ Yes — pass the same `--task-file` through each child agent. Every run is
 its own directory, so outputs do not collide. See
 [Recipes → Compare Two Child Agents On The Same Task](recipes.md#compare-two-child-agents-on-the-same-task).
 
+If you want multiple attempts from the same configured agent, use
+`rig run <agent> --task-file task.md --parallel N`. Parallel mode creates
+separate run directories for each attempt. It is limited to normal runs;
+parallel worktree runs are rejected.
+
+When the parent agent has native subagents, prefer those for parallel attempts
+and role-split work. Rig parallel mode is for clients without native
+subagents, or for cases where the durable `.rig/runs/` artifact trail matters.
+
 ## Why are some MCP tools disabled by default?
 
 `rig_apply_patch` modifies the working tree. It is disabled unless the

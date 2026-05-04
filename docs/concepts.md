@@ -15,11 +15,12 @@ confusion later.
 | Role | What they do |
 | --- | --- |
 | **Human** | Asks the parent agent in natural language. Reviews `result.md` and `diff.patch` through that agent. Approves patch application. |
-| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Calls `rig_run` (MCP) or `rig run` (CLI) to delegate work. Reads back artifacts and reports to the human. |
+| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Decides whether to use native subagents or Rig. Calls `rig_run` (MCP) or `rig run` (CLI) when Rig-backed artifacts are useful. Reads back artifacts and reports to the human. |
 | **Child agent** (the CLI Rig launches — `codex exec` by default) | Executes the actual task. Writes its answer to stdout. |
 
-The CLI is for **setup, debugging, and audit**. Day-to-day work goes
-human → parent agent → Rig → child agent → artifacts → parent agent → human.
+The CLI is for **setup, debugging, and audit**. Day-to-day work usually goes
+human → parent agent → native subagents when available, or Rig → child agent
+→ artifacts → parent agent → human when Rig-backed records are needed.
 
 ## Run
 
@@ -44,6 +45,16 @@ Typical files:
 - `diff.patch` — captured patch for worktree runs only.
 
 Run IDs follow `YYYYMMDD-HHMMSS-<agent>` so listings sort chronologically.
+
+Parallel runs are multiple normal runs created from the same request. Each
+attempt still has its own run ID, directory, status, logs, and result; Rig only
+starts them concurrently and groups their CLI or MCP response.
+
+Native parent-agent subagents are different: they are managed by the parent
+agent itself, can receive role-specific instructions, and may already have
+isolated workspaces. Rig instructions tell capable parent agents to prefer
+native subagents for parallel or isolated work, then use Rig as a portable
+fallback or audit layer.
 
 ## Child Agent
 

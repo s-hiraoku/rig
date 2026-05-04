@@ -286,6 +286,22 @@ Add `--json` to print the same outcome as structured data instead of the human
 summary. This is useful for scripts and for integrations that need the run ID,
 status, artifact paths, and captured messages without parsing text.
 
+Use `--parallel N` to start the same task N times concurrently. Each attempt
+gets its own run directory and artifacts:
+
+```bash
+uv run rig run codex --task "Review this change." --parallel 3
+```
+
+Parallel worktree runs are not supported; use explicit run IDs when comparing
+or applying isolated worktree attempts.
+
+If your parent agent supports native subagents or isolated delegated
+workspaces, prefer those native capabilities for parallel attempts and
+role-split work. Use Rig parallel/worktree features when native subagents are
+unavailable, when you want portable behavior across clients, or when the
+`.rig/runs/` artifact trail is the goal.
+
 ### `rig run <agent> --task-file task.md`
 
 Starts a new agent run using task text read from a file.
@@ -507,6 +523,14 @@ Read `.rig/instructions/rig.md` before using Rig.
 Runs Rig's MCP server over stdio. MCP-capable agents can use the server to
 start runs, list and inspect run history, read results, and read captured
 worktree diffs without parsing CLI text.
+
+`rig_run` accepts the same normal-run controls as the CLI, including
+`parallel` for concurrent attempts. Parallel MCP responses return a top-level
+`runs` list. Parallel worktree runs are rejected.
+
+MCP-aware parent agents that have native subagents should still prefer those
+subagents for parallel work, and use `rig_run(parallel=...)` as the fallback
+artifact-backed path.
 
 Initial MCP tools:
 

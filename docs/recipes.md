@@ -135,6 +135,65 @@ diff <(rig worktree show <codex-run-id>)  <(rig worktree show <claude-run-id>)
 
 `task-file` keeps the prompts byte-identical between runs.
 
+## Compare Multiple Attempts From One Agent
+{: #compare-multiple-attempts-from-one-agent }
+
+When you want several independent answers from the same configured agent:
+
+**Ask:**
+
+> "Run this review three times in parallel and compare the results."
+
+**Behind the scenes:** if the parent agent supports native subagents, it
+starts three subagents with the same task, constraints, and expected output,
+then compares their answers. This is preferred because the parent can give
+each subagent focused instructions and synthesize results directly.
+
+If native subagents are unavailable, or if you explicitly want Rig-managed
+run artifacts, the parent agent runs:
+
+```bash
+rig run codex --task-file task.md --parallel 3
+```
+
+Each attempt writes a separate `.rig/runs/<run-id>/` directory. In JSON mode,
+the response includes a top-level `runs` list so the parent agent can read
+each `result.md` by run ID.
+
+**Review:**
+
+```bash
+rig list
+rig show <first-run-id>
+rig show <second-run-id>
+rig show <third-run-id>
+```
+
+Use normal runs for parallel attempts. Parallel worktree runs are rejected;
+for isolated edit attempts, start separate `rig worktree run` commands and
+compare their explicit run IDs.
+
+## Coordinate Native Subagents With Rig As Fallback
+{: #coordinate-native-subagents-with-rig-as-fallback }
+
+When your parent agent already has subagents or isolated workspaces:
+
+**Ask:**
+
+> "Use your native subagents for three independent implementation approaches.
+> Keep each attempt isolated, then summarize tradeoffs. Use Rig only if you
+> need durable run artifacts."
+
+**Behind the scenes:** the parent agent delegates directly to native
+subagents. Rig is not required for the parallelism itself. If a subagent or
+client cannot provide native isolation, the parent agent falls back to
+`rig worktree run`; if it cannot provide native parallelism, it falls back to
+`rig run --parallel N`.
+
+**Review:** the parent agent reports which path it used, lists each subagent
+or Rig run ID, and points to `result.md` or `diff.patch` only for Rig-backed
+attempts.
+
 ## Manual / GUI Flow
 
 When the work happens somewhere Rig can't launch a command — Figma, a web
