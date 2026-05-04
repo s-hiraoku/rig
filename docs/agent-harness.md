@@ -13,6 +13,8 @@ manager.
 
 - `AGENTS.md` at the repository root. It tells parent agents how to work on Rig,
   which verification commands to run, and which boundaries not to cross.
+- This page (`docs/agent-harness.md`). It is declared in `.rig/env.yaml` so
+  `rig env doctor` can verify that repo-specific harness guidance exists.
 - Rig's own MCP adapter remains part of the product surface: `rig mcp serve`,
   `rig_run`, `rig_suggest`, `rig_get_result`, `rig_get_diff`, and
   `rig_apply_patch`.
@@ -54,3 +56,7 @@ directly, and CI is the authoritative gate.
 Normal tests should be deterministic and use fake commands. Real agent E2E
 checks are opt-in only because they depend on installed CLIs, credentials,
 trusted repositories, and provider behavior outside Rig's control.
+
+There is no repo-supported real-agent E2E command today. Add and document the
+explicit script, environment variable, or CI job in the same change that
+introduces those checks.

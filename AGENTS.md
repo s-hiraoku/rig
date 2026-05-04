@@ -16,7 +16,9 @@ For this repository specifically:
   do not add first-class vendor branches unless a stable CLI contract requires it.
 - Preserve the run artifact contract: `task.md`, `command.json`, `stdout.log`,
   `stderr.log`, `result.md`, and `status.json`. Worktree runs also produce
-  `diff.patch`.
+  `diff.patch`. Run discovery and listing are keyed off `status.json`; the
+  other artifacts are still expected to be produced and preserved for
+  inspection and consumers.
 - Use `rig suggest` before uncertain or risky delegated work. Use isolated
   worktree runs for non-trivial edits when native parent-agent isolation is not
   available.
