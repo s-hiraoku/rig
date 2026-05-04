@@ -16,6 +16,7 @@ def test_build_doctor_report_reports_missing_basics(tmp_path: Path) -> None:
     assert labels["Rig config"].status == "missing"
     assert labels["Rig history directory"].status == "missing"
     assert labels["Rig instructions"].status == "missing"
+    assert labels["AGENTS.md"].status == "missing"
     assert labels["CLAUDE.md"].status == "missing"
     assert "Run: rig init" in report.suggestions
 
@@ -63,6 +64,22 @@ def test_build_doctor_report_warns_for_missing_agents_reference(
     labels = {check.label: check for check in report.checks}
     assert labels["AGENTS.md"].status == "ok"
     assert labels["AGENTS.md Rig reference"].status == "warn"
+
+
+def test_build_doctor_report_warns_for_missing_agents_reference_with_claude(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "AGENTS.md").write_text("No Rig reference.\n", encoding="utf-8")
+    (tmp_path / "CLAUDE.md").write_text(
+        f"## Rig\n\nRead `{RIG_INSTRUCTION_PATH}`.\n", encoding="utf-8"
+    )
+
+    report = env_doctor.build_doctor_report(tmp_path)
+
+    labels = {check.label: check for check in report.checks}
+    assert labels["CLAUDE.md Rig reference"].status == "ok"
+    assert labels["AGENTS.md Rig reference"].status == "warn"
+    assert "Run: rig init" in report.suggestions
 
 
 def test_format_doctor_report_includes_suggestions() -> None:

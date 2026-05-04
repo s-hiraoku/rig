@@ -75,10 +75,10 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
             checks.append(
                 DoctorCheck("AGENTS.md Rig reference", "warn", "not found")
             )
-            suggestions.append(f"Reference `{RIG_INSTRUCTION_PATH}` from AGENTS.md.")
+            suggestions.append("Run: rig init")
     else:
-        checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
-        suggestions.append("Add the Rig snippet from `rig init` to AGENTS.md.")
+        checks.append(DoctorCheck("AGENTS.md", "missing", "not found"))
+        suggestions.append("Run: rig init")
 
     claude_path = root / CLAUDE_INSTRUCTION_PATH
     if claude_path.is_file():
