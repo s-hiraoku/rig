@@ -96,8 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     guide_agents_parser.add_argument(
         "--target",
-        choices=["generic", "codex", "claude"],
-        default="generic",
+        choices=["all", "generic", "codex", "claude"],
+        default="all",
         help="Agent instruction target to generate for",
     )
     guide_agents_parser.add_argument(
@@ -297,6 +297,9 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print("Interrupted.", file=sys.stderr)
+        return 130
 
     parser.error("unsupported command")
     return 2
