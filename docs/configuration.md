@@ -62,6 +62,10 @@ agents:
 | `agents.<name>.prompt_template` | string | Required when `prompt_style: template`. |
 | `agents.<name>.timeout_seconds` | integer | Applies to `exec` and `pty`. |
 
+Use `rig run --timeout-seconds N` or MCP `timeout_seconds` for a one-off
+override when a parent agent knows a delegated run needs more time than the
+shared config default.
+
 ### Runner
 
 - `exec` — non-interactive command execution. Rig appends the rendered

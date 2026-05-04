@@ -40,6 +40,9 @@ Rules:
 - Prefer `--task-file` for long or structured tasks.
 - Prefer native parent-agent subagents over `rig run --parallel` when available.
 - Prefer native isolated subagent workspaces over `rig worktree run` when available.
+- For long delegated runs, choose an explicit `--timeout-seconds` or
+  `timeout_seconds` value that matches the task size, and set any parent shell
+  tool timeout high enough for the Rig command to finish.
 """
 
 

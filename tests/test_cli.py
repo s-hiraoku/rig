@@ -498,6 +498,44 @@ agents:
     assert "timed out" in (run_dir / "stderr.log").read_text(encoding="utf-8")
 
 
+def test_run_timeout_seconds_overrides_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="slow-enough",
+        body="import time\nprint('started')\ntime.sleep(2)\nprint('finished')\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  slow:
+    runner: exec
+    command: slow-enough
+    timeout_seconds: 1
+""",
+        encoding="utf-8",
+    )
+
+    assert (
+        cli.main(["run", "slow", "--task", "hello", "--timeout-seconds", "5"])
+        == 0
+    )
+
+    capsys.readouterr()
+    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
+    assert (run_dir / "stdout.log").read_text(encoding="utf-8") == (
+        "started\nfinished\n"
+    )
+    command = json.loads((run_dir / "command.json").read_text(encoding="utf-8"))
+    assert command["timeout_seconds"] == 5
+    status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["exit_code"] == 0
+
+
 def test_large_stdout_result_is_truncated_but_log_is_preserved(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -37,6 +37,7 @@ def create_mcp_server() -> FastMCP:
         worktree: bool = False,
         dry_run: bool = False,
         parallel: int = 1,
+        timeout_seconds: int | None = None,
         cwd: str | None = None,
     ) -> dict[str, Any]:
         """Start a Rig run and return structured run metadata.
@@ -53,6 +54,7 @@ def create_mcp_server() -> FastMCP:
             worktree=worktree,
             dry_run=dry_run,
             parallel=parallel,
+            timeout_seconds=timeout_seconds,
             cwd=cwd,
         )
 
@@ -165,6 +167,7 @@ def run_tool(
     worktree: bool = False,
     dry_run: bool = False,
     parallel: int = 1,
+    timeout_seconds: int | None = None,
     cwd: str | None = None,
 ) -> dict[str, Any]:
     try:
@@ -176,6 +179,7 @@ def run_tool(
             task_file=resolved_task_file,
             dry_run=dry_run,
             worktree=worktree,
+            timeout_seconds=timeout_seconds,
         )
         outcomes = RunOrchestrator(store).run_many(request, count=parallel)
     except (

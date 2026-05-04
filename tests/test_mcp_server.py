@@ -93,6 +93,17 @@ def test_mcp_run_rejects_invalid_parallel(
     assert result == {"ok": False, "error": "--parallel must be 1 or greater."}
 
 
+def test_mcp_run_rejects_invalid_timeout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    result = run_tool(task="hello", timeout_seconds=0, cwd=str(tmp_path))
+
+    assert result == {"ok": False, "error": "--timeout-seconds must be 1 or greater."}
+
+
 def test_mcp_run_rejects_parallel_worktree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

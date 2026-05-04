@@ -74,6 +74,7 @@ class ExecAdapter:
             "args": command[1:],
             "cwd": str(context.execution_cwd),
             "started_at": started_at,
+            "timeout_seconds": self.config.timeout_seconds,
         }
 
     def run(self, context: RunContext) -> AgentResult:
