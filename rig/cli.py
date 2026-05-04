@@ -196,6 +196,11 @@ def add_run_options(parser: argparse.ArgumentParser) -> None:
         default=1,
         help="Run this task N times concurrently",
     )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=positive_int,
+        help="Override the configured agent timeout for this run",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON output")
 
 
@@ -324,6 +329,7 @@ def run_agent(
         task_file=args.task_file,
         dry_run=args.dry_run,
         worktree=worktree,
+        timeout_seconds=args.timeout_seconds,
     )
     try:
         outcomes = RunOrchestrator(store).run_many(request, count=args.parallel)

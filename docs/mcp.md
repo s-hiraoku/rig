@@ -33,6 +33,10 @@ the ones the CLI uses. `rig_run` also accepts `parallel`; values greater than
 1 return a top-level `runs` list with one structured outcome per run.
 Parallel worktree runs are rejected.
 
+`rig_run` accepts `timeout_seconds` to override the configured agent timeout
+for one run. Parent agents should set this deliberately for large delegated
+tasks, and should keep any outer shell/tool timeout at least as long.
+
 ## Resources And Prompts
 
 The MCP server also exposes:

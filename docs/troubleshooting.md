@@ -103,14 +103,22 @@ These commands operate only on runs currently in `waiting`, so a real
 ## Run Failed With Exit Code 124
 
 That is Rig's timeout signal. The child agent ran longer than
-`timeout_seconds`. Either raise the timeout in `.rig/config.yaml` or split
-the task into smaller runs.
+`timeout_seconds`. Either pass a one-off override, raise the timeout in
+`.rig/config.yaml`, or split the task into smaller runs.
+
+```bash
+rig run codex --task-file task.md --timeout-seconds 1200
+```
 
 ```yaml
 agents:
   codex:
     timeout_seconds: 1200
 ```
+
+If a parent agent runs Rig through a shell tool with its own timeout, that
+outer timeout must also be long enough. A 1200-second Rig timeout does not help
+if the parent tool kills `rig run` after 10 minutes.
 
 ## Worktree Patch Includes Unexpected Files
 

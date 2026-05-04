@@ -54,6 +54,7 @@ rig worktree apply latest
 | `rig run [agent] --task-file task.md` | Run with a task read from a file. |
 | `rig run [agent] --task "..." --dry-run` | Write run artifacts and command preview without executing the child agent. |
 | `rig run [agent] --task "..." --json` | Print the run outcome as JSON. |
+| `rig run [agent] --task "..." --timeout-seconds N` | Override the configured agent timeout for one run. |
 | `rig run [agent] --task "..." --parallel N` | Run the same task N times concurrently. |
 | `rig suggest "..." [--json]` | Recommend `rig run` vs `rig worktree run` without executing. |
 
@@ -108,6 +109,10 @@ starting the child agent. Dry runs use status `created`.
 
 `--json` is available on `run`, `list`, `show`, `suggest`, and `env doctor`
 for scripts and MCP-style integrations that should not parse human text.
+
+`--timeout-seconds N` overrides `.rig/config.yaml` for a single run. Parent
+agents should choose this explicitly for long delegated runs and set their own
+shell/tool timeout high enough for the outer `rig run` command to complete.
 
 `--parallel N` starts the same run request N times concurrently. Each run gets
 its own `.rig/runs/<run-id>/` directory. With `--json`, parallel runs return a

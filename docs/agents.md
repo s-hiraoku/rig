@@ -209,6 +209,17 @@ agents:
     timeout_seconds: 600
 ```
 
+For one-off long tasks, prefer an explicit run override instead of editing
+shared config:
+
+```bash
+rig run codex --task-file tasks/large-review.md --timeout-seconds 3600
+```
+
+Parent agents should estimate the task size before delegating. If they run Rig
+through a shell tool that has its own timeout, that outer timeout must be at
+least as long as Rig's `--timeout-seconds` value.
+
 ## Asset managers vs. Rig agents
 
 A Rig agent is the command Rig executes. The agent's *assets* — prompts,

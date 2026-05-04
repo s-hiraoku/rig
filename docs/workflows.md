@@ -55,6 +55,15 @@ summary to the human.
 the child agent — useful when the parent agent wants to confirm the exact
 argv it would launch.
 
+For long delegated runs, the parent agent should choose a timeout explicitly:
+
+```bash
+rig run codex --task-file tasks/large-review.md --timeout-seconds 3600
+```
+
+This controls Rig's child-agent timeout. If the parent invokes Rig through a
+shell tool with its own timeout, that outer timeout must also be long enough.
+
 If the parent agent has native subagents, use those first for several
 independent attempts. Give each subagent the same task, constraints, and
 expected output, then synthesize the results for the human. Use

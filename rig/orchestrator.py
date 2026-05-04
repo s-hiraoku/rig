@@ -21,6 +21,7 @@ class RunRequest:
     task_file: str | None
     dry_run: bool
     worktree: bool
+    timeout_seconds: int | None = None
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,10 @@ class RunOrchestrator:
         config = self.store.load_config()
         agent_name = request.agent or config.default_agent
         agent_config = config.agent(agent_name)
+        if request.timeout_seconds is not None:
+            if request.timeout_seconds <= 0:
+                raise ValueError("--timeout-seconds must be 1 or greater.")
+            agent_config = replace(agent_config, timeout_seconds=request.timeout_seconds)
 
         context = self.store.create_run(agent_name, raw_task=task_input.text)
         if request.worktree:

@@ -26,6 +26,7 @@ _rig() {
       '--task-file[task file path]:filename:_files' \
       '--dry-run[create artifacts without executing]' \
       '--parallel[run the task N times concurrently]:count:' \
+      '--timeout-seconds[override the configured agent timeout]:seconds:' \
       '--json[print JSON output]'
     return
   fi

@@ -286,6 +286,15 @@ Add `--json` to print the same outcome as structured data instead of the human
 summary. This is useful for scripts and for integrations that need the run ID,
 status, artifact paths, and captured messages without parsing text.
 
+Use `--timeout-seconds N` to override the configured agent timeout for a single
+run. Parent agents should choose a timeout that matches the expected task size,
+and should also set their own shell/tool timeout high enough for the Rig command
+to finish:
+
+```bash
+uv run rig run codex --task-file tasks/large-review.md --timeout-seconds 3600
+```
+
 Use `--parallel N` to start the same task N times concurrently. Each attempt
 gets its own run directory and artifacts:
 
@@ -525,8 +534,9 @@ start runs, list and inspect run history, read results, and read captured
 worktree diffs without parsing CLI text.
 
 `rig_run` accepts the same normal-run controls as the CLI, including
-`parallel` for concurrent attempts. Parallel MCP responses return a top-level
-`runs` list. Parallel worktree runs are rejected.
+`parallel` for concurrent attempts and `timeout_seconds` for per-run timeout
+overrides. Parallel MCP responses return a top-level `runs` list. Parallel
+worktree runs are rejected.
 
 MCP-aware parent agents that have native subagents should still prefer those
 subagents for parallel work, and use `rig_run(parallel=...)` as the fallback
