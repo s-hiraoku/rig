@@ -51,7 +51,6 @@ final argument, with nothing prepended.
 ```yaml
 agents:
   claude:
-    runner: exec
     command: claude
     args: [-p]
     prompt_style: task
@@ -75,7 +74,6 @@ is the only style that lets you control the full prompt envelope.
 ```yaml
 agents:
   reviewer:
-    runner: exec
     command: codex
     args: [exec]
     prompt_style: template
@@ -173,4 +171,4 @@ cat .rig/runs/<run-id>/command.json
 ```
 
 The last entry of `args` is the prompt Rig produced. For dry runs, the same
-file is written without executing the child agent (`rig run … --dry-run`).
+file is written without executing the child agent (`rig delegate … --dry-run`).

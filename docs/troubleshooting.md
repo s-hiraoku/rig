@@ -1,194 +1,54 @@
 ---
 title: Troubleshooting
-description: Common Rig setup issues and their fixes — install, PATH, Codex trusted directory, waiting runs, env doctor, and Pages deploys.
+description: Fix common Rig setup and run issues.
 ---
 
 # Troubleshooting
 
-This page lists the most common setup problems. For lookup by topic, see the
-[FAQ](faq.md).
+## Rig Is Not Initialized
 
-## `rig` Command Is Not Found
-
-Check that the install completed and that the tool directory is on `PATH`:
+Run:
 
 ```bash
-uv tool list
-rig --help
+rig init
 ```
 
-If needed, reinstall:
+## The Parent Agent Is Not Using Rig
 
-```bash
-uv tool install --force --refresh "rig @ git+https://github.com/s-hiraoku/rig.git"
-```
-
-If `uv tool list` shows Rig but the shell still cannot find it, ensure
-`$(uv tool dir --bin)` is on your `PATH` (most shells do this automatically
-after the first `uv tool install`).
-
-## Codex Is Not Found
-
-The default child agent runs `codex exec`. Install the Codex CLI and confirm
-that `codex` is available on `PATH`:
-
-```bash
-codex --help
-```
-
-If you use a different CLI, configure it in `.rig/config.yaml`. See
-[Agents](agents.md).
-
-## Trusted Directory Error
-{: #trusted-directory-error }
-
-If Codex reports that the current directory is not trusted:
+Make sure `AGENTS.md` or your parent agent's project instructions reference:
 
 ```txt
-Not inside a trusted directory and --skip-git-repo-check was not specified.
+.rig/instructions/rig.md
 ```
 
-Initialize the project as a Git repository, then retry the Rig command:
-
-```bash
-git init
-```
-
-This is a Codex requirement, not a Rig requirement. Other CLIs may not need
-a Git repository.
-
-## My AI Doesn't Use Rig
-
-You set up Rig but the parent agent (Cursor, Claude Code, …) keeps editing
-files directly instead of calling `rig run` or `rig_run`.
-
-The parent agent only knows to use Rig if your project's instruction file
-says so. Run:
-
-```bash
-rig guide agents --target codex --write
-# or --target claude
-```
-
-Then paste the printed snippet into `AGENTS.md` / `CLAUDE.md`. For
-MCP-native or shell-restricted parents, also expose Rig as an MCP server
-(`rig mcp serve`) and add it to the client's MCP config. See
-[Getting Started → 3. Tell Your AI To Use Rig](getting-started.md).
+`rig init` prints a ready-to-paste snippet.
 
 ## No Runs Found
 
-`rig list` and `rig show latest` read `.rig/runs/`. Start a run first — ask
-your parent agent for a task, or directly:
+Start a delegated run first:
 
 ```bash
-rig run codex --task "Review the current diff."
+rig delegate codex --task "Review the current diff."
 ```
 
-If `rig list` still prints `No runs found.`, confirm you are in the same
-project directory; `.rig/runs/` is per-project.
-
-## Run Is Waiting
-
-A `manual` runner creates a run with status `waiting`. Complete or fail it
-explicitly:
+Then inspect it:
 
 ```bash
-rig manual complete latest --result "Finished externally."
-rig manual fail latest --error "Blocked externally."
+rig history
+rig history show latest
 ```
 
-These commands operate only on runs currently in `waiting`, so a real
-`exec` run is never overwritten by accident.
+## Patch Apply Is Disabled Over MCP
 
-## Run Failed With Exit Code 124
-
-That is Rig's timeout signal. The child agent ran longer than
-`timeout_seconds`. Either pass a one-off override, raise the timeout in
-`.rig/config.yaml`, or split the task into smaller runs.
-
-```bash
-rig run codex --task-file task.md --timeout-seconds 1200
-```
-
-```yaml
-agents:
-  codex:
-    timeout_seconds: 1200
-```
-
-If a parent agent runs Rig through a shell tool with its own timeout, that
-outer timeout must also be long enough. A 1200-second Rig timeout does not help
-if the parent tool kills `rig run` after 10 minutes.
-
-## Worktree Patch Includes Unexpected Files
-
-Worktree patches include untracked files that are not ignored by Git. If
-the captured patch contains build artifacts, caches, or `node_modules`, add
-them to `.gitignore` *before* re-running:
-
-```text
-node_modules/
-dist/
-.cache/
-```
-
-Then run again. The new patch will skip the ignored paths.
-
-## Environment Check Failures
-
-Use:
-
-```bash
-rig env doctor
-rig env doctor --json   # structured form for CI or scripts
-rig env plan
-```
-
-These commands report missing Rig files, required project files declared
-in `.rig/env.yaml`, configured agent commands, and optional agent asset
-managers. Statuses are `ok`, `missing`, `optional`, and `warn`.
-
-`rig env bootstrap` creates Rig-owned files only. It does not install
-external tools.
-
-## MCP Client Cannot Read A File
-
-MCP `cwd` values must resolve inside the server's launch directory, or
-inside `RIG_MCP_ROOT` when set. MCP `task_file` values are resolved from
-the selected `cwd` and must stay inside that project. If a parent agent
-gets a permission-style error, confirm the path is inside the allowed
-scope. See [MCP Server → Safety Defaults](mcp.md#safety-defaults).
-
-## MCP `rig_apply_patch` Returns Disabled
-
-`rig_apply_patch` is disabled unless the server starts with
-`RIG_MCP_ALLOW_APPLY=1`. Restart the server with that variable set, only
-when patch application is intentional:
+Start the server with:
 
 ```bash
 RIG_MCP_ALLOW_APPLY=1 rig mcp serve
 ```
 
-## GitHub Pages Does Not Update
-{: #github-pages-does-not-update }
+Only enable this for clients that should be allowed to apply reviewed patches.
 
-The Pages site is built from `docs/` by `.github/workflows/pages.yml`.
-Confirm that GitHub Pages is configured to deploy from GitHub Actions, then
-rerun the Pages workflow from the Actions tab. Changes outside `docs/**` do
-not trigger that workflow unless `.github/workflows/pages.yml` also
-changes.
+## Command Not Found
 
-See [GitHub Pages](github-pages.md) for the full pipeline.
-
-## Reset Rig Configuration
-
-To regenerate config back to current Rig defaults (with a backup of the
-existing files):
-
-```bash
-rig init --reset config
-rig init --reset env
-rig init --reset all   # both
-```
-
-Run history under `.rig/runs/` is untouched by these commands.
+`rig doctor` checks configured child-agent commands. Install the missing CLI or
+edit `.rig/config.yaml`.

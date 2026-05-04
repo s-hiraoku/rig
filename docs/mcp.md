@@ -1,103 +1,45 @@
 ---
 title: MCP Server
-description: Optional MCP adapter for MCP-native or shell-restricted parent agents. Shell-capable agents should usually use the Rig CLI directly.
+description: Expose Rig as MCP tools for parent agents that cannot call the CLI directly.
 ---
 
 # MCP Server
 
-Rig is CLI-first. Shell-capable parent agents and humans should usually call
-`rig` directly.
-
-`rig mcp serve` is an optional adapter for MCP-native or shell-restricted
-agents. It exposes the same run store, orchestrator, worktree diff, and
-artifact model as structured MCP tools over stdio:
+Rig is CLI-first. For MCP-native or shell-restricted parent agents, run:
 
 ```bash
 rig mcp serve
 ```
 
-This is how MCP-aware parent agents — Cursor, Claude Code, anything else with
-an MCP client — can reach Rig when shell access is unavailable, undesirable, or
-less ergonomic. It is not a separate workflow surface.
-
 ## Tools
 
 | Tool | Purpose |
 | --- | --- |
-| `rig_run` | Start a new run. Mirrors `rig run`. |
-| `rig_list_runs` | List recent runs. Mirrors `rig list`. |
-| `rig_list_agents` | List configured child agents from `.rig/config.yaml`. |
-| `rig_suggest` | Recommend `rig_run` vs `rig_run` with `worktree=true` for a task. |
-| `rig_get_run` | Read run metadata. |
-| `rig_get_result` | Read `result.md`. |
-| `rig_get_diff` | Read `diff.patch` for a worktree run. |
-| `rig_apply_patch` | Apply a captured worktree patch. **Disabled by default.** |
+| `rig_delegate` | Delegate a task to a configured child agent. |
+| `rig_patch_create` | Run a task in an isolated worktree and capture a patch. |
+| `rig_history` | List recent runs. |
+| `rig_history_show` | Read one run's metadata and result. |
+| `rig_patch_show` | Read a captured `diff.patch`. |
+| `rig_patch_apply` | Apply a reviewed patch. Disabled by default. |
+| `rig_list_agents` | List configured child agents. |
 
-The orchestrator and run store backing these tools are exactly the same as the
-ones the CLI uses. `rig_run` also accepts `parallel`; values greater than 1
-return a top-level `runs` list with one structured outcome per run.
-Parallel worktree runs are rejected.
-
-`rig_run` accepts `timeout_seconds` to override the configured agent timeout
-for one run. Parent agents should set this deliberately for large delegated
-tasks, and should keep any outer shell/tool timeout at least as long.
-
-## Resources And Prompts
-
-The MCP server also exposes:
-
-- `rig_policy` — a prompt the parent agent can fetch to learn Rig's usage
-  policy.
-- `rig://policy` — the same policy as a resource URI.
-- `rig://agents-md` — the project's `AGENTS.md` content (when present), so
-  the parent can pull project-specific agent guidance over the same channel.
+The MCP tools use the same run store and artifacts as the CLI.
 
 ## Safety Defaults
-{: #safety-defaults }
 
-MCP calls are confined to the server's launch directory by default. To
-operate on repositories under a broader root:
-
-```bash
-RIG_MCP_ROOT=/Users/me/code rig mcp serve
-```
-
-`cwd` values supplied by the parent agent must resolve inside `RIG_MCP_ROOT`.
-Relative `task_file` paths are resolved from the selected `cwd` and must
-also stay inside that project.
-
-`rig_apply_patch` is disabled unless the server starts with:
+`rig_patch_apply` is disabled unless the server starts with:
 
 ```bash
 RIG_MCP_ALLOW_APPLY=1 rig mcp serve
 ```
 
-Enable patch application only when the parent agent should be allowed to
-apply reviewed worktree patches after explicit human approval. The default —
-disabled — is intentional: a remote MCP client should not modify your
-working tree without an out-of-band opt-in.
+Enable patch application only when the parent agent should be allowed to apply
+reviewed patches after explicit human approval.
 
-## Environment Variables
-
-| Variable | Effect |
-| --- | --- |
-| `RIG_MCP_ROOT` | Allow MCP `cwd` and `task_file` paths to resolve under this root. Defaults to the server launch directory. |
-| `RIG_MCP_ALLOW_APPLY` | Set to `1` to enable `rig_apply_patch`. Defaults to disabled. |
+MCP `cwd` values are confined to the server launch directory by default. Set
+`RIG_MCP_ROOT=/path/to/root` to allow repositories under a broader root.
 
 ## Connecting From An MCP Client
-
-The exact wiring depends on the client. The pattern is:
-
-1. Add a server entry that runs `rig mcp serve` over stdio.
-2. (Optional) set `RIG_MCP_ROOT` if the client needs to operate on multiple
-   repositories.
-3. (Optional, opt-in) set `RIG_MCP_ALLOW_APPLY=1` when patch application is
-   intentional.
-
-See [Recipes → Run Rig Through MCP](recipes.md#run-rig-through-mcp) for a
-short end-to-end example.
-
-### Generic `mcpServers` JSON
 
 Most MCP clients accept a JSON shape like this:
 
@@ -114,8 +56,7 @@ Most MCP clients accept a JSON shape like this:
 }
 ```
 
-For local development from a Rig checkout, run through `uv` and point it at the
-checkout:
+For local development from a Rig checkout:
 
 ```json
 {
@@ -130,13 +71,7 @@ checkout:
 }
 ```
 
-If the client starts MCP servers from an arbitrary working directory, set
-`RIG_MCP_ROOT` and have the parent agent pass `cwd` in Rig tool calls. If the
-client supports configuring the server working directory directly, set it to the
-repository root.
-
-To allow one MCP server process to operate on several repositories under a
-common parent directory, add `RIG_MCP_ROOT`:
+To allow several repositories under one parent directory:
 
 ```json
 {
@@ -153,8 +88,7 @@ common parent directory, add `RIG_MCP_ROOT`:
 }
 ```
 
-Only add `RIG_MCP_ALLOW_APPLY=1` when the client should be able to call
-`rig_apply_patch` after explicit human approval:
+To allow patch application:
 
 ```json
 {
@@ -171,9 +105,9 @@ Only add `RIG_MCP_ALLOW_APPLY=1` when the client should be able to call
 }
 ```
 
-### Cursor
+## Client Examples
 
-For project-specific Cursor setup, create `.cursor/mcp.json` in the project:
+Cursor project config can live in `.cursor/mcp.json`:
 
 ```json
 {
@@ -189,34 +123,6 @@ For project-specific Cursor setup, create `.cursor/mcp.json` in the project:
   }
 }
 ```
-
-Use `~/.cursor/mcp.json` instead when you want Rig available globally. Cursor
-also supports variables such as `${workspaceFolder}` in `command`, `args`, and
-`env`, so a checkout-based setup can use:
-
-```json
-{
-  "mcpServers": {
-    "rig": {
-      "type": "stdio",
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/path/to/rig",
-        "run",
-        "rig",
-        "mcp",
-        "serve"
-      ],
-      "env": {
-        "RIG_MCP_ROOT": "${workspaceFolder}"
-      }
-    }
-  }
-}
-```
-
-### Claude Code
 
 Claude Code can add a local stdio server from the command line:
 
@@ -224,39 +130,7 @@ Claude Code can add a local stdio server from the command line:
 claude mcp add --transport stdio rig -- rig mcp serve
 ```
 
-For a project-scoped configuration that can be checked into the repository, use
-`--scope project`:
-
-```bash
-claude mcp add --transport stdio --scope project rig -- rig mcp serve
-```
-
-To pass environment variables:
-
-```bash
-claude mcp add --transport stdio --env RIG_MCP_ROOT=/Users/me/code rig -- rig mcp serve
-```
-
-Claude Code also understands a project `.mcp.json` file:
-
-```json
-{
-  "mcpServers": {
-    "rig": {
-      "command": "rig",
-      "args": ["mcp", "serve"],
-      "env": {}
-    }
-  }
-}
-```
-
 ## Inspecting MCP Calls
 
 MCP-driven runs land in the same `.rig/runs/<run-id>/` layout as CLI runs,
-including `command.json` showing the resolved argv. There is no separate
-"MCP run" surface — every MCP `rig_run` call produces a normal run that
-`rig list` and `rig show` can read.
-
-This is also why audit and debugging stay simple: whether the parent agent
-spoke to Rig via the CLI or over MCP, the artifacts on disk look the same.
+including `command.json` showing the resolved argv.

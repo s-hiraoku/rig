@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -9,7 +8,6 @@ from typing import Any
 from rig.adapters import create_adapter
 from rig.adapters.codex import iso_now
 from rig.adapters.exec import AgentCommandNotFoundError
-from rig.adapters.manual import ManualAdapter
 from rig.run_store import RunStore
 from rig.worktree import WorktreeError, capture_diff, create_worktree
 
@@ -64,17 +62,6 @@ class RunOrchestrator:
     def __init__(self, store: RunStore) -> None:
         self.store = store
 
-    def run_many(self, request: RunRequest, *, count: int) -> list[RunOutcome]:
-        if count < 1:
-            raise ValueError("--parallel must be 1 or greater.")
-        if request.worktree and count > 1:
-            raise ValueError("Parallel worktree runs are not supported.")
-        if count == 1:
-            return [self.run(request)]
-        with ThreadPoolExecutor(max_workers=count) as executor:
-            futures = [executor.submit(self.run, request) for _ in range(count)]
-            return [future.result() for future in futures]
-
     def run(self, request: RunRequest) -> RunOutcome:
         task_input = read_task(request)
         config = self.store.load_config()
@@ -98,32 +85,6 @@ class RunOrchestrator:
 
         started_at = iso_now()
         command_adapter = create_adapter(agent_name, agent_config)
-        if isinstance(command_adapter, ManualAdapter):
-            self.store.write_command(
-                context, command_adapter.command_metadata(context, started_at)
-            )
-            context.stdout_path.write_text("", encoding="utf-8")
-            context.stderr_path.write_text("", encoding="utf-8")
-            context.result_path.write_text(
-                command_adapter.result_template(context), encoding="utf-8"
-            )
-            self.store.write_status(context, status="waiting", started_at=started_at)
-            task_path = str(context.task_path.relative_to(context.cwd))
-            result_path = str(context.result_path.relative_to(context.cwd))
-            return RunOutcome(
-                exit_code=0,
-                run_id=context.id,
-                status="waiting",
-                task_path=task_path,
-                result_path=result_path,
-                lines=[
-                    f"Run: {context.id}",
-                    "Status: waiting",
-                    f"Task: {task_path}",
-                    f"Result: {result_path}",
-                ],
-            )
-
         self.store.write_command(
             context, command_adapter.command_metadata(context, started_at)
         )

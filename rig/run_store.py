@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from rig.config import RigConfig, load_config
+from rig.policy import RIG_INSTRUCTION_PATH, rig_instruction_file_content
 from rig.run_context import RunContext
 
 DEFAULT_CONFIG = """version: 1
@@ -16,43 +17,9 @@ default_agent: codex
 agents:
   codex:
     command: codex
-    runner: exec
     args:
       - exec
 """
-
-DEFAULT_ENV_CONFIG = """version: 1
-
-agent_asset_managers:
-  - id: apm
-    label: APM
-    command: apm
-    hint: "Choose or install APM if this project uses APM-managed skills, hooks, prompts, or MCP config."
-  - id: gh-skills
-    label: GitHub skills manager
-    command: gh
-    args:
-      - skills
-      - --help
-    hint: "Install or update GitHub CLI if this project uses `gh skills` workflows."
-  - id: vercel-skills
-    label: Vercel skills manager
-    command: npx
-    args:
-      - --no-install
-      - skills
-      - --help
-    hint: "Install Node.js/npm if this project uses Vercel `skills` workflows."
-
-required_files:
-  - path: AGENTS.md
-    label: Agent instructions
-    hint: "Run: rig guide agents"
-  - path: docs/agent-harness.md
-    label: Agent harness docs
-    hint: "Create docs/agent-harness.md with this repo's MCP, skills, and hooks guidance."
-"""
-
 
 class RigNotInitializedError(RuntimeError):
     pass
@@ -119,7 +86,7 @@ class RunStore:
         self.runs_dir = self.rig_dir / "runs"
         self.worktrees_dir = self.rig_dir / "worktrees"
         self.config_path = self.rig_dir / "config.yaml"
-        self.env_config_path = self.rig_dir / "env.yaml"
+        self.instruction_path = self.cwd / RIG_INSTRUCTION_PATH
 
     def init(
         self, *, reset: str | None = None, now: datetime | None = None
@@ -140,7 +107,7 @@ class RunStore:
             created.append(".rig/runs/")
 
         reset_config = reset in {"config", "all"}
-        reset_env = reset in {"env", "all"}
+        reset_instructions = reset in {"instructions", "all"}
 
         if reset_config:
             self.reset_file(
@@ -158,21 +125,24 @@ class RunStore:
         else:
             unchanged.append(".rig/config.yaml")
 
-        if reset_env:
+        if reset_instructions:
             self.reset_file(
-                self.env_config_path,
-                DEFAULT_ENV_CONFIG,
-                ".rig/env.yaml",
+                self.instruction_path,
+                rig_instruction_file_content(),
+                RIG_INSTRUCTION_PATH,
                 created=created,
                 updated=updated,
                 backups=backups,
                 now=now,
             )
-        elif not self.env_config_path.exists():
-            self.env_config_path.write_text(DEFAULT_ENV_CONFIG, encoding="utf-8")
-            created.append(".rig/env.yaml")
+        elif not self.instruction_path.exists():
+            self.instruction_path.parent.mkdir(parents=True, exist_ok=True)
+            self.instruction_path.write_text(
+                rig_instruction_file_content(), encoding="utf-8"
+            )
+            created.append(RIG_INSTRUCTION_PATH)
         else:
-            unchanged.append(".rig/env.yaml")
+            unchanged.append(RIG_INSTRUCTION_PATH)
 
         return InitResult(
             created=created,
@@ -199,6 +169,7 @@ class RunStore:
             updated.append(display_path)
         else:
             created.append(display_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
     def backup_path(self, path: Path, *, now: datetime | None = None) -> Path:

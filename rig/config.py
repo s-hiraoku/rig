@@ -7,12 +7,10 @@ from typing import Any, cast
 import yaml
 
 from rig.prompt import empty_prompt_template_values
-from rig.runners import SUPPORTED_RUNNERS
 
 
 @dataclass(frozen=True)
 class AgentConfig:
-    runner: str
     command: str
     args: list[str]
     prompt_style: str
@@ -67,12 +65,10 @@ def load_config(path: Path) -> RigConfig:
 
 
 def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
-    runner = value.get("runner", "exec")
-    if not isinstance(runner, str) or not runner:
-        raise ConfigError(f"Config value `agents.{name}.runner` must be a string.")
-    if runner not in SUPPORTED_RUNNERS:
+    if "runner" in value:
         raise ConfigError(
-            f"Config value `agents.{name}.runner` must be `exec`, `manual`, or `pty`."
+            f"Config value `agents.{name}.runner` is no longer supported. "
+            "Rig agents always use non-interactive command execution."
         )
 
     command = value.get("command", name)
@@ -122,7 +118,6 @@ def parse_agent_config(name: str, value: dict[str, Any]) -> AgentConfig:
         )
 
     return AgentConfig(
-        runner=runner,
         command=command,
         args=cast(list[str], args),
         prompt_style=prompt_style,
