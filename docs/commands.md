@@ -97,7 +97,7 @@ rig worktree apply latest
 
 | Command | Purpose |
 | --- | --- |
-| `rig mcp serve` | Run the MCP server over stdio. See [MCP Server](mcp.md). |
+| `rig mcp serve` | Run the optional MCP server over stdio. See [MCP Server](mcp.md). |
 
 ## Run Options
 
@@ -141,8 +141,9 @@ to the most recent run.
 - `prompt_style: template` enables `prompt_template` with `{agent}`,
   `{task_path}`, `{task}`, and `{task_md}` placeholders. See
   [Prompt Styles](prompts.md).
-- MCP tools expose the same run store and orchestrator as the CLI. The
-  initial tool set is `rig_run`, `rig_list_runs`, `rig_list_agents`,
+- MCP is optional. It exposes the same run store and orchestrator as the CLI
+  for MCP-native or shell-restricted agents. The initial tool set is `rig_run`,
+  `rig_list_runs`, `rig_list_agents`,
   `rig_suggest`, `rig_get_run`, `rig_get_result`, `rig_get_diff`, and
   `rig_apply_patch`. See [MCP Server](mcp.md).
 - MCP also exposes the `rig_policy` prompt and `rig://policy` /

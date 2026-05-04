@@ -15,7 +15,7 @@ confusion later.
 | Role | What they do |
 | --- | --- |
 | **Human** | Asks the parent agent in natural language. Reviews `result.md` and `diff.patch` through that agent. Approves patch application. |
-| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Decides whether to use native subagents or Rig. Calls `rig_run` (MCP) or `rig run` (CLI) when Rig-backed artifacts are useful. Reads back artifacts and reports to the human. |
+| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Decides whether to use native subagents or Rig. Calls `rig run` (CLI) or `rig_run` (MCP) when Rig-backed artifacts are useful. Reads back artifacts and reports to the human. |
 | **Child agent** (the CLI Rig launches — `codex exec` by default) | Executes the actual task. Writes its answer to stdout. |
 
 The CLI is for **setup, debugging, and audit**. Day-to-day work usually goes
@@ -128,7 +128,7 @@ and [Workflows → Environment Setup](workflows.md#environment-setup).
 
 ## MCP Server
 
-Rig exposes its run store and orchestrator as an MCP server over stdio. An
-MCP-aware parent agent (Cursor, Claude Code, anything else with an MCP
-client) calls structured tools — `rig_run`, `rig_list_runs`, `rig_get_diff`,
-etc. — instead of parsing CLI output. See [MCP Server](mcp.md).
+Rig is CLI-first, but it also exposes its run store and orchestrator as an
+optional MCP server over stdio. MCP-native or shell-restricted parent agents
+can call structured tools — `rig_run`, `rig_list_runs`, `rig_get_diff`, etc. —
+against the same core operations. See [MCP Server](mcp.md).

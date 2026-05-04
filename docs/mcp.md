@@ -1,19 +1,24 @@
 ---
 title: MCP Server
-description: Run Rig as an MCP server so MCP-aware parent agents (Cursor, Claude Code, …) can call structured tools instead of parsing CLI text.
+description: Optional MCP adapter for MCP-native or shell-restricted parent agents. Shell-capable agents should usually use the Rig CLI directly.
 ---
 
 # MCP Server
 
-Rig can run an MCP server over stdio:
+Rig is CLI-first. Shell-capable parent agents and humans should usually call
+`rig` directly.
+
+`rig mcp serve` is an optional adapter for MCP-native or shell-restricted
+agents. It exposes the same run store, orchestrator, worktree diff, and
+artifact model as structured MCP tools over stdio:
 
 ```bash
 rig mcp serve
 ```
 
-This is how MCP-aware parent agents — Cursor, Claude Code, anything else
-with an MCP client — reach Rig. They call structured tools (`rig_run`,
-`rig_list_runs`, `rig_get_diff`, …) instead of parsing CLI text.
+This is how MCP-aware parent agents — Cursor, Claude Code, anything else with
+an MCP client — can reach Rig when shell access is unavailable, undesirable, or
+less ergonomic. It is not a separate workflow surface.
 
 ## Tools
 
@@ -28,9 +33,9 @@ with an MCP client — reach Rig. They call structured tools (`rig_run`,
 | `rig_get_diff` | Read `diff.patch` for a worktree run. |
 | `rig_apply_patch` | Apply a captured worktree patch. **Disabled by default.** |
 
-The orchestrator and run store backing these tools are exactly the same as
-the ones the CLI uses. `rig_run` also accepts `parallel`; values greater than
-1 return a top-level `runs` list with one structured outcome per run.
+The orchestrator and run store backing these tools are exactly the same as the
+ones the CLI uses. `rig_run` also accepts `parallel`; values greater than 1
+return a top-level `runs` list with one structured outcome per run.
 Parallel worktree runs are rejected.
 
 `rig_run` accepts `timeout_seconds` to override the configured agent timeout
@@ -100,4 +105,4 @@ including `command.json` showing the resolved argv. There is no separate
 `rig list` and `rig show` can read.
 
 This is also why audit and debugging stay simple: whether the parent agent
-spoke to Rig over MCP or via the CLI, the artifacts on disk look the same.
+spoke to Rig via the CLI or over MCP, the artifacts on disk look the same.

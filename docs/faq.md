@@ -15,7 +15,7 @@ inspectable, reviewable, and replayable.
 
 In normal use, your parent AI agent does — Cursor, Claude Code, Codex CLI,
 or any other tool reading your `AGENTS.md` / `CLAUDE.md`. You ask in plain
-language; the parent agent calls `rig_run` (MCP) or `rig run` (CLI) on your
+language; the parent agent calls `rig run` (CLI) or `rig_run` (MCP) on your
 behalf.
 
 You only type Rig commands directly for setup, debugging, and audit. See

@@ -9,8 +9,8 @@ description: Rig is a local harness that AI coding agents call to delegate work 
   <p>
     Rig is a local harness that <strong>parent AI agents</strong> like
     Claude Code, Cursor, and Codex CLI call to <strong>delegate coding work</strong>.
-    You ask the AI in plain language; the AI invokes <code>rig_run</code> (MCP)
-    or <code>rig run</code> behind the scenes; Rig records the task, command,
+    You ask the AI in plain language; the AI invokes <code>rig run</code> (CLI)
+    or <code>rig_run</code> (MCP) behind the scenes; Rig records the task, command,
     logs, result, and any patch as plain files under <code>.rig/</code>.
   </p>
   <div class="hero-actions">
@@ -35,7 +35,7 @@ You don't type Rig commands. You talk to your AI in natural language.
 > **You:** "Review the current diff and flag anything risky."
 >
 > **Parent AI** *(Cursor / Claude Code / Codex CLI)*: *(internally calls
-> `rig_run` over MCP)* — "I ran the review through Rig. Here's the summary
+> `rig run`)* — "I ran the review through Rig. Here's the summary
 > from `result.md` …"
 
 The trick is that the parent agent only knows to use Rig because your project's
@@ -49,7 +49,7 @@ snippet to paste in. See [Getting Started](getting-started.md).
   <a href="workflows.html"><strong>Pick the right flow</strong><span>Normal runs, isolated worktree edits, manual / GUI work, and environment checks.</span></a>
   <a href="recipes.html"><strong>Real recipes</strong><span>End-to-end examples with the natural-language prompts you'd actually give your AI.</span></a>
   <a href="agents.html"><strong>Configure child agents</strong><span>Codex, Claude, Gemini, Copilot — the CLIs Rig launches on the parent agent's behalf.</span></a>
-  <a href="mcp.html"><strong>Wire up MCP</strong><span>Expose Rig as MCP tools to Cursor, Claude Code, and other MCP-aware parents.</span></a>
+  <a href="mcp.html"><strong>Optional MCP</strong><span>Expose Rig as MCP tools for MCP-native or shell-restricted parents.</span></a>
   <a href="faq.html"><strong>FAQ</strong><span>Why Rig, what Rig is not, and when to bypass it and use the CLI directly.</span></a>
 </div>
 
@@ -60,7 +60,7 @@ Three roles, in order:
 | Role | What they do |
 | --- | --- |
 | **Human** (you) | Ask the parent agent in natural language. Review `result.md` and `diff.patch` through that agent. Approve patch application. |
-| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Calls `rig_run` (MCP) or `rig run` (CLI) to delegate work. Reads back artifacts and reports to you. |
+| **Parent agent** (Cursor, Claude Code, Codex CLI, anything reading AGENTS.md) | Calls `rig run` (CLI) or `rig_run` (MCP) to delegate work. Reads back artifacts and reports to you. |
 | **Child agent** (the CLI Rig launches — `codex exec` by default) | Performs the actual task, writes its answer to stdout. Rig captures everything to disk. |
 
 You only touch the CLI directly for **setup, debugging, and audit**. Day-to-day
@@ -73,7 +73,7 @@ work flows through the parent agent.
 | Runs | What did the child agent do? | [Core Concepts](concepts.md) · [Run Artifacts](artifacts.md) |
 | Workflows | How should this task be delegated? | [Workflows](workflows.md) · [Recipes](recipes.md) |
 | Configuration | Which child agent and policy should Rig use? | [Configuration](configuration.md) · [Agents](agents.md) · [Prompt Styles](prompts.md) |
-| Integration | How does the parent agent reach Rig? | [MCP Server](mcp.md) |
+| Integration | How does a shell-restricted parent reach Rig? | [MCP Server](mcp.md) |
 
 ## What Rig Is Not
 

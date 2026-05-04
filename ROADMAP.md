@@ -331,9 +331,10 @@ their stable non-interactive contracts need special handling. Risky permission
 flags such as Copilot's broad tool approval options should remain explicit user
 configuration, not Rig defaults.
 
-## Phase 4: MCP Server
+## Phase 4: Optional MCP Adapter
 
-Goal: expose Rig as structured tools for MCP-capable agents.
+Goal: expose Rig's CLI-first harness as structured tools for MCP-native or
+shell-restricted agents.
 
 Implemented:
 
@@ -352,11 +353,12 @@ Implemented:
 
 Why MCP:
 
-- Agents can call structured tools instead of shell commands.
+- Shell-restricted agents can use Rig without direct shell access.
+- MCP-native clients can call structured tools instead of shell commands.
 - Tool inputs and outputs can use schemas.
 - Agents do not need to parse CLI text to discover run IDs or statuses.
-- MCP tools can return stable JSON-like data while Rig keeps the CLI for humans
-  and fallback automation.
+- MCP tools can return stable JSON-like data while Rig keeps the CLI as the
+  primary interface for shell-capable agents, humans, and scripts.
 
 MCP safety defaults:
 
@@ -365,13 +367,13 @@ MCP safety defaults:
 - `task_file` paths must stay inside the selected project.
 - `rig_apply_patch` is disabled unless `RIG_MCP_ALLOW_APPLY=1` is set.
 
-Skills and `AGENTS.md` should remain useful after MCP exists. They should
-explain when to use Rig, which policies to follow, and how to inspect artifacts.
-The preferred mechanism can shift from CLI to MCP:
+Skills and `AGENTS.md` remain the primary way to tell shell-capable agents how
+to use Rig. They should explain when to use Rig, which policies to follow, and
+how to inspect artifacts. MCP is optional:
 
 ```txt
-Prefer Rig MCP tools when available.
-If MCP tools are not available, use the Rig CLI.
+Prefer the Rig CLI when shell access is available.
+Use Rig MCP tools when the parent agent is MCP-native or shell-restricted.
 ```
 
 ## Phase 5: Suggest

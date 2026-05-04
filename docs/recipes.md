@@ -252,8 +252,9 @@ agent to run for real.
 ## Run Rig Through MCP
 {: #run-rig-through-mcp }
 
-If your parent agent speaks MCP, expose Rig as a server so it can call
-structured tools instead of parsing CLI text:
+Rig is CLI-first. If your parent agent is MCP-native or shell-restricted,
+expose Rig as a server so it can call the same core operations as structured
+tools:
 
 ```bash
 rig mcp serve

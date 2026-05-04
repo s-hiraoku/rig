@@ -1,5 +1,5 @@
 title: Rig User Guide
-description: A local AI coding harness — file-backed tasks, inspectable run artifacts, isolated worktree edits, and an MCP server.
+description: A local AI coding harness — file-backed tasks, inspectable run artifacts, isolated worktree edits, and an optional MCP adapter.
 
 plugins:
   - jekyll-seo-tag

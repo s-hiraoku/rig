@@ -7,11 +7,11 @@ Rig's main unit is a run. A run records the task, the command Rig executed,
 stdout, stderr, the final result, and status metadata under `.rig/runs/`.
 
 See [ROADMAP.md](ROADMAP.md) for planned phases, including worktree support,
-generic execution runners, and MCP tools.
+generic execution runners, and the optional MCP adapter.
 See [docs/commands.md](docs/commands.md) for the compact command reference.
 The GitHub Pages user guide starts at [docs/index.md](docs/index.md). It is the
-structured manual for workflows, artifacts, configuration, MCP integration, and
-site publishing.
+structured manual for workflows, artifacts, configuration, optional MCP
+integration, and site publishing.
 
 Rig does not try to replace package managers for agent assets. Tools such as
 APM, GitHub CLI `gh skill`, Vercel `skills`, or manual team conventions can own
@@ -113,7 +113,7 @@ rig worktree show latest
 rig worktree apply latest
 ```
 
-For MCP-capable agents:
+For MCP-native or shell-restricted agents:
 
 ```bash
 rig mcp serve
@@ -531,9 +531,10 @@ Read `.rig/instructions/rig.md` before using Rig.
 
 ### `rig mcp serve`
 
-Runs Rig's MCP server over stdio. MCP-capable agents can use the server to
-start runs, list and inspect run history, read results, and read captured
-worktree diffs without parsing CLI text.
+Runs Rig's optional MCP server over stdio. Rig is CLI-first: shell-capable
+agents should usually call `rig` directly. MCP exists for MCP-native or
+shell-restricted agents that need a structured tool interface to the same run
+store, orchestrator, and artifact model.
 
 `rig_run` accepts the same normal-run controls as the CLI, including
 `parallel` for concurrent attempts and `timeout_seconds` for per-run timeout

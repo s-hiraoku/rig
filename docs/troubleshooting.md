@@ -60,7 +60,7 @@ a Git repository.
 ## My AI Doesn't Use Rig
 
 You set up Rig but the parent agent (Cursor, Claude Code, …) keeps editing
-files directly instead of calling `rig_run`.
+files directly instead of calling `rig run` or `rig_run`.
 
 The parent agent only knows to use Rig if your project's instruction file
 says so. Run:
@@ -71,8 +71,8 @@ rig guide agents --target codex --write
 ```
 
 Then paste the printed snippet into `AGENTS.md` / `CLAUDE.md`. For
-MCP-aware parents, also expose Rig as an MCP server (`rig mcp serve`) and
-add it to the client's MCP config. See
+MCP-native or shell-restricted parents, also expose Rig as an MCP server
+(`rig mcp serve`) and add it to the client's MCP config. See
 [Getting Started → 3. Tell Your AI To Use Rig](getting-started.md).
 
 ## No Runs Found

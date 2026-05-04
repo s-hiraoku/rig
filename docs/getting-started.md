@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install Rig and wire your parent AI agent to use it. Three steps plus a sanity check; the CLI is mostly something you read about, not something you type.
+description: Install Rig and wire your parent AI agent to use it. Three steps plus a sanity check; the CLI is the primary interface agents call for you.
 ---
 
 # Getting Started
@@ -91,10 +91,11 @@ That's it. Any agent that reads AGENTS.md (Codex CLI, Cursor with custom
 instructions, Claude Code with project rules) will now prefer Rig for
 delegated work.
 
-### MCP-aware parents (Cursor, Claude Code, …)
+### MCP-native or shell-restricted parents
 
-If your parent agent speaks MCP, also expose Rig as an MCP server so it can
-call structured tools instead of parsing CLI text:
+Rig is CLI-first, so shell-capable agents can call `rig` directly. If your
+parent agent is MCP-native or shell-restricted, also expose Rig as an MCP
+server so it can call the same core operations as structured tools:
 
 ```bash
 rig mcp serve
@@ -109,7 +110,7 @@ Now stop typing Rig commands. Talk to your AI:
 
 > **You:** "Review the current diff in `rig/cli.py` and flag anything risky."
 
-The parent agent calls `rig_run` (MCP) or `rig run` (CLI) under the hood.
+The parent agent calls `rig run` (CLI) or `rig_run` (MCP) under the hood.
 Rig writes to `.rig/runs/<run-id>/`:
 
 - `task.md` — the request
