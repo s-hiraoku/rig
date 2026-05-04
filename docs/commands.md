@@ -44,7 +44,7 @@ rig worktree apply latest
 | `rig init --reset config` | Back up and recreate `.rig/config.yaml`. |
 | `rig init --reset env` | Back up and recreate `.rig/env.yaml`. |
 | `rig init --reset all` / `--force` | Reset both. |
-| `rig guide agents [--target codex|claude] [--write] [--force]` | Generate AGENTS.md / CLAUDE.md snippets and (with `--write`) `.rig/instructions/rig.md`. |
+| `rig guide agents [--target all,codex,claude] [--write] [--force]` | Generate AGENTS.md / CLAUDE.md / skill references and (with `--write`) `.rig/instructions/rig.md`. |
 
 ### Run
 

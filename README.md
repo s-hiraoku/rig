@@ -462,8 +462,8 @@ Example:
 uv run rig guide agents
 uv run rig guide agents --target codex --format markdown
 uv run rig guide agents --target claude --format markdown
-uv run rig guide agents --target codex --write
-uv run rig guide agents --target claude --write --force
+uv run rig guide agents --write
+uv run rig guide agents --write --force
 ```
 
 `--write` does not overwrite `.rig/instructions/rig.md` unless `--force` is
@@ -472,6 +472,8 @@ also provided. The written file is target-independent, so `--target codex` and
 reference snippet. Rig still does not edit `AGENTS.md`, `CLAUDE.md`, or skill
 files automatically. `--write` only creates `.rig/instructions/rig.md`; run
 `rig init` for full setup with `.rig/config.yaml` and `.rig/runs/`.
+When `--target` is omitted, Rig prints reference snippets for `AGENTS.md`,
+`CLAUDE.md`, and Rig-related skill files in one command.
 
 Minimal examples:
 

@@ -24,6 +24,23 @@ def test_top_level_help_shows_command_shape(
     assert "apply" not in output
 
 
+def test_mcp_serve_handles_keyboard_interrupt(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fake_serve_mcp() -> None:
+        raise KeyboardInterrupt
+
+    import rig.mcp_server
+
+    monkeypatch.setattr(rig.mcp_server, "serve_mcp", fake_serve_mcp)
+
+    assert cli.main(["mcp", "serve"]) == 130
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "Interrupted.\n"
+
+
 def test_suggest_recommends_normal_run_for_clean_repo(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1043,10 +1060,10 @@ def test_guide_agents_prints_agents_md_section(
 
     output = capsys.readouterr().out
     assert "## Rig" in output
-    assert "Prefer Rig MCP tools when available" in output
-    assert "Use Rig when the user wants" in output
-    assert "rig run codex --task-file" in output
-    assert "rig show latest" in output
+    assert "Suggested for AGENTS.md" in output
+    assert "Suggested for CLAUDE.md" in output
+    assert "Suggested for Rig-related skill files" in output
+    assert ".rig/instructions/rig.md" in output
 
 
 def test_guide_agents_supports_targets_and_markdown_format(
@@ -1093,7 +1110,7 @@ def test_guide_agents_write_creates_rig_instruction_file(
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
-    assert cli.main(["guide", "agents", "--target", "codex", "--write"]) == 0
+    assert cli.main(["guide", "agents", "--write"]) == 0
 
     instruction_path = tmp_path / ".rig" / "instructions" / "rig.md"
     assert instruction_path.is_file()
@@ -1103,6 +1120,8 @@ def test_guide_agents_write_creates_rig_instruction_file(
     output = capsys.readouterr().out
     assert "Wrote: .rig/instructions/rig.md" in output
     assert "Suggested for AGENTS.md" in output
+    assert "Suggested for CLAUDE.md" in output
+    assert "Suggested for Rig-related skill files" in output
     assert "See `.rig/instructions/rig.md`" in output
 
 

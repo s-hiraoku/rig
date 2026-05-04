@@ -36,7 +36,15 @@ Rules:
 RIG_INSTRUCTION_PATH = ".rig/instructions/rig.md"
 
 
-def agents_snippet(*, target: str = "generic") -> str:
+def agents_snippet(*, target: str = "all") -> str:
+    if target == "all":
+        return "\n\n".join(
+            [
+                agents_snippet(target="codex").rstrip(),
+                agents_snippet(target="claude").rstrip(),
+                skill_reference_snippet().rstrip(),
+            ]
+        ) + "\n"
     if target == "claude":
         return (
             "<!-- Suggested for CLAUDE.md or Claude project instructions. -->\n\n"
@@ -50,6 +58,13 @@ def agents_snippet(*, target: str = "generic") -> str:
             "artifact inspection rules, and patch-apply safety rules.\n"
         )
     return AGENTS_SNIPPET
+
+
+def skill_reference_snippet() -> str:
+    return (
+        "<!-- Suggested for Rig-related skill files. -->\n\n"
+        f"# Rig\n\nRead `{RIG_INSTRUCTION_PATH}` before using Rig.\n"
+    )
 
 
 def rig_instruction_file_content() -> str:

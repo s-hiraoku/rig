@@ -31,7 +31,7 @@ _rig() {
 
   if [[ "$words[2]" == "guide" && "$words[3]" == "agents" ]]; then
     _arguments \
-      '--target[agent instruction target]:target:(generic codex claude)' \
+      '--target[agent instruction target]:target:(all generic codex claude)' \
       '--format[output format]:format:(markdown)' \
       '--write[write target-independent .rig/instructions/rig.md]' \
       '--force[overwrite .rig/instructions/rig.md with --write]'
