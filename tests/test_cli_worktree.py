@@ -1,4 +1,4 @@
-"""CLI integration tests for `rig worktree ...` commands."""
+"""CLI integration tests for `rig patch ...` commands."""
 
 from __future__ import annotations
 
@@ -28,14 +28,13 @@ def test_run_worktree_captures_diff(
         """version: 1
 agents:
   edit:
-    runner: exec
     command: edit-file
     prompt_style: task
 """,
         encoding="utf-8",
     )
 
-    assert cli.main(["worktree", "run", "edit", "--task", "edit tracked"]) == 0
+    assert cli.main(["patch", "create", "edit", "--task", "edit tracked"]) == 0
 
     output = capsys.readouterr().out
     assert "Diff: .rig/runs/" in output
@@ -47,22 +46,6 @@ agents:
     assert status["worktree_dir"].startswith(".rig/worktrees/")
     assert status["diff_path"].endswith("/diff.patch")
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
-
-
-def test_run_worktree_rejects_parallel(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    init_git_repo(tmp_path)
-    cli.main(["init"])
-    capsys.readouterr()
-
-    assert (
-        cli.main(["worktree", "run", "codex", "--task", "hello", "--parallel", "2"])
-        == 2
-    )
-
-    assert "Parallel worktree runs are not supported." in capsys.readouterr().err
 
 
 def test_run_worktree_captures_untracked_files(
@@ -81,14 +64,13 @@ def test_run_worktree_captures_untracked_files(
         """version: 1
 agents:
   creator:
-    runner: exec
     command: create-file
     prompt_style: task
 """,
         encoding="utf-8",
     )
 
-    assert cli.main(["worktree", "run", "creator", "--task", "create file"]) == 0
+    assert cli.main(["patch", "create", "creator", "--task", "create file"]) == 0
 
     capsys.readouterr()
     run_dir = next((tmp_path / ".rig" / "runs").iterdir())
@@ -114,7 +96,6 @@ def test_run_worktree_marks_run_failed_when_diff_capture_fails(
         """version: 1
 agents:
   edit:
-    runner: exec
     command: edit-file
     prompt_style: task
 """,
@@ -126,7 +107,7 @@ agents:
 
     monkeypatch.setattr("rig.orchestrator.capture_diff", fail_capture_diff)
 
-    assert cli.main(["worktree", "run", "edit", "--task", "edit tracked"]) == 1
+    assert cli.main(["patch", "create", "edit", "--task", "edit tracked"]) == 1
 
     captured = capsys.readouterr()
     assert "capture exploded" in captured.err
@@ -141,40 +122,6 @@ agents:
     assert "Rig: worktree diff capture failed. See stderr.log for details." in (
         run_dir / "result.md"
     ).read_text(encoding="utf-8")
-
-
-def test_worktree_pty_run_uses_worktree_cwd(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    init_git_repo(tmp_path)
-    cli.main(["init"])
-    install_fake_script(
-        tmp_path,
-        monkeypatch,
-        name="pty-edit",
-        body="from pathlib import Path\nPath('tracked.txt').write_text('after\\n', encoding='utf-8')\nprint('edited')\n",
-    )
-    (tmp_path / ".rig" / "config.yaml").write_text(
-        """version: 1
-agents:
-  pty_edit:
-    runner: pty
-    command: pty-edit
-    timeout_seconds: 5
-    prompt_style: task
-""",
-        encoding="utf-8",
-    )
-
-    assert cli.main(["worktree", "run", "pty_edit", "--task", "edit tracked"]) == 0
-
-    capsys.readouterr()
-    run_dir = next((tmp_path / ".rig" / "runs").iterdir())
-    diff = (run_dir / "diff.patch").read_text(encoding="utf-8")
-    assert "-before" in diff
-    assert "+after" in diff
-    assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
 def test_worktree_show_and_apply_worktree_run(
@@ -193,22 +140,21 @@ def test_worktree_show_and_apply_worktree_run(
         """version: 1
 agents:
   edit:
-    runner: exec
     command: edit-file
     prompt_style: task
 """,
         encoding="utf-8",
     )
-    cli.main(["worktree", "run", "edit", "--task", "edit tracked"])
+    cli.main(["patch", "create", "edit", "--task", "edit tracked"])
 
-    assert cli.main(["worktree", "show", "latest"]) == 0
+    assert cli.main(["patch", "show", "latest"]) == 0
     diff_output = capsys.readouterr().out
     assert "ID:" in diff_output
     assert "Status:    succeeded" in diff_output
     assert "--- Diff ---" in diff_output
     assert "+after" in diff_output
 
-    assert cli.main(["worktree", "apply", "latest"]) == 0
+    assert cli.main(["patch", "apply", "latest"]) == 0
 
     output = capsys.readouterr().out
     assert "Applied: .rig/runs/" in output
@@ -231,15 +177,14 @@ def test_worktree_apply_empty_worktree_diff_is_noop(
         """version: 1
 agents:
   noop:
-    runner: exec
     command: noop
     prompt_style: task
 """,
         encoding="utf-8",
     )
-    cli.main(["worktree", "run", "noop", "--task", "do nothing"])
+    cli.main(["patch", "create", "noop", "--task", "do nothing"])
 
-    assert cli.main(["worktree", "apply", "latest"]) == 0
+    assert cli.main(["patch", "apply", "latest"]) == 0
 
     output = capsys.readouterr().out
     assert "No changes to apply: .rig/runs/" in output
@@ -268,7 +213,7 @@ def test_worktree_apply_missing_diff_reports_specific_error(
         encoding="utf-8",
     )
 
-    assert cli.main(["worktree", "apply", "missing-diff"]) == 1
+    assert cli.main(["patch", "apply", "missing-diff"]) == 1
 
     assert (
         "Diff file is missing: .rig/runs/missing-diff/diff.patch"
@@ -292,17 +237,16 @@ def test_worktree_prune_removes_rig_worktrees(
         """version: 1
 agents:
   noop:
-    runner: exec
     command: noop
     prompt_style: task
 """,
         encoding="utf-8",
     )
-    cli.main(["worktree", "run", "noop", "--task", "do nothing"])
+    cli.main(["patch", "create", "noop", "--task", "do nothing"])
     capsys.readouterr()
 
     assert any((tmp_path / ".rig" / "worktrees").iterdir())
-    assert cli.main(["worktree", "prune"]) == 0
+    assert cli.main(["patch", "prune"]) == 0
 
     output = capsys.readouterr().out
     assert "Removed: .rig/worktrees/" in output
@@ -318,6 +262,6 @@ def test_worktree_prune_reports_partial_failures(
     worktrees_dir = tmp_path / ".rig" / "worktrees"
     (worktrees_dir / "bad-worktree").mkdir(parents=True)
 
-    assert cli.main(["worktree", "prune"]) == 1
+    assert cli.main(["patch", "prune"]) == 1
 
     assert "Failed: .rig/worktrees/bad-worktree:" in capsys.readouterr().err

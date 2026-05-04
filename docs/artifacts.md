@@ -34,7 +34,7 @@ chronologically.
 | `command.json` | Child-agent name, command, args, execution directory, timing. |
 | `stdout.log` | Raw standard output from the child-agent command. |
 | `stderr.log` | Raw standard error from the child-agent command. |
-| `result.md` | Human-readable result; what `rig show` prints and what the parent agent reads back. |
+| `result.md` | Human-readable result; what `rig history show` prints and what the parent agent reads back. |
 | `status.json` | Run ID, status, timestamps, exit code, run directory, optional diff path. |
 | `diff.patch` | Captured patch from an isolated worktree run. |
 
@@ -76,7 +76,7 @@ child agent emits the marker described in
 after it. The parent agent normally reads `result.md` (not `stdout.log`)
 when reporting back to you.
 
-For `failed` runs, `rig show` also surfaces the exit code and a short
+For `failed` runs, `rig history show` also surfaces the exit code and a short
 `--- Error ---` section sourced from `stderr.log`, even when `result.md`
 is empty.
 
@@ -100,7 +100,7 @@ omit `exit_code` until they are completed or failed.
 ### `diff.patch`
 
 A unified diff captured from the isolated worktree, suitable for `git apply`.
-`rig worktree show <run-id>` prints this file alongside metadata; `rig
+`rig patch show <run-id>` prints this file alongside metadata; `rig
 worktree apply <run-id>` runs `git apply` against it. See
 [Worktree Runs](worktrees.md).
 
@@ -130,18 +130,17 @@ prompt_template: |
 | Status | Meaning |
 | --- | --- |
 | `created` | Dry run artifacts were written, but no child-agent command ran. |
-| `waiting` | Manual runner created a run that needs explicit completion or failure. |
-| `succeeded` | Child-agent command (or manual completion) succeeded. |
-| `failed` | Child-agent command failed, timed out, or the manual run was failed. |
+| `succeeded` | Child-agent command succeeded. |
+| `failed` | Child-agent command failed or timed out. |
 
 ## Inspect Artifacts
 
 Most of the time, the parent agent reads these for you. To inspect manually:
 
 ```bash
-rig list
-rig show latest
-rig worktree show latest
+rig history
+rig history show latest
+rig patch show latest
 ```
 
 Or use the files directly when debugging command execution or integrating
@@ -156,6 +155,6 @@ jq . .rig/runs/<run-id>/command.json
 ## Versioning Run History
 
 `.rig/runs/` is per-machine. Most teams add it to `.gitignore` and only
-commit `.rig/config.yaml` and `.rig/env.yaml`. Run records are useful as a
+commit `.rig/config.yaml` and `.rig/instructions/rig.md`. Run records are useful as a
 local audit log; sharing them across machines is rarely worth the merge
 noise.

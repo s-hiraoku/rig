@@ -18,7 +18,6 @@ from rig.mcp_server import (
     policy_prompt,
     project_agents_md,
     run_tool,
-    suggest_tool,
 )
 
 
@@ -31,20 +30,19 @@ async def test_mcp_server_registers_tools_prompts_and_resources() -> None:
     resources = {str(resource.uri) for resource in await server.list_resources()}
 
     assert tools == {
-        "rig_run",
-        "rig_list_runs",
+        "rig_delegate",
+        "rig_patch_create",
+        "rig_history",
+        "rig_history_show",
         "rig_list_agents",
-        "rig_suggest",
-        "rig_get_run",
-        "rig_get_result",
-        "rig_get_diff",
-        "rig_apply_patch",
+        "rig_patch_show",
+        "rig_patch_apply",
     }
     assert prompts == {"rig_policy"}
     assert resources == {"rig://policy", "rig://agents-md"}
 
 
-def test_mcp_run_and_read_result(
+def test_mcp_delegate_and_read_history(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -55,45 +53,16 @@ def test_mcp_run_and_read_result(
 
     assert result["ok"] is True
     assert result["status"] == "succeeded"
-    assert result["run_id"]
     assert list_runs_tool(cwd=str(tmp_path))["runs"][0]["id"] == result["run_id"]
-    assert get_run_tool(run_id="latest", cwd=str(tmp_path))["run"]["id"] == result["run_id"]
+    shown = get_run_tool(run_id="latest", cwd=str(tmp_path))
+    assert shown["run"]["id"] == result["run_id"]
+    assert shown["result"] == "done\n"
     assert get_artifact_tool(
         run_id=result["run_id"], filename="result.md", cwd=str(tmp_path)
     )["content"] == "done\n"
 
 
-def test_mcp_run_supports_parallel(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
-
-    result = run_tool(task="hello", parallel=2, cwd=str(tmp_path))
-
-    assert result["ok"] is True
-    assert result["exit_code"] == 0
-    assert len(result["runs"]) == 2
-    assert len({run["run_id"] for run in result["runs"]}) == 2
-    assert [run["messages"][1] for run in result["runs"]] == [
-        "Status: succeeded",
-        "Status: succeeded",
-    ]
-
-
-def test_mcp_run_rejects_invalid_parallel(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-
-    result = run_tool(task="hello", parallel=0, cwd=str(tmp_path))
-
-    assert result == {"ok": False, "error": "--parallel must be 1 or greater."}
-
-
-def test_mcp_run_rejects_invalid_timeout(
+def test_mcp_delegate_rejects_invalid_timeout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -104,40 +73,14 @@ def test_mcp_run_rejects_invalid_timeout(
     assert result == {"ok": False, "error": "--timeout-seconds must be 1 or greater."}
 
 
-def test_mcp_run_rejects_parallel_worktree(
+def test_mcp_delegate_resolves_relative_task_file_from_cwd(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-
-    result = run_tool(task="hello", worktree=True, parallel=2, cwd=str(tmp_path))
-
-    assert result == {"ok": False, "error": "Parallel worktree runs are not supported."}
-
-
-def test_mcp_run_returns_structured_error_for_bad_input(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
-    store = cli.RunStore(tmp_path)
-    store.init()
-
-    result = run_tool(task=None, task_file=None, cwd=str(tmp_path))
-
-    assert result == {
-        "ok": False,
-        "error": "Provide exactly one of --task or --task-file.",
-    }
-
-
-def test_mcp_run_resolves_relative_task_file_from_cwd(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    other_dir = tmp_path / "server-cwd"
+    server_cwd = tmp_path / "server-cwd"
     repo_dir = tmp_path / "repo"
-    other_dir.mkdir()
+    server_cwd.mkdir()
     repo_dir.mkdir()
-    monkeypatch.chdir(other_dir)
+    monkeypatch.chdir(server_cwd)
     monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
     cli.RunStore(repo_dir).init()
     install_fake_command(tmp_path, monkeypatch, stdout="done\n")
@@ -148,22 +91,6 @@ def test_mcp_run_resolves_relative_task_file_from_cwd(
     assert result["ok"] is True
     run_dir = next((repo_dir / ".rig" / "runs").iterdir())
     assert (run_dir / "task.md").read_text(encoding="utf-8") == "hello from file\n"
-
-
-def test_mcp_run_rejects_task_file_outside_project(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-    outside_file = tmp_path.parent / "outside-task.md"
-    outside_file.write_text("outside\n", encoding="utf-8")
-
-    result = run_tool(task_file=str(outside_file), cwd=str(tmp_path))
-
-    assert result == {
-        "ok": False,
-        "error": f"task_file is outside the project: {outside_file}",
-    }
 
 
 def test_mcp_rejects_cwd_outside_allowed_root(
@@ -181,17 +108,6 @@ def test_mcp_rejects_cwd_outside_allowed_root(
     assert result["error"].startswith("cwd outside allowed root:")
 
 
-def test_mcp_get_run_handles_missing_history(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
-    cli.RunStore(tmp_path).init()
-
-    result = get_run_tool(run_id="latest", cwd=str(tmp_path))
-
-    assert result == {"ok": False, "error": "No runs found."}
-
-
 def test_mcp_list_agents_reports_configured_agents(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -205,97 +121,11 @@ def test_mcp_list_agents_reports_configured_agents(
     assert result["agents"] == [
         {
             "name": "codex",
-            "runner": "exec",
             "command": "codex",
             "args": ["exec"],
             "default": True,
         }
     ]
-
-
-def test_mcp_suggest_reports_advisory_command(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    init_git_repo(tmp_path)
-    cli.main(["init"])
-
-    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
-
-    assert result["ok"] is True
-    assert result["mode"] == "run"
-    assert result["agent"] == "codex"
-    assert result["command"] == [
-        "rig",
-        "run",
-        "codex",
-        "--task",
-        "Explain the project",
-    ]
-    assert result["observations"]["git_repo"] is True
-
-
-def test_mcp_suggest_allows_uninitialized_repo(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    init_git_repo(tmp_path)
-
-    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
-
-    assert result["ok"] is True
-    assert result["mode"] == "run"
-    assert result["agent"] == "codex"
-    assert result["observations"]["initialized"] is False
-
-
-def test_mcp_suggest_rejects_invalid_config(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    init_git_repo(tmp_path)
-    cli.main(["init"])
-    (tmp_path / ".rig" / "config.yaml").write_text("[broken\n", encoding="utf-8")
-
-    result = suggest_tool(task="Explain the project", cwd=str(tmp_path))
-
-    assert result["ok"] is False
-    assert "Could not parse config file" in result["error"]
-
-
-def test_mcp_suggest_uses_task_file_from_cwd(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    server_cwd = tmp_path / "server"
-    repo_cwd = tmp_path / "repo"
-    server_cwd.mkdir()
-    repo_cwd.mkdir()
-    monkeypatch.chdir(server_cwd)
-    monkeypatch.setenv("RIG_MCP_ROOT", str(tmp_path))
-    init_git_repo(repo_cwd)
-    cli.RunStore(repo_cwd).init()
-    (repo_cwd / "task.md").write_text("Refactor the CLI\n", encoding="utf-8")
-
-    result = suggest_tool(task_file="task.md", cwd=str(repo_cwd))
-
-    assert result["ok"] is True
-    assert result["command"][-2:] == ["--task-file", str(repo_cwd / "task.md")]
-    assert result["observations"]["changed_files"] == []
-
-
-def test_mcp_suggest_rejects_task_and_task_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-    (tmp_path / "task.md").write_text("hello\n", encoding="utf-8")
-
-    result = suggest_tool(task="hello", task_file="task.md", cwd=str(tmp_path))
-
-    assert result == {
-        "ok": False,
-        "error": "Provide either task text or task_file, not both.",
-    }
 
 
 def test_mcp_policy_prompt_prefers_project_agents_md(
@@ -309,19 +139,7 @@ def test_mcp_policy_prompt_prefers_project_agents_md(
     assert policy_prompt(cwd=str(tmp_path)) == "# Project Policy\n"
 
 
-def test_mcp_policy_prompt_falls_back_to_rig_policy(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    cli.main(["init"])
-
-    result = policy_prompt(cwd=str(tmp_path))
-
-    assert "## Rig" in result
-    assert "Use Rig when the user wants" in result
-
-
-def test_mcp_worktree_diff_and_apply(
+def test_mcp_patch_show_and_apply(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -338,7 +156,6 @@ def test_mcp_worktree_diff_and_apply(
         """version: 1
 agents:
   edit:
-    runner: exec
     command: edit-file
     prompt_style: task
 """,
@@ -356,7 +173,7 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "after\n"
 
 
-def test_mcp_get_diff_rejects_diff_path_outside_run_dir(
+def test_mcp_patch_show_rejects_diff_path_outside_run_dir(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -424,12 +241,12 @@ def test_mcp_get_result_rejects_run_dir_outside_runs(
     }
 
 
-def test_mcp_apply_patch_requires_explicit_opt_in(tmp_path: Path) -> None:
+def test_mcp_patch_apply_requires_explicit_opt_in(tmp_path: Path) -> None:
     cli.RunStore(tmp_path).init()
 
     result = apply_patch_tool(cwd=str(tmp_path))
 
     assert result == {
         "ok": False,
-        "error": "rig_apply_patch is disabled. Set RIG_MCP_ALLOW_APPLY=1 to enable it.",
+        "error": "rig_patch_apply is disabled. Set RIG_MCP_ALLOW_APPLY=1 to enable it.",
     }

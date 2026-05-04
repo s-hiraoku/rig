@@ -69,7 +69,6 @@ class ExecAdapter:
         command = self.build_command(context)
         return {
             "agent": self.name,
-            "runner": self.config.runner,
             "command": command[0],
             "args": command[1:],
             "cwd": str(context.execution_cwd),

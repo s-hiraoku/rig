@@ -14,7 +14,6 @@ class CodexNotFoundError(AgentCommandNotFoundError):
 class CodexAdapter(ExecAdapter):
     def __init__(self, command: str = "codex", args: list[str] | None = None) -> None:
         config = AgentConfig(
-            runner="exec",
             command=command,
             args=args or ["exec"],
             prompt_style="rig",

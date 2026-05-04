@@ -9,37 +9,37 @@ worktree patch, or a durable record under `.rig/runs/<run-id>/`. For small
 local edits, simple searches, or commands you can safely perform directly, use
 the normal editing and shell workflow instead of wrapping the work in Rig.
 
-If the parent agent has native subagents, parallel agents, or isolated
-workspaces, prefer those native capabilities for parallel attempts,
-role-split work, cross-review, and isolated implementation. Pass the task,
-constraints, and expected output directly to each subagent, then synthesize
-their results for the human. Use Rig parallel/worktree features when native
-subagents are unavailable, when the user asks for Rig-managed artifacts, or
-when a durable `.rig/runs/<run-id>/` audit trail is the main goal.
+If the task may edit files, is risky, or the working tree is dirty, prefer
+Rig's patch flow so the generated diff stays reviewable before it is applied.
 
 Run a task:
 
 ```bash
-rig run codex --task-file tasks/review.md
+rig delegate codex --task-file tasks/review.md
 ```
 
 Inspect the result:
 
 ```bash
-rig list
-rig show latest
+rig history
+rig history show latest
+```
+
+Create a reviewable patch:
+
+```bash
+rig patch create codex --task-file tasks/change.md
+rig patch show latest
 ```
 
 Rules:
 
 - Do not assume Rig applies patches automatically.
-- Prefer `rig_get_diff` or `rig worktree show` for patch review.
-- Do not call `rig_apply_patch` unless the user explicitly asks to apply a reviewed diff.
+- Prefer `rig_patch_show` or `rig patch show` for patch review.
+- Do not call `rig_patch_apply` or `rig patch apply` unless the user explicitly asks to apply a reviewed diff.
 - Inspect `result.md` after each run.
 - Check `stderr.log` when a run fails.
 - Prefer `--task-file` for long or structured tasks.
-- Prefer native parent-agent subagents over `rig run --parallel` when available.
-- Prefer native isolated subagent workspaces over `rig worktree run` when available.
 - For long delegated runs, choose an explicit `--timeout-seconds` or
   `timeout_seconds` value that matches the task size, and set any parent shell
   tool timeout high enough for the Rig command to finish.
