@@ -48,6 +48,9 @@ required_files:
   - path: AGENTS.md
     label: Agent instructions
     hint: "Run: rig guide agents"
+  - path: docs/agent-harness.md
+    label: Agent harness docs
+    hint: "Create docs/agent-harness.md with this repo's MCP, skills, and hooks guidance."
 """
 
 

@@ -71,6 +71,9 @@ required_files:
   - path: docs/harness.md
     label: Harness docs
     hint: "Create docs/harness.md"
+  - path: docs/agent-harness.md
+    label: Agent harness docs
+    hint: "Create docs/agent-harness.md"
 """,
         encoding="utf-8",
     )
@@ -109,8 +112,10 @@ required_files:
     assert labels["Agent asset manager file: APM / APM manifest"].status == "missing"
     assert labels["Required file: Agent instructions"].status == "ok"
     assert labels["Required file: Harness docs"].status == "missing"
+    assert labels["Required file: Agent harness docs"].status == "missing"
     assert "Create apm.yml" in report.suggestions
     assert "Create docs/harness.md" in report.suggestions
+    assert "Create docs/agent-harness.md" in report.suggestions
 
 
 def test_format_doctor_report_includes_suggestions() -> None:
