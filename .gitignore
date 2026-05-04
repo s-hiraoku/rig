@@ -6,5 +6,6 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-.rig/
-
+.rig/*
+!.rig/
+!.rig/env.yaml

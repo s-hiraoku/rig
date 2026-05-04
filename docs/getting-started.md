@@ -146,6 +146,10 @@ uv run rig --help
 
 zsh completion: `contrib/completions/rig.zsh`.
 
+For AI-agent harness conventions used in this repository, see
+[Agent Harness](agent-harness.md). It documents the required `AGENTS.md`,
+project-local `rig-developer` skill, optional hooks, and MCP boundaries.
+
 ## Appendix B: When You Do Type CLI Commands
 
 You'll occasionally use the CLI directly — for setup, debugging, audit, and

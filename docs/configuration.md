@@ -151,7 +151,7 @@ required_files:
   - AGENTS.md
   - path: docs/agent-harness.md
     label: Agent harness docs
-    hint: "Create docs/agent-harness.md with team setup notes."
+    hint: "Create docs/agent-harness.md with MCP, skills, and hooks guidance."
 ```
 
 Optional asset managers live under `agent_asset_managers`. The generated

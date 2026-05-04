@@ -26,6 +26,9 @@ def test_init_creates_config_and_runs_dir(tmp_path: Path) -> None:
     assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
         encoding="utf-8"
     )
+    assert "docs/agent-harness.md" in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_init_is_idempotent(tmp_path: Path) -> None:
@@ -94,6 +97,9 @@ def test_init_reset_all_backs_up_config_and_env(tmp_path: Path) -> None:
         encoding="utf-8"
     )
     assert "agent_asset_managers:" in (tmp_path / ".rig" / "env.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "docs/agent-harness.md" in (tmp_path / ".rig" / "env.yaml").read_text(
         encoding="utf-8"
     )
 
