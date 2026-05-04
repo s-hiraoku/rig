@@ -28,6 +28,69 @@ Restart Codex after installing so the new skill is discovered.
 When testing from a branch or fork, replace `main` with the branch name or use
 the matching GitHub directory URL.
 
+## Install With GitHub CLI
+
+GitHub CLI 2.90.0 and newer includes the preview `gh skill` command. Preview
+the skill first, then install it for Codex:
+
+```bash
+gh skill preview s-hiraoku/rig skills/develop-with-rig
+gh skill install s-hiraoku/rig skills/develop-with-rig --agent codex --scope user
+```
+
+Use `--scope project` instead when you want the skill installed into the current
+repository's shared project skill directory:
+
+```bash
+gh skill install s-hiraoku/rig skills/develop-with-rig --agent codex --scope project
+```
+
+The `gh skills add` alias also works:
+
+```bash
+gh skills add s-hiraoku/rig skills/develop-with-rig --agent codex --scope user
+```
+
+To pin a specific Rig release or commit, add `--pin`:
+
+```bash
+gh skill install s-hiraoku/rig skills/develop-with-rig --agent codex --scope user --pin <tag-or-sha>
+```
+
+## Install With APM
+
+For a one-off install with Agent Package Manager:
+
+```bash
+apm install s-hiraoku/rig/skills/develop-with-rig
+```
+
+For reproducible project setup, add the skill to `apm.yml`:
+
+```yaml
+name: your-project
+version: 1.0.0
+
+dependencies:
+  apm:
+    - s-hiraoku/rig/skills/develop-with-rig
+```
+
+Then install the declared agent assets:
+
+```bash
+apm install
+```
+
+APM supports version pinning in dependency strings. Once you have a Rig release
+tag or commit you want to standardize on, pin the dependency in `apm.yml`:
+
+```yaml
+dependencies:
+  apm:
+    - s-hiraoku/rig/skills/develop-with-rig#<tag-or-sha>
+```
+
 ## Install With skills.sh
 
 For installers compatible with the `skills` CLI, install the skill from this
@@ -45,10 +108,10 @@ npx skills add s-hiraoku/rig --list
 
 ## Other Skill Installers
 
-For `apm`, `gh skills`, or any installer that supports GitHub-backed agent
-skills, use this repository as the source and `skills/develop-with-rig/` as the
-skill path. Keep this directory as the source of truth rather than copying the
-skill into `.agents/skills/`.
+For any installer that supports GitHub-backed agent skills, use this repository
+as the source and `skills/develop-with-rig/` as the skill path. Keep this
+directory as the source of truth rather than copying the skill into
+`.agents/skills/`.
 
 ## Verify
 
