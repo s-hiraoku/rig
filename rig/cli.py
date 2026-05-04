@@ -384,7 +384,8 @@ def print_init_result(result: InitResult) -> None:
     else:
         print("Rig already up to date. Run `rig doctor` to inspect the setup.")
     print()
-    print("Add this snippet to AGENTS.md or your parent agent instructions:")
+    print("CLAUDE.md now references .rig/instructions/rig.md.")
+    print("Add this snippet to AGENTS.md or other parent agent instructions:")
     print()
     print(agents_snippet(target="codex"), end="")
 

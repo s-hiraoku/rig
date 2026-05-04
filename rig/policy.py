@@ -47,6 +47,9 @@ Rules:
 
 
 RIG_INSTRUCTION_PATH = ".rig/instructions/rig.md"
+CLAUDE_INSTRUCTION_PATH = "CLAUDE.md"
+CLAUDE_SNIPPET_START = "<!-- BEGIN RIG INSTRUCTIONS -->"
+CLAUDE_SNIPPET_END = "<!-- END RIG INSTRUCTIONS -->"
 
 
 def agents_snippet(*, target: str = "all") -> str:
@@ -77,6 +80,14 @@ def skill_reference_snippet() -> str:
     return (
         "<!-- Suggested for Rig-related skill files. -->\n\n"
         f"# Rig\n\nRead `{RIG_INSTRUCTION_PATH}` before using Rig.\n"
+    )
+
+
+def claude_instruction_block() -> str:
+    return (
+        f"{CLAUDE_SNIPPET_START}\n"
+        f"{agents_snippet(target='claude').rstrip()}\n"
+        f"{CLAUDE_SNIPPET_END}\n"
     )
 
 

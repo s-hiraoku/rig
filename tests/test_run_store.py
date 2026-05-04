@@ -16,9 +16,11 @@ def test_init_creates_config_and_runs_dir(tmp_path: Path) -> None:
     assert ".rig/runs/" in result.created
     assert ".rig/config.yaml" in result.created
     assert ".rig/instructions/rig.md" in result.created
+    assert "CLAUDE.md" in result.created
 
     assert (tmp_path / ".rig" / "config.yaml").is_file()
     assert (tmp_path / ".rig" / "instructions" / "rig.md").is_file()
+    assert (tmp_path / "CLAUDE.md").is_file()
     assert (tmp_path / ".rig" / "runs").is_dir()
     assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
         encoding="utf-8"
@@ -29,12 +31,28 @@ def test_init_creates_config_and_runs_dir(tmp_path: Path) -> None:
         encoding="utf-8"
     )
     assert not (tmp_path / ".rig" / "env.yaml").exists()
+    assert ".rig/instructions/rig.md" in (tmp_path / "CLAUDE.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_init_is_idempotent(tmp_path: Path) -> None:
     store = RunStore(tmp_path)
 
     assert store.init().changed is True
+    assert store.init().changed is False
+
+
+def test_init_appends_claude_reference_to_existing_file(tmp_path: Path) -> None:
+    (tmp_path / "CLAUDE.md").write_text("# Project\n\nKeep this.\n", encoding="utf-8")
+    store = RunStore(tmp_path)
+
+    result = store.init()
+
+    assert "CLAUDE.md" in result.updated
+    content = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "# Project\n\nKeep this." in content
+    assert ".rig/instructions/rig.md" in content
     assert store.init().changed is False
 
 

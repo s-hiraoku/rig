@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rig.config import ConfigError, load_config
-from rig.policy import RIG_INSTRUCTION_PATH
+from rig.policy import CLAUDE_INSTRUCTION_PATH, RIG_INSTRUCTION_PATH
 
 
 @dataclass(frozen=True)
@@ -79,6 +79,21 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
     else:
         checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
         suggestions.append("Add the Rig snippet from `rig init` to AGENTS.md.")
+
+    claude_path = root / CLAUDE_INSTRUCTION_PATH
+    if claude_path.is_file():
+        checks.append(DoctorCheck("CLAUDE.md", "ok", "found"))
+        content = claude_path.read_text(encoding="utf-8", errors="replace")
+        if RIG_INSTRUCTION_PATH in content:
+            checks.append(DoctorCheck("CLAUDE.md Rig reference", "ok", "found"))
+        else:
+            checks.append(
+                DoctorCheck("CLAUDE.md Rig reference", "warn", "not found")
+            )
+            suggestions.append("Run: rig init")
+    else:
+        checks.append(DoctorCheck("CLAUDE.md", "missing", "not found"))
+        suggestions.append("Run: rig init")
 
     return DoctorReport(checks=checks, suggestions=dedupe(suggestions))
 
