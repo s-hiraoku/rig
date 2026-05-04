@@ -102,7 +102,8 @@ rig mcp serve
 ```
 
 Add an entry to your client's MCP config that runs `rig mcp serve` over
-stdio. Details: [MCP Server](mcp.md).
+stdio. Details and copy-pasteable Cursor / Claude Code examples:
+[MCP Server → Connecting From An MCP Client](mcp.md#connecting-from-an-mcp-client).
 
 ## Verify Setup
 

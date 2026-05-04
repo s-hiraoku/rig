@@ -267,8 +267,8 @@ your client:
 RIG_MCP_ALLOW_APPLY=1 rig mcp serve
 ```
 
-See [MCP Server](mcp.md) for the tool surface, resource URIs, and the
-`RIG_MCP_ROOT` scope flag.
+See [MCP Server](mcp.md) for copy-pasteable MCP client config examples, the
+tool surface, resource URIs, and the `RIG_MCP_ROOT` scope flag.
 
 ## Generate AGENTS.md / CLAUDE.md Snippets
 

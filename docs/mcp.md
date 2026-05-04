@@ -97,6 +97,160 @@ The exact wiring depends on the client. The pattern is:
 See [Recipes → Run Rig Through MCP](recipes.md#run-rig-through-mcp) for a
 short end-to-end example.
 
+### Generic `mcpServers` JSON
+
+Most MCP clients accept a JSON shape like this:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "rig",
+      "args": ["mcp", "serve"],
+      "env": {}
+    }
+  }
+}
+```
+
+For local development from a Rig checkout, run through `uv` and point it at the
+checkout:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["--directory", "/path/to/rig", "run", "rig", "mcp", "serve"],
+      "env": {}
+    }
+  }
+}
+```
+
+If the client starts MCP servers from an arbitrary working directory, set
+`RIG_MCP_ROOT` and have the parent agent pass `cwd` in Rig tool calls. If the
+client supports configuring the server working directory directly, set it to the
+repository root.
+
+To allow one MCP server process to operate on several repositories under a
+common parent directory, add `RIG_MCP_ROOT`:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "rig",
+      "args": ["mcp", "serve"],
+      "env": {
+        "RIG_MCP_ROOT": "/Users/me/code"
+      }
+    }
+  }
+}
+```
+
+Only add `RIG_MCP_ALLOW_APPLY=1` when the client should be able to call
+`rig_apply_patch` after explicit human approval:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "rig",
+      "args": ["mcp", "serve"],
+      "env": {
+        "RIG_MCP_ALLOW_APPLY": "1"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+For project-specific Cursor setup, create `.cursor/mcp.json` in the project:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "rig",
+      "args": ["mcp", "serve"],
+      "env": {
+        "RIG_MCP_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+Use `~/.cursor/mcp.json` instead when you want Rig available globally. Cursor
+also supports variables such as `${workspaceFolder}` in `command`, `args`, and
+`env`, so a checkout-based setup can use:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/rig",
+        "run",
+        "rig",
+        "mcp",
+        "serve"
+      ],
+      "env": {
+        "RIG_MCP_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+### Claude Code
+
+Claude Code can add a local stdio server from the command line:
+
+```bash
+claude mcp add --transport stdio rig -- rig mcp serve
+```
+
+For a project-scoped configuration that can be checked into the repository, use
+`--scope project`:
+
+```bash
+claude mcp add --transport stdio --scope project rig -- rig mcp serve
+```
+
+To pass environment variables:
+
+```bash
+claude mcp add --transport stdio --env RIG_MCP_ROOT=/Users/me/code rig -- rig mcp serve
+```
+
+Claude Code also understands a project `.mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "rig": {
+      "command": "rig",
+      "args": ["mcp", "serve"],
+      "env": {}
+    }
+  }
+}
+```
+
 ## Inspecting MCP Calls
 
 MCP-driven runs land in the same `.rig/runs/<run-id>/` layout as CLI runs,
