@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Guadian"
+  short_description: "Watch PRs, fix CI and review blockers"
+  default_prompt: "Use $pr-guadian to monitor this pull request, resolve CI or review blockers, and get it ready to merge."
