@@ -94,15 +94,14 @@ is empty.
 }
 ```
 
-Worktree runs add a `diff_path` field pointing at `diff.patch`. Manual runs
-omit `exit_code` until they are completed or failed.
+Patch runs add a `diff_path` field pointing at `diff.patch`.
 
 ### `diff.patch`
 
 A unified diff captured from the isolated worktree, suitable for `git apply`.
 `rig patch show <run-id>` prints this file alongside metadata; `rig
-worktree apply <run-id>` runs `git apply` against it. See
-[Worktree Runs](worktrees.md).
+patch apply <run-id>` runs `git apply` against it. See
+[Patch Runs](worktrees.md).
 
 ## Result Extraction
 {: #result-extraction }

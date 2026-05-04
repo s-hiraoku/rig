@@ -7,7 +7,7 @@ import pytest
 from conftest import init_git_repo, install_fake_command, install_fake_script
 
 from rig import cli
-from rig.policy import RIG_INSTRUCTION_PATH
+from rig.policy import RIG_INSTRUCTION_PATH, rig_instruction_file_content
 
 
 def test_top_level_help_shows_new_command_shape(
@@ -58,6 +58,9 @@ def test_init_force_resets_config_and_instructions(
     assert "default_agent: codex" in (tmp_path / ".rig" / "config.yaml").read_text(
         encoding="utf-8"
     )
+    assert (tmp_path / RIG_INSTRUCTION_PATH).read_text(
+        encoding="utf-8"
+    ) == rig_instruction_file_content()
 
 
 def test_delegate_writes_run_artifacts(
@@ -232,9 +235,28 @@ def test_doctor_prints_report(
 
 def test_deleted_commands_are_not_registered() -> None:
     parser = cli.build_parser()
-    assert parser._subparsers is not None
-    action = parser._subparsers._group_actions[0]
-    choices = action.choices
-    assert choices is not None
+    valid_invocations = (
+        ["init"],
+        ["delegate", "codex", "--task", "check"],
+        ["patch", "prune"],
+        ["history"],
+        ["history", "show", "latest"],
+        ["doctor"],
+        ["mcp", "serve"],
+    )
+    for argv in valid_invocations:
+        parser.parse_args(argv)
 
-    assert set(choices) == {"init", "delegate", "patch", "history", "doctor", "mcp"}
+    for command in (
+        "run",
+        "list",
+        "show",
+        "worktree",
+        "suggest",
+        "manual",
+        "guide",
+        "env",
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args([command])
+        assert exc_info.value.code == 2
