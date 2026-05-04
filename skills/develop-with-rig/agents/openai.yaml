@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop With Rig"
+  short_description: "Use Rig for delegated, reviewable coding work"
+  default_prompt: "Use $develop-with-rig to decide whether this task should be handled directly, with rig delegate, or with rig patch create."
