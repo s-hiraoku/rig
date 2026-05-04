@@ -9,6 +9,14 @@ worktree patch, or a durable record under `.rig/runs/<run-id>/`. For small
 local edits, simple searches, or commands you can safely perform directly, use
 the normal editing and shell workflow instead of wrapping the work in Rig.
 
+If the parent agent has native subagents, parallel agents, or isolated
+workspaces, prefer those native capabilities for parallel attempts,
+role-split work, cross-review, and isolated implementation. Pass the task,
+constraints, and expected output directly to each subagent, then synthesize
+their results for the human. Use Rig parallel/worktree features when native
+subagents are unavailable, when the user asks for Rig-managed artifacts, or
+when a durable `.rig/runs/<run-id>/` audit trail is the main goal.
+
 Run a task:
 
 ```bash
@@ -30,6 +38,8 @@ Rules:
 - Inspect `result.md` after each run.
 - Check `stderr.log` when a run fails.
 - Prefer `--task-file` for long or structured tasks.
+- Prefer native parent-agent subagents over `rig run --parallel` when available.
+- Prefer native isolated subagent workspaces over `rig worktree run` when available.
 """
 
 

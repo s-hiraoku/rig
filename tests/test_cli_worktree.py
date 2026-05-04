@@ -49,6 +49,22 @@ agents:
     assert (tmp_path / "tracked.txt").read_text(encoding="utf-8") == "before\n"
 
 
+def test_run_worktree_rejects_parallel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    init_git_repo(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    assert (
+        cli.main(["worktree", "run", "codex", "--task", "hello", "--parallel", "2"])
+        == 2
+    )
+
+    assert "Parallel worktree runs are not supported." in capsys.readouterr().err
+
+
 def test_run_worktree_captures_untracked_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

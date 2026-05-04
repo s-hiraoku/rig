@@ -105,6 +105,16 @@ inspectable.
 Both flows write the same artifact set under `.rig/runs/<run-id>/`. The only
 extra file for worktree runs is `diff.patch`.
 
+`rig run --parallel N` is available for normal runs when you want multiple
+independent answers to the same task. Parallel worktree runs are not supported
+because `git worktree` operations share repository locks; start separate
+worktree runs and compare explicit run IDs instead.
+
+If the parent agent already supports native subagents with isolated
+workspaces, prefer that native isolation for parallel edit attempts. Use Rig
+worktrees as the portable fallback, or when the captured `diff.patch` artifact
+is the reason for using Rig.
+
 ## When Not To Use Worktrees
 
 - Read-only tasks (review, explain, suggest). A normal `rig run` is faster.

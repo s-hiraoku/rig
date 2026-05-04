@@ -25,6 +25,7 @@ _rig() {
       '--task[task text]:task:' \
       '--task-file[task file path]:filename:_files' \
       '--dry-run[create artifacts without executing]' \
+      '--parallel[run the task N times concurrently]:count:' \
       '--json[print JSON output]'
     return
   fi

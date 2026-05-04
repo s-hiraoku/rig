@@ -29,7 +29,9 @@ with an MCP client — reach Rig. They call structured tools (`rig_run`,
 | `rig_apply_patch` | Apply a captured worktree patch. **Disabled by default.** |
 
 The orchestrator and run store backing these tools are exactly the same as
-the ones the CLI uses. There is no parallel code path.
+the ones the CLI uses. `rig_run` also accepts `parallel`; values greater than
+1 return a top-level `runs` list with one structured outcome per run.
+Parallel worktree runs are rejected.
 
 ## Resources And Prompts
 

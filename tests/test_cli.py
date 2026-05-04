@@ -303,6 +303,77 @@ def test_run_supports_json_output(
     ]
 
 
+def test_run_parallel_creates_independent_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_script(
+        tmp_path,
+        monkeypatch,
+        name="worker",
+        body="import sys\nprint('done:' + sys.argv[-1].splitlines()[-1])\n",
+    )
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  worker:
+    runner: exec
+    command: worker
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+    capsys.readouterr()
+
+    assert cli.main(["run", "worker", "--task", "same task", "--parallel", "3"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Run 1/3:" in output
+    assert "Run 2/3:" in output
+    assert "Run 3/3:" in output
+    assert "Summary: 3/3 runs succeeded." in output
+    run_dirs = sorted((tmp_path / ".rig" / "runs").iterdir())
+    assert len(run_dirs) == 3
+    assert len({path.name for path in run_dirs}) == 3
+    assert all(path.name.endswith("-worker") or "-worker-" in path.name for path in run_dirs)
+    assert all(
+        (path / "result.md").read_text(encoding="utf-8") == "done:same task\n"
+        for path in run_dirs
+    )
+
+
+def test_run_parallel_json_reports_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    install_fake_command(tmp_path, monkeypatch, stdout="done\n")
+    capsys.readouterr()
+
+    assert cli.main(["run", "codex", "--task", "hello", "--parallel", "2", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["ok"] is True
+    assert data["exit_code"] == 0
+    assert len(data["runs"]) == 2
+    assert {run["status"] for run in data["runs"]} == {"succeeded"}
+    assert len({run["run_id"] for run in data["runs"]}) == 2
+
+
+def test_run_parallel_requires_positive_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["run", "codex", "--task", "hello", "--parallel", "0"])
+
+    assert exc_info.value.code == 2
+    assert "must be 1 or greater" in capsys.readouterr().err
+
+
 def test_run_uses_default_agent_when_agent_is_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

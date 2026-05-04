@@ -15,9 +15,10 @@ The parent agent should pick the first row that matches the task.
 
 | Situation | Use | Why |
 | --- | --- | --- |
-| Read-only or low-risk task | `rig run` | Fastest; full logs and history. |
-| Working tree is dirty | `rig worktree run` | Keeps generated changes off the human's edits. |
-| Large refactor or risky edit | `rig worktree run` | Captures a reviewable patch before applying. |
+| Read-only or low-risk task | `rig run` | Fastest Rig-backed path; full logs and history. |
+| Need multiple independent answers to the same prompt | Native parent-agent subagents, then `rig run --parallel N` | Subagents can run in parallel with richer role/context control; Rig parallel is the fallback artifact-backed path. |
+| Working tree is dirty | Native isolated subagent workspace, then `rig worktree run` | Prefer the parent agent's own isolation when it exists; Rig worktrees provide a portable fallback. |
+| Large refactor or risky edit | Native isolated subagent workspace, then `rig worktree run` | Use Rig worktrees when the parent agent cannot isolate work itself or when a Rig patch artifact is useful. |
 | GUI / web / external agent work | `manual` runner | Tracks task and result without launching a command. |
 | Unsure | `rig suggest` | Read-only check that returns a recommendation. |
 
@@ -54,6 +55,21 @@ summary to the human.
 the child agent — useful when the parent agent wants to confirm the exact
 argv it would launch.
 
+If the parent agent has native subagents, use those first for several
+independent attempts. Give each subagent the same task, constraints, and
+expected output, then synthesize the results for the human. Use
+`--parallel N` when native subagents are unavailable or when the user wants
+Rig-managed run artifacts:
+
+```bash
+rig run codex --task "Review this API design and list risks." --parallel 3
+```
+
+Each Rig-managed attempt gets its own run ID and result. Parallel runs are
+best for review, analysis, ranking ideas, or comparing answers in parent
+agents that do not have native subagents. Use explicit run IDs when reading
+back results; `latest` only names one of the completed attempts.
+
 ## Suggested Run
 
 When the parent agent is unsure whether the working tree is safe to touch:
@@ -75,7 +91,11 @@ parent agent uses the recommendation to decide between `rig_run` and
 
 ## Isolated Worktree Run
 
-For non-trivial edits the parent agent should isolate by default:
+For non-trivial edits the parent agent should isolate by default. If the
+parent agent can launch native subagents in isolated workspaces, prefer that
+path and ask each subagent to report its changes and verification. Use Rig
+worktrees when native isolation is unavailable or when the user wants a
+captured `.rig/runs/<run-id>/diff.patch` artifact:
 
 ```bash
 rig worktree run codex --task "Make the requested change."
