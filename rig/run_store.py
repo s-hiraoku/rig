@@ -7,7 +7,14 @@ from pathlib import Path
 from typing import Any, cast
 
 from rig.config import RigConfig, load_config
-from rig.policy import RIG_INSTRUCTION_PATH, rig_instruction_file_content
+from rig.policy import (
+    CLAUDE_INSTRUCTION_PATH,
+    CLAUDE_SNIPPET_END,
+    CLAUDE_SNIPPET_START,
+    RIG_INSTRUCTION_PATH,
+    claude_instruction_block,
+    rig_instruction_file_content,
+)
 from rig.run_context import RunContext
 
 DEFAULT_CONFIG = """version: 1
@@ -87,6 +94,7 @@ class RunStore:
         self.worktrees_dir = self.rig_dir / "worktrees"
         self.config_path = self.rig_dir / "config.yaml"
         self.instruction_path = self.cwd / RIG_INSTRUCTION_PATH
+        self.claude_instruction_path = self.cwd / CLAUDE_INSTRUCTION_PATH
 
     def init(
         self, *, reset: str | None = None, now: datetime | None = None
@@ -144,12 +152,52 @@ class RunStore:
         else:
             unchanged.append(RIG_INSTRUCTION_PATH)
 
+        self.ensure_claude_instruction_ref(
+            created=created,
+            updated=updated,
+            unchanged=unchanged,
+        )
+
         return InitResult(
             created=created,
             updated=updated,
             backups=backups,
             unchanged=unchanged,
         )
+
+    def ensure_claude_instruction_ref(
+        self,
+        *,
+        created: list[str],
+        updated: list[str],
+        unchanged: list[str],
+    ) -> None:
+        block = claude_instruction_block()
+        path = self.claude_instruction_path
+        if not path.exists():
+            path.write_text(block, encoding="utf-8")
+            created.append(CLAUDE_INSTRUCTION_PATH)
+            return
+
+        content = path.read_text(encoding="utf-8", errors="replace")
+        if CLAUDE_SNIPPET_START in content and CLAUDE_SNIPPET_END in content:
+            start = content.index(CLAUDE_SNIPPET_START)
+            end = content.index(CLAUDE_SNIPPET_END, start) + len(CLAUDE_SNIPPET_END)
+            next_content = content[:start] + block.rstrip() + content[end:]
+            if content != next_content:
+                path.write_text(next_content, encoding="utf-8")
+                updated.append(CLAUDE_INSTRUCTION_PATH)
+            else:
+                unchanged.append(CLAUDE_INSTRUCTION_PATH)
+            return
+
+        if RIG_INSTRUCTION_PATH in content:
+            unchanged.append(CLAUDE_INSTRUCTION_PATH)
+            return
+
+        separator = "\n\n" if content and not content.endswith("\n\n") else ""
+        path.write_text(f"{content}{separator}{block}", encoding="utf-8")
+        updated.append(CLAUDE_INSTRUCTION_PATH)
 
     def reset_file(
         self,

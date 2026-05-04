@@ -34,8 +34,10 @@ def test_init_creates_config_history_and_instructions(
     assert (tmp_path / ".rig" / "config.yaml").is_file()
     assert (tmp_path / ".rig" / "runs").is_dir()
     assert (tmp_path / RIG_INSTRUCTION_PATH).is_file()
+    assert (tmp_path / "CLAUDE.md").is_file()
     assert not (tmp_path / ".rig" / "env.yaml").exists()
     output = capsys.readouterr().out
+    assert "CLAUDE.md now references .rig/instructions/rig.md" in output
     assert "Add this snippet to AGENTS.md" in output
     assert RIG_INSTRUCTION_PATH in output
 

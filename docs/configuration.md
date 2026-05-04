@@ -63,5 +63,9 @@ agents:
 ## What `rig init` Does Not Do
 
 - It does not install Codex or any other child-agent CLI.
-- It does not edit `AGENTS.md`.
+- It does not edit `AGENTS.md`; it prints a snippet for Codex-style project
+  instructions.
 - It does not commit, push, or open PRs.
+
+`rig init` does update `CLAUDE.md` with a managed Rig block that points Claude
+Code at `.rig/instructions/rig.md`.
