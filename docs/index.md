@@ -48,6 +48,7 @@ The parent agent knows to use Rig because your project's instructions reference
 <div class="card-grid" markdown="0">
   <a href="getting-started.html"><strong>Set up once</strong><span>Install Rig, run <code>rig init</code>, and point your AI at <code>.rig/instructions/rig.md</code>.</span></a>
   <a href="workflows.html"><strong>Pick the right flow</strong><span>Delegate runs for reviews, patch runs for reviewable edits.</span></a>
+  <a href="develop-with-rig.html"><strong>Install the skill</strong><span>Add <code>develop-with-rig</code> so parent agents use Rig for delegation and patch isolation.</span></a>
   <a href="recipes.html"><strong>Real recipes</strong><span>End-to-end examples with the natural-language prompts you'd actually give your AI.</span></a>
   <a href="agents.html"><strong>Configure child agents</strong><span>Codex, Claude, Gemini, Copilot — the CLIs Rig launches on the parent agent's behalf.</span></a>
   <a href="mcp.html"><strong>Optional MCP</strong><span>Expose Rig as MCP tools for MCP-native or shell-restricted parents.</span></a>
@@ -72,7 +73,7 @@ work flows through the parent agent.
 | Layer | Question | Start with |
 | --- | --- | --- |
 | Runs | What did the child agent do? | [Core Concepts](concepts.md) · [Run Artifacts](artifacts.md) |
-| Workflows | How should this task be delegated? | [Workflows](workflows.md) · [Recipes](recipes.md) |
+| Workflows | How should this task be delegated? | [Workflows](workflows.md) · [Develop With Rig Skill](develop-with-rig.md) · [Recipes](recipes.md) |
 | Configuration | Which child agent and policy should Rig use? | [Configuration](configuration.md) · [Agents](agents.md) · [Prompt Styles](prompts.md) |
 | Integration | How does a shell-restricted parent reach Rig? | [MCP Server](mcp.md) |
 
