@@ -39,8 +39,8 @@ You don't type Rig commands. You talk to your AI in natural language.
 > from `result.md` …"
 
 The parent agent knows to use Rig because your project's instructions reference
-`.rig/instructions/rig.md`. `rig init` creates that file, updates `CLAUDE.md`,
-and prints the snippet to paste into `AGENTS.md` when needed. See
+`.rig/instructions/rig.md`. `rig init` creates that file and updates both
+`AGENTS.md` and `CLAUDE.md` with small reference blocks. See
 [Getting Started](getting-started.md).
 
 ## Choose A Path

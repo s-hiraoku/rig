@@ -51,12 +51,13 @@ This creates:
   config.yaml
   instructions/rig.md
   runs/
+AGENTS.md
 CLAUDE.md
 ```
 
-`rig init` updates `CLAUDE.md` with a small Rig block and also prints a snippet
-to add to `AGENTS.md` or other parent-agent instructions. Both point the parent
-agent at `.rig/instructions/rig.md`, which contains the Rig usage policy.
+`rig init` updates `AGENTS.md` and `CLAUDE.md` with small Rig blocks. Both point
+the parent agent at `.rig/instructions/rig.md`, which contains the Rig usage
+policy.
 
 After setup, talk to your parent AI agent in natural language:
 

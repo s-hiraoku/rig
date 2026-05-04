@@ -6,8 +6,8 @@ description: Install Rig, initialize a project, and let a parent AI agent delega
 # Getting Started
 
 Rig is usually called by a parent AI agent. You install it once, initialize the
-project, let `rig init` update `CLAUDE.md`, add the generated snippet to
-`AGENTS.md` when needed, then keep working in natural language.
+project, let `rig init` update `AGENTS.md` and `CLAUDE.md`, then keep working
+in natural language.
 
 ## 1. Install
 
@@ -30,8 +30,7 @@ rig init
 ```
 
 This creates `.rig/config.yaml`, `.rig/instructions/rig.md`, `.rig/runs/`, and
-a managed Rig block in `CLAUDE.md`. It also prints the snippet to add to
-`AGENTS.md` or other parent-agent instructions.
+managed Rig blocks in `AGENTS.md` and `CLAUDE.md`.
 
 ## 3. Use Rig Through Your Agent
 
