@@ -26,7 +26,10 @@ The Pages workflow runs when changes are pushed to `main` under `docs/**` or
 when `.github/workflows/pages.yml` itself changes. It can also be started
 manually from GitHub Actions with `workflow_dispatch`.
 
-The workflow:
+Pull requests are covered by the `pages-build` job in CI. It builds the same
+`docs/` source with Jekyll but does not deploy.
+
+The deploy workflow:
 
 1. Checks out the repository.
 2. Configures GitHub Pages.

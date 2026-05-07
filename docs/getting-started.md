@@ -81,7 +81,12 @@ rig history
 rig history show latest
 rig patch show latest
 rig doctor
+rig harness
 ```
+
+Use `rig harness` when the project needs the companion
+[`codex-harnesses`](codex-harnesses.md) repository for AGENTS templates,
+skills, hooks, policies, task ledgers, or a shared `scripts/verify.sh`.
 
 ## Requirements
 

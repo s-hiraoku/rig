@@ -46,6 +46,7 @@ rig patch prune
 | `rig history [--json]` | List recent runs. |
 | `rig history show <run-id\|latest> [--json]` | Show run metadata and result. |
 | `rig doctor [--json]` | Diagnose the local Rig setup. |
+| `rig harness [--json]` | Show the companion `codex-harnesses` source and copy guidance. |
 | `rig mcp serve` | Run the optional MCP server over stdio. |
 
 ## Notes
@@ -55,6 +56,8 @@ rig patch prune
 - Patch runs keep generated edits out of the main working tree until
   `rig patch apply`.
 - `rig patch apply` should only be called after reviewing `rig patch show`.
+- `rig harness` is read-only. It prints companion harness guidance; it does not
+  clone, copy, or install files.
 - Child agents can print `--- RIG RESULT ---`; Rig keeps only the text after
   that marker in `result.md`.
 
@@ -62,5 +65,6 @@ rig patch prune
 
 - [Getting Started](getting-started.md)
 - [Workflows](workflows.md)
+- [Codex Harnesses](codex-harnesses.md)
 - [Run Artifacts](artifacts.md)
 - [MCP Server](mcp.md)
