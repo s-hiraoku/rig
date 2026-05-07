@@ -84,6 +84,12 @@ rig history
 rig history show latest
 ```
 
+For broader Codex project harness files, inspect the companion source:
+
+```bash
+rig harness
+```
+
 ## Commands
 
 Core commands:
@@ -99,6 +105,7 @@ Core commands:
 | `rig history` | List recent runs. |
 | `rig history show <run-id\|latest>` | Show one run's metadata and result. |
 | `rig doctor` | Check the local Rig setup. |
+| `rig harness` | Show companion `codex-harnesses` guidance for AGENTS templates, skills, hooks, policies, ledgers, and verification scripts. |
 | `rig mcp serve` | Expose Rig as MCP tools for MCP-native parent agents. |
 
 `rig delegate` and `rig patch create` support `--task`, `--task-file`,

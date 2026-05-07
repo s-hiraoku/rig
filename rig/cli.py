@@ -9,6 +9,11 @@ from pathlib import Path
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
 from rig.env_doctor import build_doctor_report, format_doctor_report
+from rig.harnesses import (
+    format_harness_guide,
+    get_harness_guide,
+    harness_guide_payload,
+)
 from rig.orchestrator import (
     RunOrchestrator,
     RunRequest,
@@ -80,6 +85,17 @@ def build_parser() -> argparse.ArgumentParser:
         "doctor", help="Diagnose the local Rig setup"
     )
     doctor_parser.add_argument("--json", action="store_true", help="Print JSON output")
+
+    harness_parser = subparsers.add_parser(
+        "harness", help="Show companion Codex harness guidance"
+    )
+    harness_parser.add_argument(
+        "--source",
+        choices=["codex-harnesses"],
+        default="codex-harnesses",
+        help="Harness source to describe",
+    )
+    harness_parser.add_argument("--json", action="store_true", help="Print JSON output")
 
     mcp_parser = subparsers.add_parser("mcp", help="Expose Rig as MCP tools")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
@@ -162,6 +178,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "doctor":
             return env_doctor(Path.cwd(), json_output=args.json)
+        if args.command == "harness":
+            return show_harness(args)
         if args.command == "mcp" and args.mcp_command == "serve":
             from rig.mcp_server import serve_mcp
 
@@ -369,6 +387,15 @@ def env_doctor(cwd: Path, *, json_output: bool = False) -> int:
         print(json.dumps(dataclasses.asdict(report), indent=2, ensure_ascii=False))
         return 0
     print(format_doctor_report(report))
+    return 0
+
+
+def show_harness(args: argparse.Namespace) -> int:
+    guide = get_harness_guide(args.source)
+    if args.json:
+        print(json.dumps(harness_guide_payload(guide), indent=2, ensure_ascii=False))
+    else:
+        print(format_harness_guide(guide), end="")
     return 0
 
 

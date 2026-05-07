@@ -3,13 +3,15 @@
 ## 0.1.0
 
 - Add Rig initialization and file-backed run artifacts.
-- Add exec, manual, and pty runners.
-- Add isolated worktree runs with captured patch review and apply commands.
-- Add environment diagnostics for project-specific harness requirements.
+- Add exec runner support for configured child coding agents.
+- Add isolated patch runs with captured patch review and apply commands.
+- Add local setup diagnostics with `rig doctor`.
 - Add an initial MCP stdio server with structured Rig run tools.
 - Add MCP cwd, task file, and patch-apply safety gates.
 - Add MCP policy prompt/resources and configured agent discovery.
-- Add `rig suggest` for advisory run/worktree recommendations.
-- Add MCP `rig_suggest` for structured run/worktree recommendations.
-- Add target-aware guide snippets, Rig-owned instruction files, and agent asset
-  manager status reporting.
+- Add `rig init` support for generated Rig instructions and managed
+  `AGENTS.md` / `CLAUDE.md` reference blocks.
+- Add `rig harness` guidance for the companion `codex-harnesses` project
+  harness source.
+- Add GitHub Pages user guide and CI coverage for tests, lint, type checks, and
+  documentation builds.

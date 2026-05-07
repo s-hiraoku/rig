@@ -15,9 +15,9 @@ artifacts, and integrate only the changes that survive review.
 - For small, obvious edits, work directly and keep the change scoped.
 - For unclear requirements, risky edits, broad codebase questions, or independent
   review, use Rig before committing to an implementation path.
-- Before uncertain or risky delegated work, run `rig suggest` when available.
-  Use the suggestion to choose between direct work, read-only delegation, and an
-  isolated patch run.
+- For uncertain or risky delegated work, choose explicitly between direct work,
+  `rig delegate` for read-only analysis, and `rig patch create` for isolated
+  edits.
 - Use subagents aggressively when the host environment supports them and the
   user has allowed subagent work. Give each subagent a bounded task and a clear
   output contract.
@@ -135,6 +135,9 @@ Use artifacts as the integration checkpoint:
 - In ordinary projects with Rig installed, use `rig ...`.
 - If Rig is not initialized, say so and run `rig init` only when setup is part
   of the user's request. Otherwise, proceed directly for small work.
+- Use `rig harness` when a project needs broader Codex harness assets from
+  `codex-harnesses`: AGENTS templates, reusable skills, hooks, policies,
+  ledgers, or verification scripts.
 - When multiple runs exist, prefer explicit run IDs:
 
 ```bash

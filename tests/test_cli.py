@@ -18,7 +18,7 @@ def test_top_level_help_shows_new_command_shape(
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "{init,delegate,patch,history,doctor,mcp}" in output
+    assert "{init,delegate,patch,history,doctor,harness,mcp}" in output
     assert "worktree" not in output
     assert "suggest" not in output
     assert "manual" not in output
@@ -236,6 +236,27 @@ def test_doctor_prints_report(
     assert "Rig config" in output
 
 
+def test_harness_prints_codex_harnesses_guidance(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert cli.main(["harness"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig harness source: codex-harnesses" in output
+    assert "https://github.com/s-hiraoku/codex-harnesses" in output
+    assert "templates/agents/" in output
+    assert "scripts/verify.sh" in output
+
+
+def test_harness_supports_json_output(capsys: pytest.CaptureFixture[str]) -> None:
+    assert cli.main(["harness", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["id"] == "codex-harnesses"
+    assert data["source_url"] == "https://github.com/s-hiraoku/codex-harnesses"
+    assert "skills/" in data["copyable_parts"]
+
+
 def test_deleted_commands_are_not_registered() -> None:
     parser = cli.build_parser()
     valid_invocations = (
@@ -245,6 +266,7 @@ def test_deleted_commands_are_not_registered() -> None:
         ["history"],
         ["history", "show", "latest"],
         ["doctor"],
+        ["harness"],
         ["mcp", "serve"],
     )
     for argv in valid_invocations:

@@ -14,10 +14,10 @@ manager.
 - `AGENTS.md` at the repository root. It tells parent agents how to work on Rig,
   which verification commands to run, and which boundaries not to cross.
 - This page (`docs/agent-harness.md`). It is declared in `.rig/env.yaml` so
-  `rig env doctor` can verify that repo-specific harness guidance exists.
+  repository-specific harness guidance has a durable home.
 - Rig's own MCP adapter remains part of the product surface: `rig mcp serve`,
-  `rig_run`, `rig_suggest`, `rig_get_result`, `rig_get_diff`, and
-  `rig_apply_patch`.
+  `rig_delegate`, `rig_patch_create`, `rig_history_show`, `rig_patch_show`, and
+  `rig_patch_apply`.
 - Existing CI remains the final gate for normal changes.
 
 ## Recommended
@@ -38,6 +38,9 @@ uv run pytest -q
 
 Hooks should stay optional. Contributors may prefer to run the commands
 directly, and CI is the authoritative gate.
+- The companion [`codex-harnesses`](codex-harnesses.md) repository when a target
+  project needs AGENTS templates, reusable skills, hooks, policies, ledgers, or
+  verification scripts beyond Rig's delegated-run model.
 
 ## Not Needed By Default
 
@@ -46,10 +49,9 @@ directly, and CI is the authoritative gate.
 - Separate Codex, Claude, Gemini, or Copilot skills. Vendor differences belong
   in `.rig/config.yaml` examples and documentation unless a stable CLI contract
   needs code support.
-- Automatic installation of skills, hooks, prompts, or MCP client config. Rig
-  can detect and explain missing assets through `.rig/env.yaml`, `rig env
-  doctor`, and `rig env plan`, but external managers or team conventions own
-  installation.
+- Automatic installation of skills, hooks, prompts, ledgers, policies, or MCP
+  client config. Rig can point to companion harness sources with `rig harness`,
+  but external managers or team conventions own installation.
 
 ## Test Policy
 

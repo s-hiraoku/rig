@@ -22,7 +22,7 @@
   </head>
   <body>
     {%- comment -%} Ordered nav: each entry is "Group|/url|Title", separated by `;;`. {%- endcomment -%}
-    {%- assign nav_data = "Start|/|Overview;;Start|/getting-started.html|Getting Started;;Start|/concepts.html|Core Concepts;;Use|/workflows.html|Workflows;;Use|/develop-with-rig.html|Develop With Rig Skill;;Use|/recipes.html|Recipes;;Use|/commands.html|Command Reference;;Use|/artifacts.html|Run Artifacts;;Use|/worktrees.html|Patch Runs;;Operate|/configuration.html|Configuration;;Operate|/agents.html|Agents;;Operate|/agent-harness.html|Agent Harness;;Operate|/prompts.html|Prompt Styles;;Operate|/mcp.html|MCP Server;;Operate|/troubleshooting.html|Troubleshooting;;Operate|/faq.html|FAQ;;Operate|/github-pages.html|GitHub Pages" -%}
+    {%- assign nav_data = "Start|/|Overview;;Start|/getting-started.html|Getting Started;;Start|/concepts.html|Core Concepts;;Use|/workflows.html|Workflows;;Use|/develop-with-rig.html|Develop With Rig Skill;;Use|/codex-harnesses.html|Codex Harnesses;;Use|/recipes.html|Recipes;;Use|/commands.html|Command Reference;;Use|/artifacts.html|Run Artifacts;;Use|/worktrees.html|Patch Runs;;Operate|/configuration.html|Configuration;;Operate|/agents.html|Agents;;Operate|/agent-harness.html|Agent Harness;;Operate|/prompts.html|Prompt Styles;;Operate|/mcp.html|MCP Server;;Operate|/troubleshooting.html|Troubleshooting;;Operate|/faq.html|FAQ;;Operate|/github-pages.html|GitHub Pages" -%}
     {%- assign nav_lines = nav_data | split: ";;" -%}
     {%- assign nav_groups = "Start,Use,Operate" | split: "," -%}
 

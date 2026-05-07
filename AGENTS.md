@@ -19,11 +19,14 @@ For this repository specifically:
   `diff.patch`. Run discovery and listing are keyed off `status.json`; the
   other artifacts are still expected to be produced and preserved for
   inspection and consumers.
-- Use `rig suggest` before uncertain or risky delegated work. Use isolated
-  worktree runs for non-trivial edits when native parent-agent isolation is not
-  available.
-- Inspect results with `rig show latest` or the matching MCP tools before
+- Use `rig delegate` for inspectable read-only or low-risk delegated work.
+  Use `rig patch create` for non-trivial edits when native parent-agent
+  isolation is not available.
+- Inspect results with `rig history show latest` or the matching MCP tools before
   summarizing them.
+- Use `rig harness` when you need the companion `codex-harnesses` source for
+  project AGENTS templates, skills, hooks, policies, ledgers, or verification
+  scripts.
 - Keep MCP safety defaults intact: `RIG_MCP_ROOT` bounds accepted paths, and
   `RIG_MCP_ALLOW_APPLY=1` is required before MCP patch application is enabled.
 - Do not make Rig a package manager for skills, hooks, prompts, MCP configs, or

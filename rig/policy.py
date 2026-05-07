@@ -43,6 +43,8 @@ Rules:
 - For long delegated runs, choose an explicit `--timeout-seconds` or
   `timeout_seconds` value that matches the task size, and set any parent shell
   tool timeout high enough for the Rig command to finish.
+- For broader Codex project harness templates, skills, hooks, policies, and
+  ledgers, use `rig harness` to inspect the companion `codex-harnesses` source.
 """
 
 
