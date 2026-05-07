@@ -20,8 +20,9 @@ For this repository specifically:
   other artifacts are still expected to be produced and preserved for
   inspection and consumers.
 - Use `rig delegate` for inspectable read-only or low-risk delegated work.
-  Use `rig patch create` for non-trivial edits when native parent-agent
-  isolation is not available.
+  Use `rig patch create` for uncertain or risky delegated edits when native
+  parent-agent isolation is not available, and review `rig patch show latest`
+  before applying.
 - Inspect results with `rig history show latest` or the matching MCP tools before
   summarizing them.
 - Use `rig harness` when you need the companion `codex-harnesses` source for

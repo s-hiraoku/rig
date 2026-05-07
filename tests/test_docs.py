@@ -5,6 +5,41 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+DOC_PATHS = [
+    ROOT / "AGENTS.md",
+    ROOT / "CHANGELOG.md",
+    ROOT / "README.md",
+    ROOT / "ROADMAP.md",
+    *(ROOT / "docs").glob("*.md"),
+]
+
+REMOVED_COMMAND_REFERENCES = (
+    "rig run ",
+    "rig list",
+    "rig show ",
+    "rig worktree ",
+    "rig manual ",
+    "rig guide ",
+    "rig env ",
+    "rig suggest",
+)
+
+REMOVED_MCP_REFERENCES = (
+    "rig_run",
+    "rig_list_runs",
+    "rig_get_run",
+    "rig_get_result",
+    "rig_get_diff",
+    "rig_apply_patch",
+    "rig_suggest",
+)
+
+ALLOWED_REMOVED_REFERENCES = {
+    ROOT / "ROADMAP.md": {
+        "rig suggest",
+    },
+}
+
 
 def test_docs_navigation_targets_exist() -> None:
     layout = (ROOT / "docs" / "_layouts" / "default.html").read_text(
@@ -22,27 +57,20 @@ def test_docs_navigation_targets_exist() -> None:
         assert target.is_file(), f"missing docs nav target: {url}"
 
 
-def test_docs_do_not_reference_removed_cli_commands() -> None:
-    stale_patterns = (
-        "rig suggest",
-        "rig show latest",
-        "rig run ",
-        "rig list",
-        "rig env ",
-        "rig guide ",
-        "rig worktree",
-    )
-    allowed_files = {
-        ROOT / "docs" / "troubleshooting.md",
-    }
-    docs = [
-        path
-        for path in (ROOT / "docs").glob("*.md")
-        if path not in allowed_files
-    ]
-    docs.extend([ROOT / "README.md", ROOT / "AGENTS.md"])
+def test_current_docs_do_not_advertise_removed_mvp_commands() -> None:
+    failures: list[str] = []
+    for path in DOC_PATHS:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            failures.append(f"{path.relative_to(ROOT)}: missing file")
+            continue
 
-    for path in docs:
-        text = path.read_text(encoding="utf-8")
-        for pattern in stale_patterns:
-            assert pattern not in text, f"{path} references removed command {pattern!r}"
+        allowed = ALLOWED_REMOVED_REFERENCES.get(path, set())
+        for needle in REMOVED_COMMAND_REFERENCES + REMOVED_MCP_REFERENCES:
+            if needle in allowed:
+                continue
+            if needle in text:
+                failures.append(f"{path.relative_to(ROOT)}: {needle}")
+
+    assert failures == [], f"unexpected removed command references: {failures}"
