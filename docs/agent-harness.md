@@ -16,8 +16,8 @@ manager.
 - This page (`docs/agent-harness.md`). It is declared in `.rig/env.yaml` so
   repository-specific harness guidance has a durable home.
 - Rig's own MCP adapter remains part of the product surface: `rig mcp serve`,
-  `rig_delegate`, `rig_patch_create`, `rig_history_show`, `rig_patch_show`, and
-  `rig_patch_apply`.
+  `rig_delegate`, `rig_patch_create`, `rig_history`, `rig_history_show`,
+  `rig_patch_show`, `rig_patch_apply`, and `rig_list_agents`.
 - Existing CI remains the final gate for normal changes.
 
 ## Recommended

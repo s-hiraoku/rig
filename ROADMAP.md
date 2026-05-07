@@ -43,21 +43,18 @@ Design rules:
 - prefer command names with a clear object, such as `worktree apply`
 - keep grouped commands only when the group explains the scope
 
-Current shape:
+MVP command shape:
 
 ```bash
 rig init
-rig run <agent> --task "..."
-rig list
-rig show latest
-rig worktree run <agent> --task "..."
-rig worktree show latest
-rig worktree apply latest
-rig manual complete latest --result "..."
-rig manual fail latest --error "..."
-rig env doctor
-rig guide agents
-rig suggest "..."
+rig delegate <agent> --task "..."
+rig history
+rig history show latest
+rig patch create <agent> --task "..."
+rig patch show latest
+rig patch apply latest
+rig doctor
+rig mcp serve
 ```
 
 ## Phase 1: CLI and Run Artifacts
@@ -67,21 +64,20 @@ Goal: provide the smallest useful local harness.
 Implemented:
 
 - `rig init`
-- `rig run codex --task "..."`
-- `rig run codex --task-file task.md`
-- `rig list`
-- `rig show latest`
-- `rig show <run-id>`
-- `rig list --json`
-- `rig show latest --json`
-- `rig run codex --json`
-- legacy `rig history list/show` arguments map to the canonical top-level forms
+- `rig delegate codex --task "..."`
+- `rig delegate codex --task-file task.md`
+- `rig history`
+- `rig history show latest`
+- `rig history show <run-id>`
+- `rig history --json`
+- `rig history show latest --json`
+- `rig delegate codex --json`
 - file-backed run artifacts under `.rig/runs/<run-id>/`
 - Codex execution through `codex exec`
 - `.rig/config.yaml` support for `agents.codex.command` and `agents.codex.args`
-- `default_agent` support when `rig run` omits the agent name
+- `default_agent` support when `rig delegate` omits the agent name
 - friendlier handling of empty, damaged, or incomplete run history
-- `rig run codex --dry-run` command preview mode
+- `rig delegate codex --dry-run` command preview mode
 - clearer failed-run inspection output
 - task files are preserved without adding Rig's `# Task` wrapper
 
@@ -91,28 +87,17 @@ Goal: make Rig easy for AI coding agents to discover and use before MCP exists,
 without reimplementing package management for skills, hooks, prompts, or MCP
 server configuration.
 
-Implemented:
+MVP implemented:
 
-- `rig guide agents`
-- `rig guide agents --target codex`
-- `rig guide agents --target claude`
-- `rig guide agents --format markdown`
-- `rig guide agents --write`
 - `.rig/instructions/rig.md` as the Rig-owned instruction file referenced by
-  `AGENTS.md`, `CLAUDE.md`, and skill files
-- `rig env doctor`
-- `rig env plan`
-- `rig env bootstrap`
-- `rig env manager status`
-- default `.rig/env.yaml` with configurable required files and optional agent
-  asset managers
+  generated `AGENTS.md` and `CLAUDE.md` Rig blocks
+- `rig doctor`
 - configured agent command checks are derived from `.rig/config.yaml`
 - documented examples for `AGENTS.md`, `CLAUDE.md`, and skill files
 
-This prints an `AGENTS.md` snippet instead of editing user files automatically.
-For safer setup, `--write` creates `.rig/instructions/rig.md` and the snippet
-only references that Rig-owned instruction file. User repositories still own
-their own agent instructions.
+`rig init` creates or updates small managed Rig blocks in `AGENTS.md` and
+`CLAUDE.md`. Those blocks reference `.rig/instructions/rig.md`, so user
+repositories still own the rest of their agent instructions.
 
 Skills and instruction files are not a replacement for MCP. They tell agents
 how to use Rig and what policies to follow. MCP gives agents structured tools.
@@ -140,7 +125,7 @@ Rig's role is integration:
 - avoid writing or updating third-party agent asset files unless a future
   command explicitly asks for it
 
-Potential `rig env doctor` checks:
+Potential harness-environment diagnostics:
 
 - Rig initialized
 - Git repository present
@@ -167,22 +152,18 @@ Rig should act as a meta-harness manager:
 - read project-specific required files from `.rig/env.yaml`
 - avoid silently installing global tools or third-party agent assets
 
-Potential commands:
+Future harness-environment command concepts:
 
-```bash
-rig env doctor
-rig env doctor --json
-rig env plan
-rig env bootstrap
-```
+- doctor mode: read-only diagnostics for the current repository and machine
+- plan mode: show the desired harness setup and missing actions
+- bootstrap mode: initialize Rig-owned files and print external manager commands
 
 Suggested responsibilities:
 
-- `rig env doctor`: read-only diagnostics for the current repository and
-  machine. Use `--json` for structured CI output.
-- `rig env plan`: show the desired harness setup and the actions needed to reach
-  it.
-- `rig env bootstrap`: initialize Rig-owned files and print commands for
+- Doctor mode should support `--json` for structured CI output.
+- Plan mode should show the desired harness setup and the actions needed to
+  reach it.
+- Bootstrap mode should initialize Rig-owned files and print commands for
   external managers. A future `--apply` mode may run safe, explicit actions.
 
 Potential `.rig/env.yaml` shape:
@@ -239,23 +220,22 @@ required_files:
 instructions:
   agents_md:
     recommended: true
-    snippet_command: rig guide agents
 ```
 
-`rig env doctor` should be diagnostic. If it suggests installing or updating
-agent assets, it should print the external command instead of doing the install
-itself.
+Harness diagnostics should be read-only. If they suggest installing or updating
+agent assets, they should print the external command instead of doing the
+install itself.
 
-## Phase 2: Worktree Support
+## Phase 2: Patch Runs
 
 Goal: isolate risky agent changes and make diffs reviewable before application.
 
-Potential commands:
+MVP commands:
 
 ```bash
-rig worktree run codex --task "..."
-rig worktree show latest
-rig worktree apply latest
+rig patch create codex --task "..."
+rig patch show latest
+rig patch apply latest
 ```
 
 Concepts:
@@ -269,11 +249,12 @@ Rig should still avoid automatic patch application by default.
 
 Implemented:
 
-- `rig worktree run <agent>`
+- `rig patch create <agent>`
 - `.rig/worktrees/<run-id>/`
 - `.rig/runs/<run-id>/diff.patch`
-- `rig worktree show latest`
-- `rig worktree apply latest`
+- `rig patch show latest`
+- `rig patch apply latest`
+- `rig patch prune`
 
 ## Phase 3: Generic Execution Runners
 
@@ -294,12 +275,11 @@ Runner types:
   It should be explicit opt-in, timeout-bound, transcript-backed, and never the
   default architecture.
 
-Implemented:
+Future:
 
-- `runner: exec`
 - `runner: manual`
 - `runner: pty` with timeout-backed transcript capture
-- `rig manual complete` and `rig manual fail` for manual run lifecycle management
+- explicit lifecycle actions for completing or failing manual runs
 - `rig history complete` and `rig history fail` remain available as compatibility forms
 - runner registry and `RunOrchestrator` keep execution setup reusable outside CLI
 - `timeout_seconds` applies to exec and pty runners
@@ -338,14 +318,13 @@ shell-restricted agents.
 
 Implemented:
 
-- `rig_run`
-- `rig_list_runs`
+- `rig_delegate`
+- `rig_patch_create`
+- `rig_history`
+- `rig_history_show`
 - `rig_list_agents`
-- `rig_suggest`
-- `rig_get_run`
-- `rig_get_result`
-- `rig_get_diff`
-- `rig_apply_patch`
+- `rig_patch_show`
+- `rig_patch_apply`
 - `rig mcp serve` stdio server entrypoint
 - `rig_policy` prompt and `rig://policy` / `rig://agents-md` resources
 - `RIG_MCP_ROOT` bounds accepted `cwd` values
@@ -365,7 +344,7 @@ MCP safety defaults:
 - `cwd` is restricted to the server launch directory unless `RIG_MCP_ROOT` is
   set.
 - `task_file` paths must stay inside the selected project.
-- `rig_apply_patch` is disabled unless `RIG_MCP_ALLOW_APPLY=1` is set.
+- `rig_patch_apply` is disabled unless `RIG_MCP_ALLOW_APPLY=1` is set.
 
 Skills and `AGENTS.md` remain the primary way to tell shell-capable agents how
 to use Rig. They should explain when to use Rig, which policies to follow, and
@@ -380,7 +359,7 @@ Use Rig MCP tools when the parent agent is MCP-native or shell-restricted.
 
 Goal: help users decide how to run an agent task.
 
-Implemented:
+Future:
 
 - `rig suggest "..."`
 - `rig suggest --task-file task.md`
