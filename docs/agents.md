@@ -17,6 +17,21 @@ agents:
     command: codex
     args:
       - exec
+  claude:
+    command: claude
+    args:
+      - -p
+    prompt_style: task
+  gemini:
+    command: gemini
+    args:
+      - --prompt
+    prompt_style: task
+  copilot:
+    command: copilot
+    args:
+      - -p
+    prompt_style: task
 ```
 
 ## Examples
@@ -40,6 +55,17 @@ agents:
     command: gemini
     args:
       - --prompt
+    prompt_style: task
+```
+
+GitHub Copilot CLI:
+
+```yaml
+agents:
+  copilot:
+    command: copilot
+    args:
+      - -p
     prompt_style: task
 ```
 

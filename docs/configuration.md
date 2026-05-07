@@ -25,6 +25,21 @@ agents:
     command: codex
     args:
       - exec
+  claude:
+    command: claude
+    args:
+      - -p
+    prompt_style: task
+  gemini:
+    command: gemini
+    args:
+      - --prompt
+    prompt_style: task
+  copilot:
+    command: copilot
+    args:
+      - -p
+    prompt_style: task
 ```
 
 | Field | Type | Notes |

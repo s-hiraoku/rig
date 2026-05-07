@@ -120,10 +120,28 @@ def test_mcp_list_agents_reports_configured_agents(
     assert result["default_agent"] == "codex"
     assert result["agents"] == [
         {
+            "name": "claude",
+            "command": "claude",
+            "args": ["-p"],
+            "default": False,
+        },
+        {
             "name": "codex",
             "command": "codex",
             "args": ["exec"],
             "default": True,
+        },
+        {
+            "name": "copilot",
+            "command": "copilot",
+            "args": ["-p"],
+            "default": False,
+        },
+        {
+            "name": "gemini",
+            "command": "gemini",
+            "args": ["--prompt"],
+            "default": False,
         }
     ]
 
