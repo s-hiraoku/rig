@@ -32,7 +32,17 @@ rig init
 This creates `.rig/config.yaml`, `.rig/instructions/rig.md`, `.rig/runs/`, and
 managed Rig blocks in `AGENTS.md` and `CLAUDE.md`.
 
-## 3. Use Rig Through Your Agent
+## 3. Optional: Install The Parent-Agent Skill
+
+`rig init` gives parent agents the shared Rig policy. The optional
+`develop-with-rig` skill gives stronger workflow guidance for delegation,
+patch isolation, and artifact inspection.
+
+Claude Code users can install it as a project skill under
+`.claude/skills/develop-with-rig/`. Codex and other parent agents can use their
+own skill installers. See [Develop With Rig Skill](develop-with-rig.md).
+
+## 4. Use Rig Through Your Agent
 
 Ask your parent AI agent:
 
