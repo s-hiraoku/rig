@@ -74,3 +74,14 @@ def test_current_docs_do_not_advertise_removed_mvp_commands() -> None:
                 failures.append(f"{path.relative_to(ROOT)}: {needle}")
 
     assert failures == [], f"unexpected removed command references: {failures}"
+
+
+def test_rig_developer_skill_supports_claude_code_and_agents() -> None:
+    claude_skill = ROOT / ".claude" / "skills" / "rig-developer" / "SKILL.md"
+    agents_skill = ROOT / ".agents" / "skills" / "rig-developer" / "SKILL.md"
+
+    assert claude_skill.is_file()
+    assert agents_skill.is_file()
+    assert claude_skill.read_text(encoding="utf-8") == agents_skill.read_text(
+        encoding="utf-8"
+    )
