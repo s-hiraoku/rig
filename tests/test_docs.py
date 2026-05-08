@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DOC_PATHS = [
     ROOT / "AGENTS.md",
+    ROOT / "CLAUDE.md",
     ROOT / "CHANGELOG.md",
     ROOT / "README.md",
     ROOT / "ROADMAP.md",
