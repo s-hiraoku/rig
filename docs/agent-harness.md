@@ -13,6 +13,13 @@ manager.
 
 - `AGENTS.md` at the repository root. It tells parent agents how to work on Rig,
   which verification commands to run, and which boundaries not to cross.
+- `CLAUDE.md` at the repository root. Claude Code is a required parent-agent
+  target for this repository, and this file should point Claude at the shared
+  Rig instructions.
+- The Claude Code project skill at `.claude/skills/rig-developer/SKILL.md`.
+  Claude Code discovers project skills from `.claude/skills/`, so the Rig
+  development playbook must be present there instead of only under
+  `.agents/skills/`.
 - This page (`docs/agent-harness.md`). It is declared in `.rig/env.yaml` so
   repository-specific harness guidance has a durable home.
 - Rig's own MCP adapter remains part of the product surface: `rig mcp serve`,
@@ -22,9 +29,9 @@ manager.
 
 ## Recommended
 
-- The project-local `rig-developer` skill in `.agents/skills/rig-developer/`.
-  It is intentionally small and covers Rig's design boundaries, artifact
-  contract, MCP safety model, and verification commands.
+- The project-local `rig-developer` skill in `.agents/skills/rig-developer/`
+  for parent agents that still discover project skills from `.agents/skills/`.
+  Keep it aligned with the Claude Code copy.
 - GitHub app or GitHub MCP access for PR review, CI triage, and review feedback.
   It is useful for repository operations but not required for normal local
   implementation.
@@ -46,9 +53,10 @@ directly, and CI is the authoritative gate.
 
 - Filesystem or shell MCP servers. Local development already has direct file and
   shell access.
-- Separate Codex, Claude, Gemini, or Copilot skills. Vendor differences belong
-  in `.rig/config.yaml` examples and documentation unless a stable CLI contract
-  needs code support.
+- Separate vendor-specific Rig development playbooks. The same
+  `rig-developer` skill should be mirrored into each supported parent-agent
+  discovery location; vendor differences belong in `.rig/config.yaml` examples
+  and documentation unless a stable CLI contract needs code support.
 - Automatic installation of skills, hooks, prompts, ledgers, policies, or MCP
   client config. Rig can point to companion harness sources with `rig harness`,
   but external managers or team conventions own installation.

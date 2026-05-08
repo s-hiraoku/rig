@@ -28,6 +28,21 @@ Restart Codex after installing so the new skill is discovered.
 When testing from a branch or fork, replace `main` with the branch name or use
 the matching GitHub directory URL.
 
+## Install With Claude Code
+
+Claude Code discovers project skills from `.claude/skills/` and personal skills
+from `~/.claude/skills/`. To install this skill as a project skill, copy the
+repository skill directory into the target project:
+
+```bash
+mkdir -p .claude/skills
+cp -R skills/develop-with-rig .claude/skills/develop-with-rig
+```
+
+Use `~/.claude/skills/develop-with-rig/` instead when you want the skill
+available across all Claude Code projects. Restart Claude Code after installing
+or updating a skill so it reloads the skill index.
+
 ## Install With GitHub CLI
 
 GitHub CLI 2.90.0 and newer includes the preview `gh skill` command. Preview
@@ -94,10 +109,11 @@ dependencies:
 ## Install With skills.sh
 
 For installers compatible with the `skills` CLI, install the skill from this
-repository and target Codex when desired:
+repository and target the parent agent when desired:
 
 ```bash
 npx skills add s-hiraoku/rig --skill develop-with-rig -a codex
+npx skills add s-hiraoku/rig --skill develop-with-rig -a claude
 ```
 
 Use `--list` first if you want to confirm the repository's available skills:
