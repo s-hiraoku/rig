@@ -59,6 +59,11 @@ CLAUDE.md
 the parent agent at `.rig/instructions/rig.md`, which contains the Rig usage
 policy.
 
+For stronger parent-agent behavior, install the optional `develop-with-rig`
+skill. Claude Code users can install it as a project skill under
+`.claude/skills/develop-with-rig/`; see the
+[Develop With Rig Skill](docs/develop-with-rig.md) guide for exact commands.
+
 After setup, talk to your parent AI agent in natural language:
 
 > Review the current diff through Rig and summarize risky changes.
