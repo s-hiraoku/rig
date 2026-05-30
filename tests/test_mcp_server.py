@@ -120,6 +120,12 @@ def test_mcp_list_agents_reports_configured_agents(
     assert result["default_agent"] == "codex"
     assert result["agents"] == [
         {
+            "name": "antigravity",
+            "command": "agy",
+            "args": ["-p", "--add-dir", "."],
+            "default": False,
+        },
+        {
             "name": "claude",
             "command": "claude",
             "args": ["-p"],
@@ -135,12 +141,6 @@ def test_mcp_list_agents_reports_configured_agents(
             "name": "copilot",
             "command": "copilot",
             "args": ["-p"],
-            "default": False,
-        },
-        {
-            "name": "gemini",
-            "command": "gemini",
-            "args": ["--prompt"],
             "default": False,
         }
     ]

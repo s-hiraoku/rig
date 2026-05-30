@@ -11,7 +11,7 @@ For this repository specifically:
 - Run `uv run pytest -q`, `uv run ruff check .`, and `uv run mypy rig tests`
   before handing off substantial changes.
 - Use deterministic fake commands in tests. Do not require real Codex, Claude,
-  Gemini, Copilot, credentials, or networked agent calls for normal tests.
+  Antigravity, Copilot, credentials, or networked agent calls for normal tests.
 - Keep vendor-specific agent behavior in `.rig/config.yaml` examples and docs;
   do not add first-class vendor branches unless a stable CLI contract requires it.
 - Preserve the run artifact contract: `task.md`, `command.json`, `stdout.log`,

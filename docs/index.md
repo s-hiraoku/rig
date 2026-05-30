@@ -53,7 +53,7 @@ specific Rig workflow guidance.
   <a href="develop-with-rig.html"><strong>Install the skill</strong><span>Add <code>develop-with-rig</code> so parent agents use Rig for delegation and patch isolation.</span></a>
   <a href="codex-harnesses.html"><strong>Add project harnesses</strong><span>Use <code>codex-harnesses</code> for AGENTS templates, skills, hooks, policies, ledgers, and verify scripts.</span></a>
   <a href="recipes.html"><strong>Real recipes</strong><span>End-to-end examples with the natural-language prompts you'd actually give your AI.</span></a>
-  <a href="agents.html"><strong>Configure child agents</strong><span>Codex, Claude, Gemini, Copilot — the CLIs Rig launches on the parent agent's behalf.</span></a>
+  <a href="agents.html"><strong>Configure child agents</strong><span>Codex, Claude, Antigravity, Copilot — the CLIs Rig launches on the parent agent's behalf.</span></a>
   <a href="mcp.html"><strong>Optional MCP</strong><span>Expose Rig as MCP tools for MCP-native or shell-restricted parents.</span></a>
   <a href="faq.html"><strong>FAQ</strong><span>Why Rig, what Rig is not, and when to bypass it and use the CLI directly.</span></a>
 </div>

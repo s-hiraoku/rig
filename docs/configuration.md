@@ -30,10 +30,12 @@ agents:
     args:
       - -p
     prompt_style: task
-  gemini:
-    command: gemini
+  antigravity:
+    command: agy
     args:
-      - --prompt
+      - -p
+      - --add-dir
+      - .
     prompt_style: task
   copilot:
     command: copilot

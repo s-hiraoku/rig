@@ -258,7 +258,7 @@ Implemented:
 
 ## Phase 3: Generic Execution Runners
 
-Goal: support Codex, GitHub Copilot CLI, Gemini CLI, Claude CLI, and future
+Goal: support Codex, GitHub Copilot CLI, Antigravity CLI, Claude CLI, and future
 agent CLIs without hard-coding each vendor as a first-class adapter.
 
 Rig should model execution style first and vendor presets second.
@@ -267,7 +267,7 @@ Runner types:
 
 - `exec`: non-interactive command execution. This is the default and should
   cover tools with programmatic prompt flags such as Codex CLI, GitHub Copilot
-  CLI `copilot -p`, and Gemini CLI prompt modes.
+  CLI `copilot -p`, and Antigravity CLI prompt modes.
 - `manual`: create and track a Run for human-driven, GUI-driven, or
   externally executed work. Rig creates artifacts; a human or external agent
   completes them later.
@@ -299,14 +299,16 @@ agents:
     command: copilot
     args:
       - -p
-  gemini:
+  antigravity:
     runner: exec
-    command: gemini
+    command: agy
     args:
-      - --prompt
+      - -p
+      - --add-dir
+      - .
 ```
 
-GitHub Copilot CLI and Gemini CLI should not require dedicated adapters unless
+GitHub Copilot CLI and Antigravity CLI should not require dedicated adapters unless
 their stable non-interactive contracts need special handling. Risky permission
 flags such as Copilot's broad tool approval options should remain explicit user
 configuration, not Rig defaults.

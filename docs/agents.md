@@ -22,10 +22,12 @@ agents:
     args:
       - -p
     prompt_style: task
-  gemini:
-    command: gemini
+  antigravity:
+    command: agy
     args:
-      - --prompt
+      - -p
+      - --add-dir
+      - .
     prompt_style: task
   copilot:
     command: copilot
@@ -47,16 +49,21 @@ agents:
     prompt_style: task
 ```
 
-Gemini:
+Antigravity CLI:
 
 ```yaml
 agents:
-  gemini:
-    command: gemini
+  antigravity:
+    command: agy
     args:
-      - --prompt
+      - -p
+      - --add-dir
+      - .
     prompt_style: task
 ```
+
+`--add-dir .` makes the run's execution directory explicit to Antigravity's
+workspace discovery while preserving Rig's prompt-as-final-argument model.
 
 GitHub Copilot CLI:
 
