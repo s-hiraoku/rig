@@ -62,6 +62,40 @@ Rig launches `agy` from the run's execution directory, so Antigravity scopes the
 workspace to that directory while `-p` receives Rig's prompt as the final
 argument.
 
+Antigravity image generation:
+
+```yaml
+agents:
+  antigravity-image:
+    command: agy
+    args:
+      - -p
+    prompt_style: template
+    timeout_seconds: 1200
+    prompt_template: |
+      You are running through Rig as {agent}.
+
+      Use Antigravity's image-generation capability with Nano Banana 2 or
+      Nano Banana Pro 2 when available. Treat the user task below as an asset
+      generation request.
+
+      Save generated image files inside the current workspace. If the task does
+      not name an output path, use assets/generated/.
+
+      Do not print base64 or inline image bytes to stdout. After generation,
+      print this marker and a concise summary with output file paths, the model
+      or tool used if known, and any policy or quota failures:
+
+      --- RIG RESULT ---
+
+      Task:
+      {task}
+```
+
+This keeps Rig vendor-neutral: Rig only launches `agy` and records the normal
+run artifacts, while Antigravity decides whether and how to invoke its
+generative image tool.
+
 GitHub Copilot CLI:
 
 ```yaml

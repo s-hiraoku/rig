@@ -46,6 +46,19 @@ rig delegate codex --task-file tasks/review.md
 rig patch create codex --task-file tasks/change.md
 ```
 
+## Generate An Image With Antigravity
+
+Add an `antigravity-image` agent like the example in
+[Agents](agents.md#examples), then delegate the asset request:
+
+```bash
+rig delegate antigravity-image --task "Use Nano Banana 2 to generate a 1024x1024 PNG app icon for Rig. Save it to assets/generated/rig-icon.png."
+rig history show latest
+```
+
+Rig records the prompt, stdout, stderr, result, and status in the run directory.
+The generated image itself is saved in the workspace path requested in the task.
+
 ## Check Setup
 
 ```bash

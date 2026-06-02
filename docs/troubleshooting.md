@@ -65,3 +65,8 @@ agents:
 
 If an older Rig config still has a `gemini` agent, update that agent to the
 Antigravity command above or rename it to `antigravity`.
+
+For image generation through Antigravity, add a separate `antigravity-image`
+agent with `prompt_style: template`; see [Agents](agents.md#examples). The
+template should tell Antigravity to save image files in the workspace and print
+only file paths and errors in the Rig result.
