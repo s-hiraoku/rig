@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rig.config import ConfigError, load_config
-from rig.policy import AGENTS_INSTRUCTION_PATH, RIG_INSTRUCTION_PATH
+from rig.policy import CLAUDE_INSTRUCTION_PATH, RIG_INSTRUCTION_PATH
 
 LEGACY_GEMINI_COMMANDS = {"gemini"}
 
@@ -67,24 +67,46 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
         )
         suggestions.append("Run: rig init")
 
-    agents_path = root / AGENTS_INSTRUCTION_PATH
-    if agents_path.is_file():
-        checks.append(DoctorCheck(AGENTS_INSTRUCTION_PATH, "ok", "found"))
-        content = agents_path.read_text(encoding="utf-8", errors="replace")
-        if RIG_INSTRUCTION_PATH in content:
-            checks.append(
-                DoctorCheck(f"{AGENTS_INSTRUCTION_PATH} Rig reference", "ok", "found")
-            )
+    claude_path = root / CLAUDE_INSTRUCTION_PATH
+    claude_has_rig_reference = False
+    if claude_path.is_file():
+        checks.append(DoctorCheck("CLAUDE.md", "ok", "found"))
+        content = claude_path.read_text(encoding="utf-8", errors="replace")
+        claude_has_rig_reference = RIG_INSTRUCTION_PATH in content
+        if claude_has_rig_reference:
+            checks.append(DoctorCheck("CLAUDE.md Rig reference", "ok", "found"))
         else:
             checks.append(
-                DoctorCheck(
-                    f"{AGENTS_INSTRUCTION_PATH} Rig reference", "warn", "not found"
-                )
+                DoctorCheck("CLAUDE.md Rig reference", "warn", "not found")
             )
             suggestions.append("Run: rig init")
     else:
-        checks.append(DoctorCheck(AGENTS_INSTRUCTION_PATH, "missing", "not found"))
+        checks.append(DoctorCheck("CLAUDE.md", "missing", "not found"))
         suggestions.append("Run: rig init")
+
+    agents_path = root / "AGENTS.md"
+    if agents_path.is_file():
+        checks.append(DoctorCheck("AGENTS.md", "ok", "found"))
+        content = agents_path.read_text(encoding="utf-8", errors="replace")
+        if RIG_INSTRUCTION_PATH in content:
+            checks.append(DoctorCheck("AGENTS.md Rig reference", "ok", "found"))
+        elif claude_has_rig_reference:
+            checks.append(
+                DoctorCheck(
+                    "AGENTS.md Rig reference",
+                    "optional",
+                    "not found; CLAUDE.md references Rig",
+                )
+            )
+        else:
+            checks.append(
+                DoctorCheck("AGENTS.md Rig reference", "warn", "not found")
+            )
+            suggestions.append(f"Reference `{RIG_INSTRUCTION_PATH}` from AGENTS.md.")
+    else:
+        checks.append(DoctorCheck("AGENTS.md", "optional", "not found"))
+        if not claude_has_rig_reference:
+            suggestions.append("Add the Rig snippet from `rig init` to AGENTS.md.")
 
     return DoctorReport(checks=checks, suggestions=dedupe(suggestions))
 
