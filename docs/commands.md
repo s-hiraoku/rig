@@ -47,6 +47,7 @@ rig patch prune
 | `rig history show <run-id\|latest> [--json]` | Show run metadata and result. |
 | `rig doctor [--json]` | Diagnose the local Rig setup. |
 | `rig harness [--json]` | Show the companion `codex-harnesses` source and copy guidance. |
+| `rig manager status [--json]` | Report configured agent asset managers declared in `.rig/env.yaml`. |
 | `rig mcp serve` | Run the optional MCP server over stdio. |
 
 ## Notes
@@ -58,6 +59,8 @@ rig patch prune
 - `rig patch apply` should only be called after reviewing `rig patch show`.
 - `rig harness` is read-only. It prints companion harness guidance; it does not
   clone, copy, or install files.
+- `rig manager status` is read-only. It reports declared agent asset managers
+  and required files; it does not install tools or fetch third-party assets.
 - Child agents can print `--- RIG RESULT ---`; Rig keeps only the text after
   that marker in `result.md`.
 

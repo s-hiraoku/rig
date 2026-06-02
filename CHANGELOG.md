@@ -17,3 +17,6 @@
   harness source.
 - Add GitHub Pages user guide and CI coverage for tests, lint, type checks, and
   documentation builds.
+- Add `rig manager status` to report configured agent asset managers declared in
+  `.rig/env.yaml`, including availability checks, required files, and `--json`
+  output.
