@@ -62,7 +62,6 @@ def agents_snippet(*, target: str = "all") -> str:
         return "\n\n".join(
             [
                 agents_snippet(target="codex").rstrip(),
-                agents_snippet(target="antigravity").rstrip(),
                 skill_reference_snippet().rstrip(),
             ]
         ) + "\n"

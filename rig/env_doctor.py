@@ -99,7 +99,7 @@ def add_agent_command_checks(
         return
 
     for name, agent in sorted(config.agents.items()):
-        if name == "gemini" or agent.command in LEGACY_GEMINI_COMMANDS:
+        if agent.command in LEGACY_GEMINI_COMMANDS:
             checks.append(
                 DoctorCheck(
                     f"Agent command: {name}",

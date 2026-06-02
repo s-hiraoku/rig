@@ -34,7 +34,12 @@ _rig() {
     return
   fi
 
-  if [[ "$words[2]" == "doctor" ]] || [[ "$words[2]" == "harness" ]] || [[ "$words[2]" == "history" && "$words[3]" != "show" ]]; then
+  if [[ "$words[2]" == "doctor" ]] || [[ "$words[2]" == "harness" ]]; then
+    _arguments '--json[print JSON output]'
+    return
+  fi
+
+  if [[ "$words[2]" == "history" && "$words[3]" == "show" ]]; then
     _arguments '--json[print JSON output]'
     return
   fi
@@ -51,9 +56,9 @@ _rig() {
       _describe 'patch command' patch_commands
       ;;
     history)
-      local -a history_commands
-      history_commands=('show:show one run metadata and result')
-      _describe 'history command' history_commands
+      _arguments \
+        '--json[print JSON output]' \
+        ':history command:(show)'
       ;;
     mcp)
       local -a mcp_commands
