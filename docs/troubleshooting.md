@@ -52,3 +52,16 @@ Only enable this for clients that should be allowed to apply reviewed patches.
 
 `rig doctor` checks configured child-agent commands. Install the missing CLI or
 edit `.rig/config.yaml`.
+
+For Antigravity CLI, use:
+
+```yaml
+agents:
+  antigravity:
+    command: agy
+    args: [-p]
+    prompt_style: task
+```
+
+If an older Rig config still has a `gemini` agent, update that agent to the
+Antigravity command above or rename it to `antigravity`.

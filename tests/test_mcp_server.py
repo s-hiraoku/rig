@@ -122,7 +122,7 @@ def test_mcp_list_agents_reports_configured_agents(
         {
             "name": "antigravity",
             "command": "agy",
-            "args": ["-p", "--add-dir", "."],
+            "args": ["-p"],
             "default": False,
         },
         {

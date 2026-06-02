@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from conftest import init_git_repo
 
 from rig import env_doctor
@@ -17,7 +18,6 @@ def test_build_doctor_report_reports_missing_basics(tmp_path: Path) -> None:
     assert labels["Rig history directory"].status == "missing"
     assert labels["Rig instructions"].status == "missing"
     assert labels["AGENTS.md"].status == "missing"
-    assert labels["CLAUDE.md"].status == "missing"
     assert "Run: rig init" in report.suggestions
 
 
@@ -38,9 +38,6 @@ agents:
     (tmp_path / "AGENTS.md").write_text(
         f"## Rig\n\nSee `{RIG_INSTRUCTION_PATH}`.\n", encoding="utf-8"
     )
-    (tmp_path / "CLAUDE.md").write_text(
-        f"## Rig\n\nRead `{RIG_INSTRUCTION_PATH}`.\n", encoding="utf-8"
-    )
 
     report = env_doctor.build_doctor_report(tmp_path)
 
@@ -50,7 +47,6 @@ agents:
     assert labels["Rig history directory"].status == "ok"
     assert labels["Rig instructions"].status == "ok"
     assert labels["AGENTS.md Rig reference"].status == "ok"
-    assert labels["CLAUDE.md Rig reference"].status == "ok"
     assert labels["Agent command: codex"].status == "missing"
 
 
@@ -64,22 +60,59 @@ def test_build_doctor_report_warns_for_missing_agents_reference(
     labels = {check.label: check for check in report.checks}
     assert labels["AGENTS.md"].status == "ok"
     assert labels["AGENTS.md Rig reference"].status == "warn"
+    assert "Run: rig init" in report.suggestions
 
 
-def test_build_doctor_report_warns_for_missing_agents_reference_with_claude(
+def test_build_doctor_report_warns_for_legacy_gemini_agent(
     tmp_path: Path,
 ) -> None:
-    (tmp_path / "AGENTS.md").write_text("No Rig reference.\n", encoding="utf-8")
-    (tmp_path / "CLAUDE.md").write_text(
-        f"## Rig\n\nRead `{RIG_INSTRUCTION_PATH}`.\n", encoding="utf-8"
+    (tmp_path / ".rig").mkdir()
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  gemini:
+    command: gemini
+    args:
+      - -p
+    prompt_style: task
+""",
+        encoding="utf-8",
     )
 
     report = env_doctor.build_doctor_report(tmp_path)
 
     labels = {check.label: check for check in report.checks}
-    assert labels["CLAUDE.md Rig reference"].status == "ok"
-    assert labels["AGENTS.md Rig reference"].status == "warn"
-    assert "Run: rig init" in report.suggestions
+    assert labels["Agent command: gemini"].status == "warn"
+    assert "legacy Gemini CLI config" in labels["Agent command: gemini"].detail
+    assert (
+        "Update agents.gemini in .rig/config.yaml to use `command: agy`, "
+        "`args: [-p]`, and `prompt_style: task`."
+    ) in report.suggestions
+
+
+def test_build_doctor_report_accepts_migrated_gemini_alias(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(env_doctor.shutil, "which", lambda _command: None)
+    (tmp_path / ".rig").mkdir()
+    (tmp_path / ".rig" / "config.yaml").write_text(
+        """version: 1
+agents:
+  gemini:
+    command: agy
+    args:
+      - -p
+    prompt_style: task
+""",
+        encoding="utf-8",
+    )
+
+    report = env_doctor.build_doctor_report(tmp_path)
+
+    labels = {check.label: check for check in report.checks}
+    assert labels["Agent command: gemini"].detail == "`agy` not found on PATH"
+    assert "legacy Gemini CLI config" not in labels["Agent command: gemini"].detail
 
 
 def test_format_doctor_report_includes_suggestions() -> None:

@@ -39,8 +39,8 @@ You don't type Rig commands. You talk to your AI in natural language.
 > from `result.md` …"
 
 The parent agent knows to use Rig because your project's instructions reference
-`.rig/instructions/rig.md`. `rig init` creates that file and updates both
-`AGENTS.md` and `CLAUDE.md` with small reference blocks. See
+`.rig/instructions/rig.md`. `rig init` creates that file and updates
+`AGENTS.md` with a small reference block. See
 [Getting Started](getting-started.md). Claude Code users can also install the
 optional `develop-with-rig` project skill under `.claude/skills/` for more
 specific Rig workflow guidance.

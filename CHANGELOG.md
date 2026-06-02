@@ -9,8 +9,10 @@
 - Add an initial MCP stdio server with structured Rig run tools.
 - Add MCP cwd, task file, and patch-apply safety gates.
 - Add MCP policy prompt/resources and configured agent discovery.
-- Add `rig init` support for generated Rig instructions and managed
-  `AGENTS.md` / `CLAUDE.md` reference blocks.
+- Add `rig init` support for generated Rig instructions and a managed
+  `AGENTS.md` reference block.
+- Add Antigravity CLI defaults using `agy -p` and doctor guidance for migrating
+  legacy Gemini CLI agent configs.
 - Add `rig harness` guidance for the companion `codex-harnesses` project
   harness source.
 - Add GitHub Pages user guide and CI coverage for tests, lint, type checks, and

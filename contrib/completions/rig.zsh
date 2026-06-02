@@ -4,15 +4,12 @@ _rig() {
   local -a commands
   commands=(
     'init:initialize Rig in the current repository'
-    'run:run an agent'
-    'list:list recent runs'
-    'show:show a run'
-    'worktree:manage isolated worktree run changes'
-    'manual:complete or fail waiting manual runs'
-    'guide:generate setup guidance'
-    'env:inspect the agent environment'
+    'delegate:delegate a task to a configured coding agent'
+    'patch:create, inspect, and apply isolated agent patches'
+    'history:list and inspect runs'
+    'doctor:diagnose the local Rig setup'
+    'harness:show companion Codex harness guidance'
     'mcp:expose Rig as MCP tools'
-    'suggest:suggest how to run an agent task'
   )
 
   if (( CURRENT == 2 )); then
@@ -20,80 +17,53 @@ _rig() {
     return
   fi
 
-  if [[ "$words[2]" == "run" ]] || [[ "$words[2]" == "worktree" && "$words[3]" == "run" ]]; then
+  if [[ "$words[2]" == "delegate" ]] || [[ "$words[2]" == "patch" && "$words[3]" == "create" ]]; then
     _arguments \
       '--task[task text]:task:' \
       '--task-file[task file path]:filename:_files' \
       '--dry-run[create artifacts without executing]' \
-      '--parallel[run the task N times concurrently]:count:' \
       '--timeout-seconds[override the configured agent timeout]:seconds:' \
       '--json[print JSON output]'
     return
   fi
 
-  if [[ "$words[2]" == "guide" && "$words[3]" == "agents" ]]; then
+  if [[ "$words[2]" == "init" ]]; then
     _arguments \
-      '--target[agent instruction target]:target:(all generic codex claude)' \
-      '--format[output format]:format:(markdown)' \
-      '--write[write target-independent .rig/instructions/rig.md]' \
-      '--force[overwrite .rig/instructions/rig.md with --write]'
+      '--force[reset generated Rig config and instructions]' \
+      '--reset[reset selected Rig-owned config]:target:(config instructions all)'
     return
   fi
 
-  if [[ "$words[2]" == "env" && "$words[3]" == "manager" && "$words[4]" == "status" ]]; then
+  if [[ "$words[2]" == "doctor" ]] || [[ "$words[2]" == "harness" ]]; then
+    _arguments '--json[print JSON output]'
+    return
+  fi
+
+  if [[ "$words[2]" == "history" && "$words[3]" == "show" ]]; then
     _arguments '--json[print JSON output]'
     return
   fi
 
   case "$words[2]" in
-    worktree)
-      local -a worktree_commands
-      worktree_commands=(
-        'run:run an agent in an isolated worktree'
-        'show:show captured changes'
-        'apply:apply captured changes'
+    patch)
+      local -a patch_commands
+      patch_commands=(
+        'create:delegate a task in an isolated worktree and capture a patch'
+        'show:show a captured patch'
+        'apply:apply a captured patch'
         'prune:remove Rig-created worktrees'
       )
-      _describe 'worktree command' worktree_commands
+      _describe 'patch command' patch_commands
       ;;
-    manual)
-      local -a manual_commands
-      manual_commands=(
-        'complete:complete a waiting manual run'
-        'fail:fail a waiting manual run'
-      )
-      _describe 'manual command' manual_commands
-      ;;
-    guide)
-      local -a guide_commands
-      guide_commands=('agents:generate an AGENTS.md snippet')
-      _describe 'guide command' guide_commands
-      ;;
-    env)
-      local -a env_commands
-      env_commands=(
-        'doctor:diagnose environment'
-        'plan:show environment plan'
-        'bootstrap:create Rig-owned environment files'
-        'manager:inspect configured agent asset managers'
-      )
-      if [[ "$words[3]" == "manager" ]]; then
-        local -a manager_commands
-        manager_commands=('status:show configured agent asset manager status')
-        _describe 'manager command' manager_commands
-      else
-        _describe 'env command' env_commands
-      fi
+    history)
+      _arguments \
+        '--json[print JSON output]' \
+        ':history command:(show)'
       ;;
     mcp)
       local -a mcp_commands
       mcp_commands=('serve:run the Rig MCP server over stdio')
       _describe 'mcp command' mcp_commands
-      ;;
-    suggest)
-      _arguments \
-        '--task-file[task file path]:filename:_files' \
-        '--json[print JSON output]'
       ;;
   esac
 }

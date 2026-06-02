@@ -26,8 +26,6 @@ agents:
     command: agy
     args:
       - -p
-      - --add-dir
-      - .
     prompt_style: task
   copilot:
     command: copilot
@@ -57,13 +55,12 @@ agents:
     command: agy
     args:
       - -p
-      - --add-dir
-      - .
     prompt_style: task
 ```
 
-`--add-dir .` makes the run's execution directory explicit to Antigravity's
-workspace discovery while preserving Rig's prompt-as-final-argument model.
+Rig launches `agy` from the run's execution directory, so Antigravity scopes the
+workspace to that directory while `-p` receives Rig's prompt as the final
+argument.
 
 GitHub Copilot CLI:
 

@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rig.config import ConfigError, load_config
-from rig.policy import CLAUDE_INSTRUCTION_PATH, RIG_INSTRUCTION_PATH
+from rig.policy import AGENTS_INSTRUCTION_PATH, RIG_INSTRUCTION_PATH
+
+LEGACY_GEMINI_COMMANDS = {"gemini"}
 
 
 @dataclass(frozen=True)
@@ -65,34 +67,23 @@ def build_doctor_report(cwd: Path) -> DoctorReport:
         )
         suggestions.append("Run: rig init")
 
-    agents_path = root / "AGENTS.md"
+    agents_path = root / AGENTS_INSTRUCTION_PATH
     if agents_path.is_file():
-        checks.append(DoctorCheck("AGENTS.md", "ok", "found"))
+        checks.append(DoctorCheck(AGENTS_INSTRUCTION_PATH, "ok", "found"))
         content = agents_path.read_text(encoding="utf-8", errors="replace")
         if RIG_INSTRUCTION_PATH in content:
-            checks.append(DoctorCheck("AGENTS.md Rig reference", "ok", "found"))
+            checks.append(
+                DoctorCheck(f"{AGENTS_INSTRUCTION_PATH} Rig reference", "ok", "found")
+            )
         else:
             checks.append(
-                DoctorCheck("AGENTS.md Rig reference", "warn", "not found")
+                DoctorCheck(
+                    f"{AGENTS_INSTRUCTION_PATH} Rig reference", "warn", "not found"
+                )
             )
             suggestions.append("Run: rig init")
     else:
-        checks.append(DoctorCheck("AGENTS.md", "missing", "not found"))
-        suggestions.append("Run: rig init")
-
-    claude_path = root / CLAUDE_INSTRUCTION_PATH
-    if claude_path.is_file():
-        checks.append(DoctorCheck("CLAUDE.md", "ok", "found"))
-        content = claude_path.read_text(encoding="utf-8", errors="replace")
-        if RIG_INSTRUCTION_PATH in content:
-            checks.append(DoctorCheck("CLAUDE.md Rig reference", "ok", "found"))
-        else:
-            checks.append(
-                DoctorCheck("CLAUDE.md Rig reference", "warn", "not found")
-            )
-            suggestions.append("Run: rig init")
-    else:
-        checks.append(DoctorCheck("CLAUDE.md", "missing", "not found"))
+        checks.append(DoctorCheck(AGENTS_INSTRUCTION_PATH, "missing", "not found"))
         suggestions.append("Run: rig init")
 
     return DoctorReport(checks=checks, suggestions=dedupe(suggestions))
@@ -108,6 +99,20 @@ def add_agent_command_checks(
         return
 
     for name, agent in sorted(config.agents.items()):
+        if agent.command in LEGACY_GEMINI_COMMANDS:
+            checks.append(
+                DoctorCheck(
+                    f"Agent command: {name}",
+                    "warn",
+                    "legacy Gemini CLI config; migrate this agent to Antigravity",
+                )
+            )
+            suggestions.append(
+                f"Update agents.{name} in .rig/config.yaml to use "
+                "`command: agy`, `args: [-p]`, and `prompt_style: task`."
+            )
+            continue
+
         path = shutil.which(agent.command)
         if path is not None:
             checks.append(DoctorCheck(f"Agent command: {name}", "ok", path))

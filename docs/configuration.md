@@ -34,8 +34,6 @@ agents:
     command: agy
     args:
       - -p
-      - --add-dir
-      - .
     prompt_style: task
   copilot:
     command: copilot
@@ -82,5 +80,5 @@ agents:
 - It does not install Codex or any other child-agent CLI.
 - It does not commit, push, or open PRs.
 
-`rig init` updates `AGENTS.md` and `CLAUDE.md` with managed Rig blocks that
-point parent agents at `.rig/instructions/rig.md`.
+`rig init` updates `AGENTS.md` with a managed Rig block that points parent
+agents at `.rig/instructions/rig.md`.
