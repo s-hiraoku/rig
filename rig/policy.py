@@ -62,10 +62,16 @@ def agents_snippet(*, target: str = "all") -> str:
         return "\n\n".join(
             [
                 agents_snippet(target="codex").rstrip(),
-                agents_snippet(target="claude").rstrip(),
+                agents_snippet(target="antigravity").rstrip(),
                 skill_reference_snippet().rstrip(),
             ]
         ) + "\n"
+    if target == "antigravity":
+        return (
+            "<!-- Suggested for AGENTS.md in Antigravity projects. -->\n\n"
+            f"## Rig\n\nSee `{RIG_INSTRUCTION_PATH}` for Rig usage policy, "
+            "artifact inspection rules, and patch-apply safety rules.\n"
+        )
     if target == "claude":
         return (
             "<!-- Suggested for CLAUDE.md or Claude project instructions. -->\n\n"
@@ -74,7 +80,7 @@ def agents_snippet(*, target: str = "all") -> str:
         )
     if target == "codex":
         return (
-            "<!-- Suggested for AGENTS.md in Codex projects. -->\n\n"
+            "<!-- Suggested for AGENTS.md. -->\n\n"
             f"## Rig\n\nSee `{RIG_INSTRUCTION_PATH}` for Rig usage policy, "
             "artifact inspection rules, and patch-apply safety rules.\n"
         )
@@ -108,7 +114,7 @@ def rig_instruction_file_content() -> str:
     return (
         "# Rig Instructions\n\n"
         "This file is generated for agent instruction files to reference. "
-        "Keep `AGENTS.md`, `CLAUDE.md`, and other top-level instruction files "
+        "Keep `AGENTS.md` and other top-level instruction files "
         "small by linking to this Rig-owned file.\n\n"
         f"{AGENTS_SNIPPET}"
     )

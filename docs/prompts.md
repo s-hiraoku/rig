@@ -18,7 +18,7 @@ always inspect the exact prompt Rig used.
 | Style | What Rig sends | Use when |
 | --- | --- | --- |
 | `rig` (default) | A short Rig instruction asking the child agent to read `task.md` | The child agent has direct file access and benefits from generic guardrails. |
-| `task` | The raw task file content, verbatim | The child agent expects only the user prompt (Claude `-p`, Antigravity `agy -p --add-dir .`). |
+| `task` | The raw task file content, verbatim | The child agent expects only the user prompt (Claude `-p`, Antigravity `agy -p`). |
 | `template` | A custom string rendered from `prompt_template` | You need a precise instruction envelope or a structured marker. |
 
 ## `rig` Style
@@ -155,7 +155,7 @@ See [Run Artifacts → Result Extraction](artifacts.md#result-extraction).
 | --- | --- |
 | Codex (`codex exec`) | `rig` (default) |
 | Claude Code (`claude -p`) | `task` |
-| Antigravity CLI (`agy -p --add-dir .`) | `task` |
+| Antigravity CLI (`agy -p`) | `task` |
 | GitHub Copilot CLI (`copilot -p`) | `task` |
 | Custom review or report jobs | `template` |
 

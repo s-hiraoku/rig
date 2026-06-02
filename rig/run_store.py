@@ -11,12 +11,8 @@ from rig.policy import (
     AGENTS_INSTRUCTION_PATH,
     AGENTS_SNIPPET_END,
     AGENTS_SNIPPET_START,
-    CLAUDE_INSTRUCTION_PATH,
-    CLAUDE_SNIPPET_END,
-    CLAUDE_SNIPPET_START,
     RIG_INSTRUCTION_PATH,
     agents_instruction_block,
-    claude_instruction_block,
     rig_instruction_file_content,
 )
 from rig.run_context import RunContext
@@ -39,8 +35,6 @@ agents:
     command: agy
     args:
       - -p
-      - --add-dir
-      - .
     prompt_style: task
   copilot:
     command: copilot
@@ -116,7 +110,6 @@ class RunStore:
         self.config_path = self.rig_dir / "config.yaml"
         self.instruction_path = self.cwd / RIG_INSTRUCTION_PATH
         self.agents_instruction_path = self.cwd / AGENTS_INSTRUCTION_PATH
-        self.claude_instruction_path = self.cwd / CLAUDE_INSTRUCTION_PATH
 
     def init(
         self, *, reset: str | None = None, now: datetime | None = None
@@ -180,16 +173,6 @@ class RunStore:
             AGENTS_INSTRUCTION_PATH,
             AGENTS_SNIPPET_START,
             AGENTS_SNIPPET_END,
-            created=created,
-            updated=updated,
-            unchanged=unchanged,
-        )
-        self.ensure_top_level_instruction_ref(
-            self.claude_instruction_path,
-            claude_instruction_block(),
-            CLAUDE_INSTRUCTION_PATH,
-            CLAUDE_SNIPPET_START,
-            CLAUDE_SNIPPET_END,
             created=created,
             updated=updated,
             unchanged=unchanged,

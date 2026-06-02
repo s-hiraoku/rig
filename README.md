@@ -52,12 +52,10 @@ This creates:
   instructions/rig.md
   runs/
 AGENTS.md
-CLAUDE.md
 ```
 
-`rig init` updates `AGENTS.md` and `CLAUDE.md` with small Rig blocks. Both point
-the parent agent at `.rig/instructions/rig.md`, which contains the Rig usage
-policy.
+`rig init` updates `AGENTS.md` with a small Rig block. It points the parent
+agent at `.rig/instructions/rig.md`, which contains the Rig usage policy.
 
 For stronger parent-agent behavior, install the optional `develop-with-rig`
 skill. Claude Code users can install it as a project skill under
@@ -137,8 +135,6 @@ agents:
     command: agy
     args:
       - -p
-      - --add-dir
-      - .
     prompt_style: task
   copilot:
     command: copilot

@@ -30,7 +30,7 @@ rig patch prune
 
 | Command | Purpose |
 | --- | --- |
-| `rig init` | Create `.rig/config.yaml`, `.rig/instructions/rig.md`, `.rig/runs/`, and managed `AGENTS.md` / `CLAUDE.md` Rig blocks. |
+| `rig init` | Create `.rig/config.yaml`, `.rig/instructions/rig.md`, `.rig/runs/`, and a managed `AGENTS.md` Rig block. |
 | `rig init --reset config` | Back up and recreate `.rig/config.yaml`. |
 | `rig init --reset instructions` | Back up and recreate `.rig/instructions/rig.md`. |
 | `rig init --reset all` / `--force` | Reset both Rig-owned generated files. |
