@@ -18,7 +18,7 @@ def test_top_level_help_shows_new_command_shape(
 
     assert exc_info.value.code == 0
     output = capsys.readouterr().out
-    assert "{init,delegate,patch,history,doctor,harness,mcp}" in output
+    assert "{init,delegate,patch,history,doctor,harness,manager,mcp}" in output
     assert "worktree" not in output
     assert "suggest" not in output
     assert "manual" not in output
@@ -284,3 +284,69 @@ def test_deleted_commands_are_not_registered() -> None:
         with pytest.raises(SystemExit) as exc_info:
             parser.parse_args([command])
         assert exc_info.value.code == 2
+
+
+def _write_env_yaml(root: Path, body: str) -> None:
+    (root / ".rig").mkdir(parents=True, exist_ok=True)
+    (root / ".rig" / "env.yaml").write_text(body, encoding="utf-8")
+
+
+def test_manager_status_reports_configured_managers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _write_env_yaml(
+        tmp_path,
+        """version: 1
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: definitely-missing-apm
+    hint: "Install APM or remove this manager from .rig/env.yaml."
+    required_files:
+      - path: apm.yml
+        label: APM manifest
+        hint: "Create apm.yml or remove this manager from .rig/env.yaml."
+""",
+    )
+
+    assert cli.main(["manager", "status"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Rig agent asset managers" in output
+    assert "APM" in output
+    assert "[optional]" in output
+    assert "APM manifest" in output
+
+
+def test_manager_status_reports_missing_env_yaml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["manager", "status"]) == 0
+
+    output = capsys.readouterr().out
+    assert ".rig/env.yaml not found" in output
+
+
+def test_manager_status_supports_json_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _write_env_yaml(
+        tmp_path,
+        """version: 1
+agent_asset_managers:
+  - id: apm
+    label: APM
+    command: definitely-missing-apm
+""",
+    )
+
+    assert cli.main(["manager", "status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert [manager["id"] for manager in data["managers"]] == ["apm"]
+    assert data["managers"][0]["status"] == "optional"
+    assert data["warnings"] == []

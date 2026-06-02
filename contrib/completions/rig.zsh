@@ -9,6 +9,7 @@ _rig() {
     'history:list and inspect runs'
     'doctor:diagnose the local Rig setup'
     'harness:show companion Codex harness guidance'
+    'manager:inspect configured agent asset managers'
     'mcp:expose Rig as MCP tools'
   )
 
@@ -44,6 +45,11 @@ _rig() {
     return
   fi
 
+  if [[ "$words[2]" == "manager" && "$words[3]" == "status" ]]; then
+    _arguments '--json[print JSON output]'
+    return
+  fi
+
   case "$words[2]" in
     patch)
       local -a patch_commands
@@ -59,6 +65,11 @@ _rig() {
       _arguments \
         '--json[print JSON output]' \
         ':history command:(show)'
+      ;;
+    manager)
+      local -a manager_commands
+      manager_commands=('status:show configured agent asset manager status')
+      _describe 'manager command' manager_commands
       ;;
     mcp)
       local -a mcp_commands

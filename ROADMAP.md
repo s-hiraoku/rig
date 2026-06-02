@@ -135,6 +135,13 @@ Potential harness-environment diagnostics:
 - `AGENTS.md` or equivalent instruction file present
 - Rig snippet appears to be included
 
+Implemented:
+
+- `rig manager status` reads `.rig/env.yaml`, reports whether each declared
+  agent asset manager is installed, runs any configured availability check, and
+  lists missing required files with their hints.
+- `rig manager status --json` emits the same report for CI.
+
 ## Harness Environment Bootstrap
 
 Many users have a preferred AI development harness: CLIs, package managers,

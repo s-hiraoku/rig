@@ -109,6 +109,7 @@ Core commands:
 | `rig history show <run-id\|latest>` | Show one run's metadata and result. |
 | `rig doctor` | Check the local Rig setup. |
 | `rig harness` | Show companion `codex-harnesses` guidance for AGENTS templates, skills, hooks, policies, ledgers, and verification scripts. |
+| `rig manager status` | Report configured agent asset managers declared in `.rig/env.yaml`. |
 | `rig mcp serve` | Expose Rig as MCP tools for MCP-native parent agents. |
 
 `rig delegate` and `rig patch create` support `--task`, `--task-file`,

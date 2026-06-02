@@ -8,7 +8,12 @@ from pathlib import Path
 
 from rig.adapters.exec import AgentCommandNotFoundError
 from rig.config import ConfigError
-from rig.env_doctor import build_doctor_report, format_doctor_report
+from rig.env_doctor import (
+    build_doctor_report,
+    build_manager_status_report,
+    format_doctor_report,
+    format_manager_status_report,
+)
 from rig.harnesses import (
     format_harness_guide,
     get_harness_guide,
@@ -97,6 +102,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     harness_parser.add_argument("--json", action="store_true", help="Print JSON output")
 
+    manager_parser = subparsers.add_parser(
+        "manager", help="Inspect configured agent asset managers"
+    )
+    manager_subparsers = manager_parser.add_subparsers(
+        dest="manager_command", required=True
+    )
+    manager_status_parser = manager_subparsers.add_parser(
+        "status", help="Show configured agent asset manager status"
+    )
+    manager_status_parser.add_argument(
+        "--json", action="store_true", help="Print JSON output"
+    )
+
     mcp_parser = subparsers.add_parser("mcp", help="Expose Rig as MCP tools")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
     mcp_subparsers.add_parser("serve", help="Run the Rig MCP server over stdio")
@@ -180,6 +198,8 @@ def main(argv: list[str] | None = None) -> int:
             return env_doctor(Path.cwd(), json_output=args.json)
         if args.command == "harness":
             return show_harness(args)
+        if args.command == "manager" and args.manager_command == "status":
+            return show_manager_status(Path.cwd(), json_output=args.json)
         if args.command == "mcp" and args.mcp_command == "serve":
             from rig.mcp_server import serve_mcp
 
@@ -396,6 +416,15 @@ def show_harness(args: argparse.Namespace) -> int:
         print(json.dumps(harness_guide_payload(guide), indent=2, ensure_ascii=False))
     else:
         print(format_harness_guide(guide), end="")
+    return 0
+
+
+def show_manager_status(cwd: Path, *, json_output: bool = False) -> int:
+    report = build_manager_status_report(cwd)
+    if json_output:
+        print(json.dumps(dataclasses.asdict(report), indent=2, ensure_ascii=False))
+        return 0
+    print(format_manager_status_report(report), end="")
     return 0
 
 
